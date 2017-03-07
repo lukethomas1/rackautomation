@@ -1,45 +1,26 @@
 #!/usr/bin/env python3
-import json
+
+# Local imports
 import objects
-import pyrebase
+import functions
 
+functions.testparamiko()
 
-config = {
-    "apiKey": "AIzaSyBo7i1pJOOyTbMLwOvM4pabOqrGwTEzgCc",
-    "authDomain": "gvdb-c4e0c.firebaseapp.com",
-    "databaseURL": "https://gvdb-c4e0c.firebaseio.com",
-    "storageBucket": "gvdb-c4e0c.appspot.com",
-}
-firebase = pyrebase.initialize_app(config);
-db = firebase.database()
-saves = db.child("saves").get().val()
+# Get user input for which save file to pull down from firebase
+#save_file = input("Input Save File Name: ")
+#topo_path = "./topologies/" + save_file + "/"
 
-save_file = input("Input Save File Name: ")
+# Get the save from firebase
+#json_string = functions.get_json_from_firebase(save_file)
 
-json_string = saves[save_file]['string']
+#subnets, nodes = functions.convert_json_to_object(json_string)
 
-load = json.loads(json_string)
+#val = functions.create_save_dir(topo_path)
 
-subnets = []
-nodes = []
+#functions.write_platform_xmls(subnets, nodes, topo_path)
 
-for index in range(len(load)):
-    if('name' in load[0]):
-        subnets.append(load.pop(0))
-    else:
-        nodes.append(load.pop(0))
-print()
-print("---------------------")
+#functions.copy_default_config("./default_config", topo_path)
 
-print()
-print("Subnet Names:")
-for subnet in subnets:
-    print(str(subnet['name']))
+#print("Calling bash script..")
 
-print()
-print("Node Names:")
-for node in nodes:
-    print(str(node['id']))
-
-print()
-print("Thats all folks")
+#subprocess.call("./testscript.sh")
