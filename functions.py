@@ -1,9 +1,10 @@
 import json
-import pyrebase
 import objects
 import os
-import shutil
 import paramiko
+import pyrebase
+import shutil
+import subprocess
 
 def testparamiko():
     key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
@@ -26,6 +27,10 @@ def copy_default_config(config_path, destination_path):
             shutil.copy(full_file_name, destination_path)
 
 def convert_json_to_object(json_string):
+    # If the string is empty, return empty lists
+    if(not json_string):
+        return [],[]
+
     # Parse the json string that we got from firebase
     load = json.loads(json_string)
 
@@ -42,8 +47,23 @@ def convert_json_to_object(json_string):
             nodes.append(load.pop(0))
     return subnets, nodes
 
+def create_rackspace_instances(num_instances):
+    print("Creating " + str(num_instances) + " Rackspace nodes")
+    for index in range(1, num_instances + 1):
+        node_name = 'node-' + str(index)
+        print("Creating " + node_name);
+        # Long command, just a bunch of arguments, see 'rack -h' for more info
+        subprocess.Popen(['rack', 'servers', 'instance',
+            'create', '--name', node_name, '--image-name',
+            'Encryptionupdate', '--flavor-name', '4 GB General Purpose v1',
+            'region', 'DFW', '--keypair', 'mykey', '--networks',
+            '00000000-0000-0000-0000-000000000000,3a95350a-676c-4280-9f08-aeea40ffb32b'], stdout=subprocess.PIPE)
+
 def create_save_dir(folder_path):
     os.makedirs(folder_path, exist_ok=True)
+
+def execute_bash_script(script_path):
+    subprocess.call(script_path);
 
 def fill_platform_template(xml_string, node_index):
     # Replace "NEMID" with the node index
@@ -65,7 +85,12 @@ def get_json_from_firebase(save_file):
     saves = db.child("saves").get().val()
 
     # Return the save JSON from firebase
-    return saves[save_file]['string']
+    returnval = "";
+    try:
+        returnval = saves[save_file]['string']
+    except:
+        print("Non-existant save file")
+    return returnval
 
 def print_subnets_and_nodes(subnets, nodes):
     print("Subnet Names:")
@@ -77,6 +102,35 @@ def print_subnets_and_nodes(subnets, nodes):
     for node in nodes:
         print(str(node['id']))
     print()
+
+def remote_start_gvine():
+    command = "cd ~/test/emane/gvine/node/ && java -jar jvine.jar $i 500 >> log_node$i.txt"
+
+    key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect('23.253.108.97', username="emane-01", pkey=key)
+
+    stdin, stdout, stderr = ssh.exec_command(command)
+    print(stdout.readlines())
+    ssh.close()
+    
+
+def write_emane_start_stop_scripts(save_folder, num_instances):
+    header = '#!/bin/bash\n'
+    fmtstart = './democtl-host start "$@" ' + '"./topologies/"' + " " + save_folder + " " + str(num_instances)
+    fmtstop = './democtl-host stop "$@" ' + '"./topologies/"' + " " + save_folder + " " + str(num_instances)
+    topo_path = "./topologies/" + save_folder + "/"
+
+    start = open(topo_path + "emane_start.sh", "w")
+    start.write(header)
+    start.write(fmtstart)
+    start.close()
+    
+    stop = open(topo_path + "emane_stop.sh", "w")
+    stop.write(header)
+    stop.write(fmtstop)
+    stop.close()
 
 def write_platform_xmls(subnets, nodes, topo_path):
     # Open the xml template and read its contents
