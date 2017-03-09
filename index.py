@@ -4,7 +4,7 @@
 import objects
 import functions
 
-functions.remote_start_gvine()
+#functions.remote_start_gvine()
 
 # Get user input for which save file to pull down from firebase
 save_file = input("Input Save File Name: ")

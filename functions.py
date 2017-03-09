@@ -132,9 +132,12 @@ def write_emane_start_stop_scripts(save_folder, num_instances):
     stop.write(fmtstop)
     stop.close()
 
+    # Change permission to executable
+    subprocess.Popen(["chmod", "+x", topo_path + "emane_start.sh", topo_path + "emane_stop.sh"])
+
 def write_platform_xmls(subnets, nodes, topo_path):
     # Open the xml template and read its contents
-    template = open("platform_template.xml")
+    template = open("./default_config/platform_template.xml")
     contents = template.read()
     template.close()
 
