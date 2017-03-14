@@ -17,5 +17,5 @@
       <param name="frequencyofinterest" value=".4G"/> 
       <param name="frequency" value=".4G"/>
     </phy>
-    </nem>
+  </nem>
 </platform>

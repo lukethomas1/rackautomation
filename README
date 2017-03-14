@@ -1,0 +1,60 @@
+START STEPS:
+
+1. Create cloud instances on rackspace (NECESSARY)
+- Can use command "python3 index.py", will prompt for a save file created from
+  web app, which will then automatically generate the number of nodes necessary
+
+- Can use "integrated.sh createinstances" method, must input number
+  of nodes
+
+- Will take some time (~5 minutes)
+
+
+2. Run iplist.sh (NECESSARY)
+- This writes to ~/.ssh/config and pssh-hosts.txt
+
+- Should take no longer than a couple seconds
+
+
+3. Start emane on each cloud instance on rackspace (NECESSARY)
+- "./integrated.sh emane_start '# of nodes' 'emane folder #'"
+
+- Folder # is located on each cloud instance at ~/GrapeVine
+
+- Ex. "./integrated.sh emane_start 13 13" (13 nodes, folder number 13)
+
+
+4. Synchronize cloud instances time (NECESSARY)
+- "./integrated.sh synchronize"
+
+
+5. Start GrapeVine on cloud instances (NECESSARY)
+- "./start_emane_java_10_rack.sh"
+
+- Must have setup_emane_java_10_rack.sh and start_emane_java_10_rack.sh in the
+  same folder
+
+
+6. Success! You should now be able to send messages between nodes.
+
+
+STOP STEPS:
+
+1. To collect EMANE statistics after sending messages with GrapeVine use
+   "./integrated.sh emanestat '# of nodes'"
+
+
+2. To import EMANE statistics to GvineStatisticDatabase and copy emane statistic
+table to the common folder: (./integrated  logfilecopy   “number of nodes”
+imports the drop packet time to sql db), imports the emane stats to common
+directory
+
+3. To download all statistics and log files to your local machine : (./integrated
+get  “complete path to the destination folder”. 
+
+4. To stop EMANE (./integrated  emane_stop  “EMANE folder number”)
+
+5. To delete files and wipe out the system to start new run: ( ./integrated
+delete  “EMANE folder number”)
+
+6. TO PLOT run query.py -> merge.py

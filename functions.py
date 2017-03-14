@@ -5,18 +5,7 @@ import paramiko
 import pyrebase
 import shutil
 import subprocess
-
-def testparamiko():
-    key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    print("connecting")
-    ssh.connect('23.253.108.97', username="emane-01", pkey=key)
-    print("connected")
-
-    stdin, stdout, stderr = ssh.exec_command("uptime")
-    print(stdout.readlines())
-    ssh.close()
+import time
 
 def copy_default_config(config_path, destination_path):
     # Get name of all files in default config directory
@@ -47,7 +36,15 @@ def convert_json_to_object(json_string):
             nodes.append(load.pop(0))
     return subnets, nodes
 
-def create_rackspace_instances(num_instances):
+
+def create_file_from_list(file_path, contents):
+  file = open(file_path, 'w')
+  for line in contents:
+    file.write(line + "\n")
+  file.close()
+
+
+def create_rackspace_instances(num_instances, image_name):
     print("Creating " + str(num_instances) + " Rackspace nodes")
     for index in range(1, num_instances + 1):
         node_name = 'node-' + str(index)
@@ -55,9 +52,10 @@ def create_rackspace_instances(num_instances):
         # Long command, just a bunch of arguments, see 'rack -h' for more info
         subprocess.Popen(['rack', 'servers', 'instance',
             'create', '--name', node_name, '--image-name',
-            'Encryptionupdate', '--flavor-name', '4 GB General Purpose v1',
-            'region', 'DFW', '--keypair', 'mykey', '--networks',
+            image_name, '--flavor-name', '4 GB General Purpose v1',
+            '--region', 'DFW', '--keypair', 'mykey', '--networks',
             '00000000-0000-0000-0000-000000000000,3a95350a-676c-4280-9f08-aeea40ffb32b'], stdout=subprocess.PIPE)
+
 
 def create_save_dir(folder_path):
     os.makedirs(folder_path, exist_ok=True)
@@ -92,28 +90,92 @@ def get_json_from_firebase(save_file):
         print("Non-existant save file")
     return returnval
 
-def print_subnets_and_nodes(subnets, nodes):
-    print("Subnet Names:")
-    for subnet in subnets:
-        print(str(subnet['name']))
+# Returns a list
+def get_rack_ip_list():
+  process = subprocess.Popen(['rack', 'servers', 'instance', 'list', '--fields',
+  'publicipv4'], stdout=subprocess.PIPE)
+  output = process.stdout.read().decode().splitlines()
+  return output
 
-    print()
-    print("Node Names:")
-    for node in nodes:
-        print(str(node['id']))
-    print()
+def print_subnets_and_nodes(subnets, nodes):
+  print("Subnet Names:")
+  for subnet in subnets:
+      print(str(subnet['name']))
+
+  print()
+  print("Node Names:")
+  for node in nodes:
+      print(str(node['id']))
+  print()
+
+
+# Copy default config to topology directory
+def remote_copy_default_config(save_folder):
+  subprocess.Popen(['pssh', '-h', 'pssh-hosts', '-l', 'emane-01', '-i', '-P',
+  'cp ~/GrapeVine/default_config/* ~/GrapeVine/topologies/' + save_folder], stdout=subprocess.DEVNULL)
+
+
+def remote_copy_emane_scripts(save_folder, num_instances, iplist):
+  for node_index in range(1, num_instances + 1):
+    node_ip = iplist[num_instances - node_index]
+    start_dir = './topologies/' + save_folder + '/emane_start.sh'
+    stop_dir = './topologies/' + save_folder + 'emane_stop.sh'
+    to_dir = 'root@' + node_ip + ':/home/emane-01/GrapeVine/topologies/' + save_folder
+    subprocess.Popen(['scp', start_dir, to_dir])
+    subprocess.Popen(['scp', stop_dir, to_dir])
+    
+
+def remote_copy_platform_xmls(save_folder, num_instances, iplist):
+  for node_index in range(1, num_instances + 1):
+    node_ip = iplist[num_instances - node_index]
+    from_dir = './topologies/' + save_folder + '/platform' + str(node_index) + '.xml'
+    to_dir = 'root@' + node_ip + ':/home/emane-01/GrapeVine/topologies/' + save_folder
+    subprocess.Popen(['scp', from_dir, to_dir], stdout=subprocess.PIPE)
+
+
+def remote_create_dirs(save_folder):
+  # Make topologies directory
+  subprocess.Popen(['pssh', '-h', 'pssh-hosts', '-l', 'emane-01', '-i', '-P',
+  'cd ~/GrapeVine && mkdir topologies'], stdout=subprocess.DEVNULL)
+
+  # Make this topology directory
+  subprocess.Popen(['pssh', '-h', 'pssh-hosts', '-l', 'emane-01', '-i', '-P',
+  'cd ~/GrapeVine/topologies && mkdir ' + save_folder], stdout=subprocess.DEVNULL) 
+
+
+def remote_delete_topology(save_folder):
+  subprocess.Popen(['pssh', '-h', 'pssh-hosts', '-l', 'emane-01', '-i', '-P',
+  'rm -r ~/GrapeVine/topologies/' + save_folder], stdout=subprocess.DEVNULL)
+
+
+def remote_start_emane(save_folder):
+  subprocess.Popen(['pssh', '-h', 'pssh-hosts', '-l', 'emane-01', '-i', '-P',
+  'cd ~/GrapeVine/topologies/' + save_folder + ' && sudo ./emane_start.sh'],
+  stdout=subprocess.PIPE)
 
 def remote_start_gvine():
-    command = "cd ~/test/emane/gvine/node/ && java -jar jvine.jar $i 500 >> log_node$i.txt"
+  exit()
+  command = "cd ~/test/emane/gvine/node/ && java -jar jvine.jar $i 500 >> log_node$i.txt"
 
-    key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect('23.253.108.97', username="emane-01", pkey=key)
+  key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+  ssh = paramiko.SSHClient()
+  ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+  ssh.connect('23.253.108.97', username="emane-01", pkey=key)
 
-    stdin, stdout, stderr = ssh.exec_command(command)
-    print(stdout.readlines())
-    ssh.close()
+  stdin, stdout, stderr = ssh.exec_command(command)
+  print(stdout.readlines())
+  ssh.close()
+
+
+def synchronize():
+  subprocess.Popen(['pssh', '-h', 'pssh-hosts', '-l', 'emane-01', '-i', '-P',
+  'sudo service ntp stop'], stdout=subprocess.DEVNULL)
+  time.sleep(1)
+  subprocess.Popen(['pssh', '-h', 'pssh-hosts', '-l', 'emane-01', '-i', '-P',
+  'sudo ntpd -gq'], stdout=subprocess.DEVNULL)
+  time.sleep(1)
+  subprocess.Popen(['pssh', '-h', 'pssh-hosts', '-l', 'emane-01', '-i', '-P',
+  'sudo service ntp start'], stdout=subprocess.DEVNULL)
     
 
 def write_emane_start_stop_scripts(save_folder, num_instances):
