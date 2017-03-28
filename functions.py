@@ -62,8 +62,7 @@ def create_save_dir(folder_path):
     os.makedirs(folder_path, exist_ok=True)
 
 
-def edit_ssh_config(iplist):
-  size = len(iplist)
+def edit_ssh_config(num_nodes):
   fmt = 'Host {nodename}\nHostName {nodeaddress}\nUser emane-01\nIdentityFile ~/.ssh/id_rsa\n\n'
   file = open("/home/joins/.ssh/config", 'w')
 
@@ -71,7 +70,7 @@ def edit_ssh_config(iplist):
   'name,publicipv4'], stdout=subprocess.PIPE)
   pairs = process.stdout.read().decode().splitlines()[1:]
 
-  for index in range(0, size):
+  for index in range(0, num_nodes):
     pair = pairs[index].split('\t')
     name = pair[0]
     address = pair[1]
@@ -205,6 +204,18 @@ def remote_start_gvine():
   stdin, stdout, stderr = ssh.exec_command(command)
   print(stdout.readlines())
   ssh.close()
+
+
+def sort_iplist(iplist):
+  sortlist = []
+  process = subprocess.Popen(['rack', 'servers', 'instance', 'list', '--fields',
+  'name'], stdout=subprocess.PIPE)
+  output = process.stdout.read().decode().splitlines()[1:]
+
+  for index in range(1, len(iplist) + 1):
+    item_index = output.index("node-" + str(index))
+    sortlist.append(iplist[item_index])
+  return sortlist
 
 
 def synchronize():

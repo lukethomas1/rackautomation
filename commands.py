@@ -9,8 +9,9 @@ import time
 def generate_iplist():
   # Get the ips of the nodes and write to pssh-hosts for pssh command
   iplist = functions.get_rack_ip_list()[1:]
-  functions.edit_ssh_config(iplist)
-  functions.create_file_from_list("./pssh-hosts", iplist)
+  functions.edit_ssh_config(len(iplist))
+  sortedlist = functions.sort_iplist(iplist)
+  functions.create_file_from_list("./pssh-hosts", sortedlist)
   return iplist
 
 
