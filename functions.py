@@ -45,7 +45,8 @@ def create_file_from_list(file_path, contents):
 
 
 def create_rackspace_instances(num_instances, image_name):
-    print("Creating " + str(num_instances) + " Rackspace nodes")
+    print("Creating " + str(num_instances) + " Rackspace nodes with image '"
+        + image_name + "'")
     for index in range(1, num_instances + 1):
         node_name = 'node-' + str(index)
         print("Creating " + node_name);
@@ -111,26 +112,46 @@ def print_subnets_and_nodes(subnets, nodes):
 
 # Copy default config to topology directory
 def remote_copy_default_config(save_folder):
+  subprocess.Popen(['pscp', '-r', '-h', 'pssh-hosts', '-l', 'emane-01', './default_config/',
+    '/home/emane-01/GrapeVine/topologies/' + save_folder], stdout=subprocess.DEVNULL)
+  print("Sleep 5 seconds")
+  time.sleep(5)
   subprocess.Popen(['pssh', '-h', 'pssh-hosts', '-l', 'emane-01', '-i', '-P',
-  'cp ~/GrapeVine/default_config/* ~/GrapeVine/topologies/' + save_folder], stdout=subprocess.DEVNULL)
+    'cd ~/GrapeVine/topologies/' + save_folder + ' && cp ./default_config/* .'],
+    stdout=subprocess.DEVNULL)
 
 
-def remote_copy_emane_scripts(save_folder, num_instances, iplist):
+def remote_copy_emane_scripts(save_folder, iplist):
+  num_instances = len(iplist)
   for node_index in range(1, num_instances + 1):
     node_ip = iplist[num_instances - node_index]
     start_dir = './topologies/' + save_folder + '/emane_start.sh'
-    stop_dir = './topologies/' + save_folder + 'emane_stop.sh'
+    stop_dir = './topologies/' + save_folder + '/emane_stop.sh'
     to_dir = 'root@' + node_ip + ':/home/emane-01/GrapeVine/topologies/' + save_folder
     subprocess.Popen(['scp', start_dir, to_dir])
     subprocess.Popen(['scp', stop_dir, to_dir])
+    time.sleep(1)
     
 
-def remote_copy_platform_xmls(save_folder, num_instances, iplist):
+def remote_copy_platform_xmls(save_folder, iplist):
+  num_instances = len(iplist)
+  for node_index in range(1, num_instances + 1):
+    file_name = 'platform' + str(node_index) + '.xml'
+    node_ip = iplist[num_instances - node_index]
+    from_dir = './topologies/' + save_folder + '/' + file_name
+    to_dir = 'root@' + node_ip + ':/home/emane-01/GrapeVine/topologies/' + save_folder + "/platform.xml"
+    subprocess.Popen(['scp', from_dir, to_dir], stdout=subprocess.PIPE)
+    time.sleep(1)
+
+
+def remote_copy_scenario(save_folder, iplist):
+  num_instances = len(iplist)
   for node_index in range(1, num_instances + 1):
     node_ip = iplist[num_instances - node_index]
-    from_dir = './topologies/' + save_folder + '/platform' + str(node_index) + '.xml'
-    to_dir = 'root@' + node_ip + ':/home/emane-01/GrapeVine/topologies/' + save_folder
+    from_dir = './topologies/' + save_folder + '/scenario.eel'
+    to_dir = 'root@' + node_ip + ':/home/emane-01/GrapeVine/topologies/' + save_folder + "/scenario.eel"
     subprocess.Popen(['scp', from_dir, to_dir], stdout=subprocess.PIPE)
+    time.sleep(1)
 
 
 def remote_create_dirs(save_folder):
@@ -148,13 +169,13 @@ def remote_delete_topology(save_folder):
   'rm -r ~/GrapeVine/topologies/' + save_folder], stdout=subprocess.DEVNULL)
 
 
-def remote_start_emane(save_folder):
+def remote_run_emane(save_path, file):
   subprocess.Popen(['pssh', '-h', 'pssh-hosts', '-l', 'emane-01', '-i', '-P',
-  'cd ~/GrapeVine/topologies/' + save_folder + ' && sudo ./emane_start.sh'],
-  stdout=subprocess.PIPE)
+  'cd ' + save_path + ' && sudo ./' + file],
+  stdout=subprocess.DEVNULL)
+
 
 def remote_start_gvine():
-  exit()
   command = "cd ~/test/emane/gvine/node/ && java -jar jvine.jar $i 500 >> log_node$i.txt"
 
   key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
@@ -180,8 +201,8 @@ def synchronize():
 
 def write_emane_start_stop_scripts(save_folder, num_instances):
     header = '#!/bin/bash\n'
-    fmtstart = './democtl-host start "$@" ' + '"./topologies/"' + " " + save_folder + " " + str(num_instances)
-    fmtstop = './democtl-host stop "$@" ' + '"./topologies/"' + " " + save_folder + " " + str(num_instances)
+    fmtstart = './democtl-host start "$@" ' + '"~/GrapeVine/topologies/"' + " " + save_folder + " " + str(num_instances)
+    fmtstop = './democtl-host stop "$@" ' + '"~/GrapeVine/topologies/"' + " " + save_folder + " " + str(num_instances)
     topo_path = "./topologies/" + save_folder + "/"
 
     start = open(topo_path + "emane_start.sh", "w")
@@ -199,7 +220,7 @@ def write_emane_start_stop_scripts(save_folder, num_instances):
 
 def write_platform_xmls(subnets, nodes, topo_path):
     # Open the xml template and read its contents
-    template = open("./default_config/platform_template.xml")
+    template = open("./templates/platform_template.xml")
     contents = template.read()
     template.close()
 

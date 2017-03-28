@@ -8,12 +8,14 @@ if(len(sys.argv) != 2):
     exit()
 
 arg = sys.argv[1]
-if(arg == "initialize"):
+if(arg == "init"):
     commands.initialize()
+elif(arg == "iplist"):
+    commands.iplist()
 elif(arg == "setup"):
     commands.setup()
-elif(arg == "run"):
-    commands.run()
+elif(arg == "start"):
+    commands.start()
 elif(arg == "stats"):
     commands.stats()
 elif(arg == "stop"):

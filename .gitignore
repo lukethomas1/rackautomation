@@ -1,2 +1,4 @@
-topologies/
 Scripts/
+__pycache__/
+topologies/
+pssh-hosts

@@ -6,6 +6,12 @@ import objects
 import time
 
 # Functions are ordered in usage order
+def generate_iplist():
+  # Get the ips of the nodes and write to pssh-hosts for pssh command
+  iplist = functions.get_rack_ip_list()[1:]
+  functions.create_file_from_list("./pssh-hosts", iplist)
+  return iplist
+
 
 def initialize():
   # Get user input for which save file to pull down from firebase
@@ -19,13 +25,12 @@ def initialize():
   # Create rackspace instances
   num_instances = len(nodes)
   image_name = "crypto"
-  functions.create_rackspace_instances(num_instances, image_name)
+  img2 = "Encryptionupdate"
+  functions.create_rackspace_instances(num_instances, img2)
 
 
 def setup():
-  # Get the ips of the nodes and write to pssh-hosts for pssh command
-  iplist = functions.get_rack_ip_list()
-  functions.create_file_from_list("./pssh-hosts", iplist[1:])
+  iplist = generate_iplist()
 
   # Get user input for which save file to pull down from firebase
   save_file = input("Input Save File Name: ")
@@ -41,16 +46,26 @@ def setup():
   functions.write_emane_start_stop_scripts(save_file, len(nodes))
 
   # Use parallel ssh to modify each node on the cloud
+  print("Creating remote directories")
   functions.remote_create_dirs(save_file)
+  time.sleep(2)
+  print("Copying default config")
   functions.remote_copy_default_config(save_file)
-  functions.remote_copy_platform_xmls(save_file, len(nodes), iplist[1:])
-  functions.remote_copy_emane_scripts(save_file, len(nodes), iplist[1:])
+  time.sleep(2)
+  print("Copying scenario.eel")
+  functions.remote_copy_scenario(save_file, iplist)
+  print("Copying platform xmls")
+  functions.remote_copy_platform_xmls(save_file, iplist)
+  print("Copying emane scripts")
+  functions.remote_copy_emane_scripts(save_file, iplist)
 
 
-def run():
+def start():
   save_file = input("Input Save File Name: ")
+  save_path = '~/GrapeVine/topologies/' + save_file
+  file = 'emane_start.sh'
   functions.synchronize()
-  functions.remote_start_emane(save_file)
+  functions.remote_run_emane(save_path, file)
   #functions.remote_start_gvine()
 
 
@@ -59,7 +74,10 @@ def stats():
 
 
 def stop():
-  print("stop command not implemented yet")
+  save_file = input("Input Save File Name: ")
+  save_path = '~/GrapeVine/topologies/' + save_file
+  file = 'emane_stop.sh'
+  functions.remote_run_emane(save_path, file)
 
 
 def delete():
@@ -72,7 +90,8 @@ def usage():
   usage += "---------- USAGE ----------\n"
   usage += "python3 racksuite.py <command>\n\n"
   usage += "---------- COMMANDS ----------\n"
-  usage += "initialize\t\t create rackspace cloud instances\n"
+  usage += "init\t\t\t create rackspace cloud instances\n"
+  usage += "iplist\t\t\t update iplist and pssh-hosts"
   usage += "setup\t\t\t prepare XMLs, radio models, etc\n"
   usage += "run\t\t\t start emane and grapevine\n"
   usage += "stats\t\t\t save statistics\n"
