@@ -94,7 +94,7 @@ def usage():
   usage += "init\t\t\t create rackspace cloud instances\n"
   usage += "iplist\t\t\t update iplist and pssh-hosts\n"
   usage += "setup\t\t\t prepare XMLs, radio models, etc\n"
-  usage += "run\t\t\t start emane and grapevine\n"
+  usage += "start\t\t\t start emane and grapevine\n"
   usage += "stats\t\t\t save statistics\n"
   usage += "stop\t\t\t stop emane and grapevine\n"
   usage += "delete\t\t\t delete rackspace cloud instances\n"

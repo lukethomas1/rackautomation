@@ -70,12 +70,9 @@ def edit_ssh_config(iplist):
   process = subprocess.Popen(['rack', 'servers', 'instance', 'list', '--fields',
   'name,publicipv4'], stdout=subprocess.PIPE)
   pairs = process.stdout.read().decode().splitlines()[1:]
-  print(pairs)
 
   for index in range(0, size):
-    pair = pairs[index]
-    pair = pair.split('\t')
-    print(pair)
+    pair = pairs[index].split('\t')
     name = pair[0]
     address = pair[1]
     writestring = fmt.format(nodename=name, nodeaddress=address)
