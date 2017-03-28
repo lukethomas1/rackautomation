@@ -9,6 +9,7 @@ import time
 def generate_iplist():
   # Get the ips of the nodes and write to pssh-hosts for pssh command
   iplist = functions.get_rack_ip_list()[1:]
+  functions.edit_ssh_config(iplist)
   functions.create_file_from_list("./pssh-hosts", iplist)
   return iplist
 
@@ -91,7 +92,7 @@ def usage():
   usage += "python3 racksuite.py <command>\n\n"
   usage += "---------- COMMANDS ----------\n"
   usage += "init\t\t\t create rackspace cloud instances\n"
-  usage += "iplist\t\t\t update iplist and pssh-hosts"
+  usage += "iplist\t\t\t update iplist and pssh-hosts\n"
   usage += "setup\t\t\t prepare XMLs, radio models, etc\n"
   usage += "run\t\t\t start emane and grapevine\n"
   usage += "stats\t\t\t save statistics\n"

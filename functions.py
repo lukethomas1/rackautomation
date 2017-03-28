@@ -61,6 +61,26 @@ def create_rackspace_instances(num_instances, image_name):
 def create_save_dir(folder_path):
     os.makedirs(folder_path, exist_ok=True)
 
+
+def edit_ssh_config(iplist):
+  size = len(iplist)
+  fmt = 'Host {nodename}\nHostName {nodeaddress}\nUser emane-01\nIdentityFile ~/.ssh/id_rsa\n\n'
+  file = open("/home/joins/.ssh/config", 'w')
+
+  process = subprocess.Popen(['rack', 'servers', 'instance', 'list', '--fields',
+  'name,publicipv4'], stdout=subprocess.PIPE)
+  pairs = process.stdout.read().decode().splitlines()[1:]
+  print(pairs)
+
+  for index in range(0, size):
+    pair = pairs[index]
+    pair = pair.split('\t')
+    print(pair)
+    name = pair[0]
+    address = pair[1]
+    writestring = fmt.format(nodename=name, nodeaddress=address)
+    file.write(writestring)
+
 def execute_bash_script(script_path):
     subprocess.call(script_path);
 
@@ -91,12 +111,14 @@ def get_json_from_firebase(save_file):
         print("Non-existant save file")
     return returnval
 
+
 # Returns a list
 def get_rack_ip_list():
   process = subprocess.Popen(['rack', 'servers', 'instance', 'list', '--fields',
   'publicipv4'], stdout=subprocess.PIPE)
   output = process.stdout.read().decode().splitlines()
   return output
+
 
 def print_subnets_and_nodes(subnets, nodes):
   print("Subnet Names:")
