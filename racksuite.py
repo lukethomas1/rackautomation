@@ -22,5 +22,7 @@ elif(arg == "stop"):
     commands.stop()
 elif(arg == "delete"):
     commands.delete()
+elif(arg == "kill"):
+    commands.kill()
 else:
     commands.usage()

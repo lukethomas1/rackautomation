@@ -116,6 +116,22 @@ def get_rack_ip_list():
   return output
 
 
+# Returns a list
+def get_rack_name_list():
+  process = subprocess.Popen(['rack', 'servers', 'instance', 'list', '--fields',
+    'name'], stdout=subprocess.PIPE)
+  output = process.stdout.read().decode().splitlines()[1:]
+  return output
+
+
+def kill_all_instances():
+  names = get_rack_name_list()
+  for name in names:
+    process = subprocess.Popen(['rack', 'servers', 'instance', 'delete',
+      '--name', name], stdout=subprocess.PIPE)
+
+
+
 def print_subnets_and_nodes(subnets, nodes):
   print("Subnet Names:")
   for subnet in subnets:
@@ -141,8 +157,8 @@ def remote_copy_default_config(save_folder):
 
 def remote_copy_emane_scripts(save_folder, iplist):
   num_instances = len(iplist)
-  for node_index in range(1, num_instances + 1):
-    node_ip = iplist[num_instances - node_index]
+  for node_index in range(0, num_instances):
+    node_ip = iplist[node_index]
     start_dir = './topologies/' + save_folder + '/emane_start.sh'
     stop_dir = './topologies/' + save_folder + '/emane_stop.sh'
     to_dir = 'root@' + node_ip + ':/home/emane-01/GrapeVine/topologies/' + save_folder
@@ -153,9 +169,9 @@ def remote_copy_emane_scripts(save_folder, iplist):
 
 def remote_copy_platform_xmls(save_folder, iplist):
   num_instances = len(iplist)
-  for node_index in range(1, num_instances + 1):
-    file_name = 'platform' + str(node_index) + '.xml'
-    node_ip = iplist[num_instances - node_index]
+  for node_index in range(0, num_instances):
+    file_name = 'platform' + str(node_index + 1) + '.xml'
+    node_ip = iplist[node_index]
     from_dir = './topologies/' + save_folder + '/' + file_name
     to_dir = 'root@' + node_ip + ':/home/emane-01/GrapeVine/topologies/' + save_folder + "/platform.xml"
     subprocess.Popen(['scp', from_dir, to_dir], stdout=subprocess.PIPE)
@@ -164,8 +180,8 @@ def remote_copy_platform_xmls(save_folder, iplist):
 
 def remote_copy_scenario(save_folder, iplist):
   num_instances = len(iplist)
-  for node_index in range(1, num_instances + 1):
-    node_ip = iplist[num_instances - node_index]
+  for node_index in range(0, num_instances):
+    node_ip = iplist[node_index]
     from_dir = './topologies/' + save_folder + '/scenario.eel'
     to_dir = 'root@' + node_ip + ':/home/emane-01/GrapeVine/topologies/' + save_folder + "/scenario.eel"
     subprocess.Popen(['scp', from_dir, to_dir], stdout=subprocess.PIPE)

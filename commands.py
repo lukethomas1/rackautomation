@@ -12,7 +12,7 @@ def generate_iplist():
   functions.edit_ssh_config(len(iplist))
   sortedlist = functions.sort_iplist(iplist)
   functions.create_file_from_list("./pssh-hosts", sortedlist)
-  return iplist
+  return sortedlist
 
 
 def initialize():
@@ -33,6 +33,7 @@ def initialize():
 
 def setup():
   iplist = generate_iplist()
+  print(iplist)
 
   # Get user input for which save file to pull down from firebase
   save_file = input("Input Save File Name: ")
@@ -87,6 +88,10 @@ def delete():
   functions.remote_delete_topology(save_file)
 
 
+def kill():
+  functions.kill_all_instances()
+
+
 def usage():
   usage = ""
   usage += "---------- USAGE ----------\n"
@@ -98,6 +103,7 @@ def usage():
   usage += "start\t\t\t start emane and grapevine\n"
   usage += "stats\t\t\t save statistics\n"
   usage += "stop\t\t\t stop emane and grapevine\n"
-  usage += "delete\t\t\t delete rackspace cloud instances\n"
+  usage += "delete\t\t\t delete cloud topology folders\n"
+  usage += "kill\t\t\t kill rackspace cloud instances\n"
   usage += "help\t\t\t show this help message"
   print(usage)
