@@ -12,6 +12,8 @@ if(arg == "init"):
     commands.initialize()
 elif(arg == "iplist"):
     commands.generate_iplist()
+elif(arg == "configure"):
+    commands.configure()
 elif(arg == "setup"):
     commands.setup()
 elif(arg == "start"):

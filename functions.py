@@ -316,16 +316,16 @@ def write_platform_xmls2(subnets, nodes, topo_path):
 
 
 def write_scenario(subnets, nodes, topo_path):
-    # add nemid field to each node
-    for node_index in range(len(nodes)):
-        nodes[node_index]['nemid'] = node_index + 1
-
     scenario_file = open(topo_path + "scenario.eel", 'w')
-    for node_index in range(len(nodes)):
-        for subnet_index in range(len(subnets)):
-            if(nodes[node_index]['id'] in sub['members'].values()):
-                nemid = str((subnet_index + 1) * 100 + node_index + 1)
+    for subnet in subnets:
+        num_members = len(subnet['memberids'])
+        if(num_members > 1):
+            for x in range(num_members):
+                nemid = str(subnet['number'] * 100 + subnet['memberids'][x])
                 scenario_file.write("0.0 nem:" + str(nemid) + " pathloss")
-                for member in sub['members'].values():
-                    if(member != nodes[node_index]['id']):
-
+                for y in range(num_members):
+                    if(x != y):
+                        to_nemid = str(subnet['number'] * 100 + subnet['memberids'][y])
+                        pathloss_value = 89
+                        scenario_file.write(" nem:" + str(to_nemid) + "," + str(pathloss_value))
+                scenario_file.write("\n")

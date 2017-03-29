@@ -31,9 +31,7 @@ def initialize():
   functions.create_rackspace_instances(num_instances, img2)
 
 
-def setup():
-  iplist = generate_iplist()
-
+def configure():
   # Get user input for which save file to pull down from firebase
   save_file = input("Input Save File Name: ")
   topo_path = "./topologies/" + save_file + "/"
@@ -46,8 +44,14 @@ def setup():
   functions.create_save_dir(topo_path)
   functions.write_platform_xmls(subnets, nodes, topo_path)
   functions.write_emane_start_stop_scripts(save_file, len(nodes))
-  functions.write_scenario(subnets, nodes)
+  functions.write_scenario(subnets, nodes, topo_path)
 
+
+def setup():
+  # Write configuration files before sending to nodes
+  configure()
+
+  iplist = generate_iplist()
   # Use parallel ssh to modify each node on the cloud
   print("Creating remote directories")
   functions.remote_create_dirs(save_file)
@@ -99,7 +103,8 @@ def usage():
   usage += "---------- COMMANDS ----------\n"
   usage += "init\t\t\t create rackspace cloud instances\n"
   usage += "iplist\t\t\t update iplist and pssh-hosts\n"
-  usage += "setup\t\t\t prepare XMLs, radio models, etc\n"
+  usage += "configure\t\t\t write platform files, scenario.eel, emane scripts\n"
+  usage += "setup\t\t\t configure command + send to nodes on rackspace\n"
   usage += "start\t\t\t start emane and grapevine\n"
   usage += "stats\t\t\t save statistics\n"
   usage += "stop\t\t\t stop emane and grapevine\n"
