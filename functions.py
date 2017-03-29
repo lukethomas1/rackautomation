@@ -80,9 +80,22 @@ def edit_ssh_config(num_nodes):
 def execute_bash_script(script_path):
     subprocess.call(script_path);
 
+
+def fill_nem_template(xml_string, nem_id, subnet_addr, ipmask, freq):
+    xml_string = xml_string.replace("NEMID", nem_id)
+    xml_string = xml_string.replace("SUBNET", subnet_addr)
+    xml_string = xml_string.replace("IPMASK", ipmask)
+    xml_string = xml_string.replace("FREQ", freq)
+    return xml_string
+
+
 def fill_platform_template(xml_string, node_index):
     # Replace "NEMID" with the node index
     xml_string = xml_string.replace("NEMID", str(node_index))
+    return xml_string
+def fill_platform_template2(xml_string, nem_string):
+    # Replace "NEMID" with the node index
+    xml_string = xml_string.replace("NEMSGOHERE", nem_string)
     return xml_string
 
 def get_json_from_firebase(save_file):
@@ -150,9 +163,6 @@ def remote_copy_default_config(save_folder):
     '/home/emane-01/GrapeVine/topologies/' + save_folder], stdout=subprocess.DEVNULL)
   print("Sleep 5 seconds")
   time.sleep(5)
-  subprocess.Popen(['pssh', '-h', 'pssh-hosts', '-l', 'emane-01', '-i', '-P',
-    'cd ~/GrapeVine/topologies/' + save_folder + ' && cp ./default_config/* .'],
-    stdout=subprocess.DEVNULL)
 
 
 def remote_copy_emane_scripts(save_folder, iplist):
@@ -276,3 +286,34 @@ def write_platform_xmls(subnets, nodes, topo_path):
         new_xml = open(path, "w")
         new_xml.write(fill_platform_template(contents, index))
         new_xml.close()
+
+
+def write_platform_xmls2(subnets, nodes, topo_path):
+  # Read templates
+  platform_template_file = open("./templates/test_template.xml", 'r')
+  platform_template = platform_template_file.read()
+  platform_template_file.close()
+  nem_template_file = open("./templates/nem_template.xml", 'r')
+  nem_template = nem_template_file.read()
+  nem_template_file.close()
+
+  print("Number of subnets: " + str(len(subnets)))
+
+  for node_index in range(len(nodes)):
+    filled_nem = ""
+    for subnet_index in range(len(subnets)):
+      sub = subnets[subnet_index]
+      if(nodes[node_index]['id'] in sub['members'].values()):
+        nemid = str(subnet_index * 100 + node_index + 1)
+        subaddr = sub['addr']
+        mask = "255.192.0.0"
+        freq = ".4G"
+        filled_nem += fill_nem_template(nem_template, nemid, subaddr, mask, freq)
+    filled_platform = fill_platform_template2(platform_template, filled_nem)
+    file = open(topo_path + "platform" + str(node_index + 1) + ".xml", 'w')
+    file.write(filled_platform)
+    file.close()
+
+
+def write_scenario(subnets, nodes, topo_path):
+    print("derp")

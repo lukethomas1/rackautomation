@@ -33,7 +33,6 @@ def initialize():
 
 def setup():
   iplist = generate_iplist()
-  print(iplist)
 
   # Get user input for which save file to pull down from firebase
   save_file = input("Input Save File Name: ")
@@ -47,6 +46,7 @@ def setup():
   functions.create_save_dir(topo_path)
   functions.write_platform_xmls(subnets, nodes, topo_path)
   functions.write_emane_start_stop_scripts(save_file, len(nodes))
+  functions.write_scenario(subnets, nodes)
 
   # Use parallel ssh to modify each node on the cloud
   print("Creating remote directories")

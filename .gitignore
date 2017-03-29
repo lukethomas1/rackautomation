@@ -1,6 +1,12 @@
+# Ignore these
 Scripts/
 __pycache__/
 topologies/
 pssh-hosts
+test.py
+
+# Ignore all files that start with .
 .*
+
+# But dont ignore .gitignore
 !.gitignore

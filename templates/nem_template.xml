@@ -1,0 +1,11 @@
+<nem id="NEMID" definition="ieee80211abgnem.xml">
+  <transport definition="transvirtual.xml">
+    <param name="address" value="SUBNET.NEMID"/>
+    <param name="mask" value="IPMASK"/>
+  </transport>
+  <phy>
+    <param name="frequencyofinterest" value="FREQ"/> 
+    <param name="frequency" value="FREQ"/>
+  </phy>
+</nem>
+
