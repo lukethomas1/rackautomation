@@ -304,7 +304,7 @@ def write_platform_xmls2(subnets, nodes, topo_path):
     for subnet_index in range(len(subnets)):
       sub = subnets[subnet_index]
       if(nodes[node_index]['id'] in sub['members'].values()):
-        nemid = str(subnet_index * 100 + node_index + 1)
+        nemid = str((subnet_index + 1) * 100 + node_index + 1)
         subaddr = sub['addr']
         mask = "255.192.0.0"
         freq = ".4G"
@@ -316,4 +316,16 @@ def write_platform_xmls2(subnets, nodes, topo_path):
 
 
 def write_scenario(subnets, nodes, topo_path):
-    print("derp")
+    # add nemid field to each node
+    for node_index in range(len(nodes)):
+        nodes[node_index]['nemid'] = node_index + 1
+
+    scenario_file = open(topo_path + "scenario.eel", 'w')
+    for node_index in range(len(nodes)):
+        for subnet_index in range(len(subnets)):
+            if(nodes[node_index]['id'] in sub['members'].values()):
+                nemid = str((subnet_index + 1) * 100 + node_index + 1)
+                scenario_file.write("0.0 nem:" + str(nemid) + " pathloss")
+                for member in sub['members'].values():
+                    if(member != nodes[node_index]['id']):
+
