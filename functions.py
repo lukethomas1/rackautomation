@@ -89,7 +89,7 @@ def fill_nem_template(xml_string, nem_id, subnet_addr, ipmask, freq):
     return xml_string
 
 
-def fill_platform_template2(xml_string, nem_string):
+def fill_platform_template(xml_string, nem_string):
     # Replace "NEMID" with the node index
     xml_string = xml_string.replace("NEMSGOHERE", nem_string)
     return xml_string
