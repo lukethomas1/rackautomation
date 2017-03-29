@@ -89,14 +89,11 @@ def fill_nem_template(xml_string, nem_id, subnet_addr, ipmask, freq):
     return xml_string
 
 
-def fill_platform_template(xml_string, node_index):
-    # Replace "NEMID" with the node index
-    xml_string = xml_string.replace("NEMID", str(node_index))
-    return xml_string
 def fill_platform_template2(xml_string, nem_string):
     # Replace "NEMID" with the node index
     xml_string = xml_string.replace("NEMSGOHERE", nem_string)
     return xml_string
+
 
 def get_json_from_firebase(save_file):
     # Firebase Information
@@ -274,21 +271,8 @@ def write_emane_start_stop_scripts(save_folder, num_instances):
     # Change permission to executable
     subprocess.Popen(["chmod", "+x", topo_path + "emane_start.sh", topo_path + "emane_stop.sh"])
 
+
 def write_platform_xmls(subnets, nodes, topo_path):
-    # Open the xml template and read its contents
-    template = open("./templates/platform_template.xml")
-    contents = template.read()
-    template.close()
-
-    # Replace appropriate information and write new xml files for each node
-    for index in range(1, len(nodes) + 1):
-        path = topo_path + "platform" + str(index) + ".xml"
-        new_xml = open(path, "w")
-        new_xml.write(fill_platform_template(contents, index))
-        new_xml.close()
-
-
-def write_platform_xmls2(subnets, nodes, topo_path):
   # Read templates
   platform_template_file = open("./templates/test_template.xml", 'r')
   platform_template = platform_template_file.read()
@@ -297,20 +281,17 @@ def write_platform_xmls2(subnets, nodes, topo_path):
   nem_template = nem_template_file.read()
   nem_template_file.close()
 
-  print("Number of subnets: " + str(len(subnets)))
-
-  for node_index in range(len(nodes)):
+  for node in nodes:
     filled_nem = ""
-    for subnet_index in range(len(subnets)):
-      sub = subnets[subnet_index]
-      if(nodes[node_index]['id'] in sub['members'].values()):
-        nemid = str((subnet_index + 1) * 100 + node_index + 1)
-        subaddr = sub['addr']
+    for subnet in subnets:
+      if(node['number'] in subnet['memberids']):
+        nemid = str((subnet['number']) * 100 + node['number'])
+        subaddr = subnet['addr']
         mask = "255.192.0.0"
         freq = ".4G"
         filled_nem += fill_nem_template(nem_template, nemid, subaddr, mask, freq)
-    filled_platform = fill_platform_template2(platform_template, filled_nem)
-    file = open(topo_path + "platform" + str(node_index + 1) + ".xml", 'w')
+    filled_platform = fill_platform_template(platform_template, filled_nem)
+    file = open(topo_path + "platform" + str(node['number']) + ".xml", 'w')
     file.write(filled_platform)
     file.close()
 
