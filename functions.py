@@ -7,6 +7,10 @@ import shutil
 import subprocess
 import time
 
+def add_known_hosts(iplist):
+    for host in iplist:
+        subprocess.Popen(['ssh-keygen', '-f', '/home/joins/.ssh/known_hosts', '-R', host], stdout=subprocess.DEVNULL)
+
 def copy_default_config(config_path, destination_path):
     # Get name of all files in default config directory
     config_files = os.listdir(config_path)
@@ -81,9 +85,11 @@ def execute_bash_script(script_path):
     subprocess.call(script_path);
 
 
-def fill_nem_template(xml_string, nem_id, subnet_addr, ipmask, freq):
+def fill_nem_template(xml_string, nem_id, device_name, subnet_addr, node_addr, ipmask, freq):
     xml_string = xml_string.replace("NEMID", nem_id)
+    xml_string = xml_string.replace("DEVICENAME", device_name)
     xml_string = xml_string.replace("SUBNET", subnet_addr)
+    xml_string = xml_string.replace("NODE", node_addr)
     xml_string = xml_string.replace("IPMASK", ipmask)
     xml_string = xml_string.replace("FREQ", freq)
     return xml_string
@@ -116,6 +122,18 @@ def get_json_from_firebase(save_file):
     except:
         print("Non-existant save file")
     return returnval
+
+
+def get_nem_config(nem_template, subnet, node, device_num):
+    nemid = str((subnet['number']) * 100 + node['number'])
+    device_name = "emane" + device_num
+    subaddr = subnet['addr']
+    if(not subaddr):
+        subaddr = "10.0." + str(subnet['number'])
+    node_num = str(node['number'])
+    mask = "255.255.255.0"
+    freq = ".4G"
+    return fill_nem_template(nem_template, nemid, device_name, subaddr, node_num, mask, freq)
 
 
 # Returns a list
@@ -156,10 +174,9 @@ def print_subnets_and_nodes(subnets, nodes):
 
 # Copy default config to topology directory
 def remote_copy_default_config(save_folder):
-  subprocess.Popen(['pscp', '-r', '-h', 'pssh-hosts', '-l', 'emane-01', './default_config/',
-    '/home/emane-01/GrapeVine/topologies/' + save_folder], stdout=subprocess.DEVNULL)
-  print("Sleep 5 seconds")
-  time.sleep(5)
+    os.system("pscp -h pssh-hosts -l emane-01 ./default_config/* /home/emane-01/GrapeVine/topologies/" + save_folder)
+    print("Sleep 5 seconds")
+    time.sleep(5)
 
 
 def remote_copy_emane_scripts(save_folder, iplist):
@@ -283,13 +300,11 @@ def write_platform_xmls(subnets, nodes, topo_path):
 
   for node in nodes:
     filled_nem = ""
+    device_num = 0
     for subnet in subnets:
       if(node['number'] in subnet['memberids']):
-        nemid = str((subnet['number']) * 100 + node['number'])
-        subaddr = subnet['addr']
-        mask = "255.192.0.0"
-        freq = ".4G"
-        filled_nem += fill_nem_template(nem_template, nemid, subaddr, mask, freq)
+        filled_nem += get_nem_config(nem_template, subnet, node, str(device_num))
+        device_num += 1
     filled_platform = fill_platform_template(platform_template, filled_nem)
     file = open(topo_path + "platform" + str(node['number']) + ".xml", 'w')
     file.write(filled_platform)

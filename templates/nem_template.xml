@@ -1,6 +1,7 @@
 <nem id="NEMID" definition="ieee80211abgnem.xml">
   <transport definition="transvirtual.xml">
-    <param name="address" value="SUBNET.NEMID"/>
+    <param name="device" value="DEVICENAME"/>
+    <param name="address" value="SUBNET.NODE"/>
     <param name="mask" value="IPMASK"/>
   </transport>
   <phy>

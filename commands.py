@@ -45,13 +45,16 @@ def configure():
   functions.write_platform_xmls(subnets, nodes, topo_path)
   functions.write_emane_start_stop_scripts(save_file, len(nodes))
   functions.write_scenario(subnets, nodes, topo_path)
+  return save_file
 
 
 def setup():
   # Write configuration files before sending to nodes
-  configure()
+  save_file = configure()
 
   iplist = generate_iplist()
+  time.sleep(2)
+  functions.add_known_hosts(iplist)
   # Use parallel ssh to modify each node on the cloud
   print("Creating remote directories")
   functions.remote_create_dirs(save_file)
