@@ -1,3 +1,8 @@
+# File: objects.py
+# Author: Luke Thomas
+# Date: March 30, 2017
+# Description: Edge, Node, Subnet class definitions
+
 import json
 
 class Edge:
@@ -13,7 +18,6 @@ class Node:
         self.mac = mac
         self.group = group
         self.connections = connections
-
 
 class Subnet:
     def __init__(self, name, ssid, addr, members):
