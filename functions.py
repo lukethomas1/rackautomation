@@ -9,7 +9,9 @@ import time
 
 def add_known_hosts(iplist):
     for host in iplist:
-        subprocess.Popen(['ssh-keygen', '-f', '/home/joins/.ssh/known_hosts', '-R', host], stdout=subprocess.DEVNULL)
+      os.system("ssh-keygen -f /home/joins/.ssh/known_hosts -R " + host + " > /dev/null 2>&1")
+      time.sleep(1)
+     #   subprocess.Popen(['ssh-keygen', '-f', '/home/joins/.ssh/known_hosts', '-R', host], stdout=subprocess.DEVNULL)
 
 def copy_default_config(config_path, destination_path):
     # Get name of all files in default config directory

@@ -41,6 +41,7 @@ def configure():
   subnets, nodes = functions.convert_json_to_object(json_string)
 
   # Generate and copy files to the local topology folder
+  print("Configuring files")
   functions.create_save_dir(topo_path)
   functions.write_platform_xmls(subnets, nodes, topo_path)
   functions.write_emane_start_stop_scripts(save_file, len(nodes))
@@ -53,6 +54,7 @@ def setup():
   save_file = configure()
 
   iplist = generate_iplist()
+  print(str(iplist))
   time.sleep(2)
   functions.add_known_hosts(iplist)
   # Use parallel ssh to modify each node on the cloud
