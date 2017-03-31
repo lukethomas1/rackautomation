@@ -122,6 +122,22 @@ def fill_platform_template(xml_string, nem_string):
     return xml_string
 
 
+def generate_network_ping_list(subnets, nodes):
+    file = open("network", "w")
+    for subnet in subnets:
+        num_members = len(subnet['memberids'])
+        if(num_members > 1):
+            for x in range(num_members):
+                ip = subnet['addr'] + "." + str(subnet['memberids'][x])
+                file.write(ip)
+                for y in range(num_members):
+                    if(x != y):
+                        to_ip = subnet['addr'] + "." + str(subnet['memberids'][y])
+                        file.write(" " + to_ip)
+                file.write("\n")
+    file.close()
+
+
 # Get json topology under save name save_file from firebase
 def get_json_from_firebase(save_file):
     # Firebase Information, sensitive info if we care about what is on firebase
@@ -337,9 +353,9 @@ def write_platform_xmls(subnets, nodes, topo_path):
         filled_nem = ""
         device_num = 0
         for subnet in subnets:
-        if(node['number'] in subnet['memberids']):
-            filled_nem += get_nem_config(nem_template, subnet, node, str(device_num))
-            device_num += 1
+            if(node['number'] in subnet['memberids']):
+                filled_nem += get_nem_config(nem_template, subnet, node, str(device_num))
+                device_num += 1
         filled_platform = fill_platform_template(platform_template, filled_nem)
         file = open(topo_path + "platform" + str(node['number']) + ".xml", 'w')
         file.write(filled_platform)

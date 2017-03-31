@@ -4,6 +4,7 @@ __pycache__/
 topologies/
 pssh-hosts
 test.py
+network
 
 # Ignore all files that start with .
 .*
