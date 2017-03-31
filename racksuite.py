@@ -28,6 +28,8 @@ elif(arg == "setup"):
     commands.setup()
 elif(arg == "start"):
     commands.start()
+elif(arg == "ping"):
+    commands.ping()
 elif(arg == "stats"):
     commands.stats()
 elif(arg == "stop"):

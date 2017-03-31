@@ -110,6 +110,16 @@ def start():
     #functions.remote_start_gvine()
 
 
+def ping():
+    save_file = input("Input Save File Name: ")
+
+    # Get the save from firebase
+    json_string = functions.get_json_from_firebase(save_file)
+    subnets, nodes = functions.convert_json_to_object(json_string)
+
+    functions.generate_network_ping_list(subnets, nodes)
+
+
 def stats():
     print("stats command not implemented yet")
 
@@ -143,6 +153,7 @@ def usage():
     usage += "configure\t\t\t write platform files, scenario.eel, emane scripts\n"
     usage += "setup\t\t\t configure command + send to nodes on rackspace\n"
     usage += "start\t\t\t start emane and grapevine\n"
+    usage += "ping\t\t\t ping nodes to test if they are connected\n"
     usage += "stats\t\t\t save statistics\n"
     usage += "stop\t\t\t stop emane and grapevine\n"
     usage += "delete\t\t\t delete cloud topology folders\n"
