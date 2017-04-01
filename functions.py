@@ -63,11 +63,11 @@ def create_file_from_list(file_path, contents):
 
 
 # Call rackspace API to create num_instances nodes with image_name image
-def create_rackspace_instances(num_instances, image_name):
+def create_rackspace_instances(num_instances, image_name, save_file):
     print("Creating " + str(num_instances) + " Rackspace nodes with image '"
         + image_name + "'")
     for index in range(1, num_instances + 1):
-        node_name = 'node-' + str(index)
+        node_name = save_file + "-" + str(index)
         print("Creating " + node_name);
         # Long command, just a bunch of arguments, see 'rack -h' for more info
         subprocess.Popen(['rack', 'servers', 'instance',
@@ -83,7 +83,7 @@ def create_save_dir(folder_path):
 
 
 # Edit this computer's ~/.ssh/config file for each sshing to rackspace nodes
-def edit_ssh_config(num_nodes):
+def edit_ssh_config():
     fmt = 'Host {nodename}\nHostName {nodeaddress}\nUser emane-01\nIdentityFile ~/.ssh/id_rsa\n\n'
     file = open("/home/joins/.ssh/config", 'w')
 
@@ -92,8 +92,8 @@ def edit_ssh_config(num_nodes):
         'name,publicipv4'], stdout=subprocess.PIPE)
     pairs = process.stdout.read().decode().splitlines()[1:]
 
-    for index in range(0, num_nodes):
-        pair = pairs[index].split('\t')
+    for p in pairs:
+        pair = p.split('\t')
         name = pair[0]
         address = pair[1]
         writestring = fmt.format(nodename=name, nodeaddress=address)
@@ -101,8 +101,8 @@ def edit_ssh_config(num_nodes):
 
 
 # Run script at script_path, must be shell/bash script
-def execute_bash_script(script_path):
-    subprocess.call(script_path);
+def execute_bash_script(args):
+    subprocess.call(args);
 
 
 # Replace placeholders in xml_string with the configuration details provided
@@ -122,13 +122,37 @@ def fill_platform_template(xml_string, nem_string):
     return xml_string
 
 
-def generate_network_ping_list(subnets, nodes):
-    file = open("network", "w")
+# Get the ips of the rackspace nodes and write to ip file and ~/.ssh/config
+def generate_iplist(num_nodes, save_file):
+    edit_ssh_config()
+
+    if(not os.path.isdir("./iplists/")):
+      os.makedirs("./iplists/")
+
+    # Remove first entry (the header entry) with [1:]
+    iplist = get_rack_pair_list()
+    sortedlist = sort_iplist(iplist, save_file)[:num_nodes]
+
+    desired_ips = []
+    for pair in sortedlist:
+        ip = pair.split('\t')[1]
+        desired_ips.append(ip)
+
+    create_file_from_list("./iplists/" + save_file + "-hosts", desired_ips)
+    return desired_ips
+
+
+def generate_network_ping_list(subnets, nodes, save_file):
+    ip_file = "./iplists/" + save_file + "-hosts"
+    ip_process = open(ip_file, 'r')
+    ip_list = ip_process.read().splitlines()
+
+    file = open("./tests/pingtest/network", "w")
     for subnet in subnets:
         num_members = len(subnet['memberids'])
         if(num_members > 1):
             for x in range(num_members):
-                ip = subnet['addr'] + "." + str(subnet['memberids'][x])
+                ip = ip_list[subnet['memberids'][x] - 1]
                 file.write(ip)
                 for y in range(num_members):
                     if(x != y):
@@ -187,10 +211,18 @@ def get_rack_ip_list():
 
 # Returns a list of names of rackspace nodes
 def get_rack_name_list():
-  process = subprocess.Popen(['rack', 'servers', 'instance', 'list', '--fields',
-    'name'], stdout=subprocess.PIPE)
-  output = process.stdout.read().decode().splitlines()[1:]
-  return output
+    process = subprocess.Popen(['rack', 'servers', 'instance', 'list', '--fields',
+      'name'], stdout=subprocess.PIPE)
+    output = process.stdout.read().decode().splitlines()[1:]
+    return output
+
+
+# Get pairs of node names with ip addresses from rackspace
+def get_rack_pair_list():
+    process = subprocess.Popen(['rack', 'servers', 'instance', 'list', '--fields',
+        'name,publicipv4'], stdout=subprocess.PIPE)
+    pairs = process.stdout.read().decode().splitlines()[1:]
+    return pairs
 
 
 # Kill every node on rackspace
@@ -215,7 +247,8 @@ def print_subnets_and_nodes(subnets, nodes):
 
 # Copy default config to topology directory
 def remote_copy_default_config(save_folder):
-    os.system("pscp -h pssh-hosts -l emane-01 ./default_config/* /home/emane-01/GrapeVine/topologies/" + save_folder)
+    ip_file = "./iplists/" + save_folder + "-hosts"
+    os.system("pscp -h " + ip_file + " -l emane-01 ./default_config/* /home/emane-01/GrapeVine/topologies/" + save_folder)
     print("Sleep 5 seconds")
     time.sleep(5)
 
@@ -241,7 +274,7 @@ def remote_copy_platform_xmls(save_folder, iplist):
         node_ip = iplist[node_index]
         from_dir = './topologies/' + save_folder + '/' + file_name
         to_dir = 'root@' + node_ip + ':/home/emane-01/GrapeVine/topologies/' + save_folder + "/platform.xml"
-        subprocess.Popen(['scp', from_dir, to_dir], stdout=subprocess.PIPE)
+        subprocess.Popen(['scp', from_dir, to_dir])
         time.sleep(1)
 
 
@@ -252,30 +285,35 @@ def remote_copy_scenario(save_folder, iplist):
         node_ip = iplist[node_index]
         from_dir = './topologies/' + save_folder + '/scenario.eel'
         to_dir = 'root@' + node_ip + ':/home/emane-01/GrapeVine/topologies/' + save_folder + "/scenario.eel"
-        subprocess.Popen(['scp', from_dir, to_dir], stdout=subprocess.PIPE)
+        subprocess.Popen(['scp', from_dir, to_dir])
         time.sleep(1)
 
 
 # Create topologies directory and topologies/save_name/ on each rackspace node
 def remote_create_dirs(save_folder):
+    ip_file = "./iplists/" + save_folder + "-hosts"
     # Make topologies directory
-    subprocess.Popen(['pssh', '-h', 'pssh-hosts', '-l', 'emane-01', '-i', '-P',
+    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
     'cd ~/GrapeVine && mkdir topologies'], stdout=subprocess.DEVNULL)
 
     # Make specific topology directory
-    subprocess.Popen(['pssh', '-h', 'pssh-hosts', '-l', 'emane-01', '-i', '-P',
+    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
     'cd ~/GrapeVine/topologies && mkdir ' + save_folder], stdout=subprocess.DEVNULL) 
 
 
 # Delete specific topology from each rackspace node
 def remote_delete_topology(save_folder):
-    subprocess.Popen(['pssh', '-h', 'pssh-hosts', '-l', 'emane-01', '-i', '-P',
-        'rm -r ~/GrapeVine/topologies/' + save_folder], stdout=subprocess.DEVNULL)
+    ip_file = "./iplists/" + save_folder + "-hosts"
+    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+        'rm -r ~/GrapeVine/topologies/' + save_folder])
+    time.sleep(2)
 
 
-# Run file on each rackspace node in pssh-hosts file
-def remote_run_emane(save_path, file):
-    subprocess.Popen(['pssh', '-h', 'pssh-hosts', '-l', 'emane-01', '-i', '-P',
+# Run file on each rackspace node in ip_file file
+def remote_run_emane(save_file, file):
+    save_path = '~/GrapeVine/topologies/' + save_file
+    ip_file = "./iplists/" + save_file + "-hosts"
+    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
         'cd ' + save_path + ' && sudo ./' + file], stdout=subprocess.DEVNULL)
 
 
@@ -294,29 +332,27 @@ def remote_start_gvine():
 
 
 # Sort iplist to have node 1 at beginning and the last node at the end
-def sort_iplist(iplist):
+def sort_iplist(iplist, save_file):
     sortlist = []
-    process = subprocess.Popen(['rack', 'servers', 'instance', 'list', '--fields',
-        'name'], stdout=subprocess.PIPE)
-    output = process.stdout.read().decode().splitlines()[1:]
-
     for index in range(1, len(iplist) + 1):
-        item_index = output.index("node-" + str(index))
-        sortlist.append(iplist[item_index])
+        node_name = save_file + "-" + str(index)
+        for string in iplist:
+            if(node_name + "\t" in string):
+                sortlist.append(string)
     return sortlist
 
 
 # Synchronize rackspace nodes, not sure what it does
-def synchronize():
-    subprocess.Popen(['pssh', '-h', 'pssh-hosts', '-l', 'emane-01', '-i', '-P',
+def synchronize(ip_file):
+    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
         'sudo service ntp stop'], stdout=subprocess.DEVNULL)
     time.sleep(1)
-    subprocess.Popen(['pssh', '-h', 'pssh-hosts', '-l', 'emane-01', '-i', '-P',
+    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
         'sudo ntpd -gq'], stdout=subprocess.DEVNULL)
     time.sleep(1)
-    subprocess.Popen(['pssh', '-h', 'pssh-hosts', '-l', 'emane-01', '-i', '-P',
+    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
         'sudo service ntp start'], stdout=subprocess.DEVNULL)
-    
+
 
 # Write emane_start.sh and emane_stop.sh on this computer
 def write_emane_start_stop_scripts(save_folder, num_instances):

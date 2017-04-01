@@ -10,6 +10,7 @@
 # configuring a topology.
 
 import functions
+import testsuite
 import objects
 import time
 
@@ -29,7 +30,19 @@ def initialize():
     num_instances = len(nodes)
     image_name = "crypto"
     img2 = "Encryptionupdate"
-    functions.create_rackspace_instances(num_instances, img2)
+    functions.create_rackspace_instances(num_instances, img2, save_file)
+
+
+def make_iplist():
+    # Get user input for which save file to pull down from firebase
+    save_file = input("Input Save File Name: ")
+    topo_path = "./topologies/" + save_file + "/"
+
+    # Get the save from firebase
+    json_string = functions.get_json_from_firebase(save_file)
+    subnets, nodes = functions.convert_json_to_object(json_string)
+    
+    functions.generate_iplist(len(nodes), save_file)
 
 
 # Creates the configuration files for the desired topology on THIS COMPUTER
@@ -50,27 +63,17 @@ def configure():
     functions.write_platform_xmls(subnets, nodes, topo_path)
     functions.write_emane_start_stop_scripts(save_file, len(nodes))
     functions.write_scenario(subnets, nodes, topo_path)
-    return save_file
-
-
-# Get the ips of the rackspace nodes and write to pssh-hosts and ~/.ssh/config
-def generate_iplist():
-    # Remove first entry (the header entry) with [1:]
-    iplist = functions.get_rack_ip_list()[1:]
-    functions.edit_ssh_config(len(iplist))
-    sortedlist = functions.sort_iplist(iplist)
-    functions.create_file_from_list("./pssh-hosts", sortedlist)
-    return sortedlist
+    return save_file, len(nodes)
 
 
 # Runs configure() to create topology locally, 
 # then distributes topology to rackspace nodes
 def setup():
     # Write configuration files (configure() method) before sending to nodes
-    save_file = configure()
+    save_file, num_nodes = configure()
 
     # Get list of ip addresses from rackspace
-    iplist = generate_iplist()
+    iplist = functions.generate_iplist(num_nodes, save_file)
     time.sleep(2)
 
     # Add all rackspace node ip addresses to this computer's known_hosts file
@@ -103,10 +106,10 @@ def setup():
 # then runs emane_start.sh on each rackspace node in the topology
 def start():
     save_file = input("Input Save File Name: ")
-    save_path = '~/GrapeVine/topologies/' + save_file
     file = 'emane_start.sh'
-    functions.synchronize()
-    functions.remote_run_emane(save_path, file)
+    ip_file = "./iplists/" + save_file + "-hosts"
+    functions.synchronize(ip_file)
+    functions.remote_run_emane(save_file, file)
     #functions.remote_start_gvine()
 
 
@@ -117,7 +120,9 @@ def ping():
     json_string = functions.get_json_from_firebase(save_file)
     subnets, nodes = functions.convert_json_to_object(json_string)
 
-    functions.generate_network_ping_list(subnets, nodes)
+    print("Setting up")
+    functions.generate_network_ping_list(subnets, nodes, save_file)
+    testsuite.ping_network()
 
 
 def stats():

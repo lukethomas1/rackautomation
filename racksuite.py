@@ -21,7 +21,7 @@ arg = sys.argv[1]
 if(arg == "init"):
     commands.initialize()
 elif(arg == "iplist"):
-    commands.generate_iplist()
+    commands.make_iplist()
 elif(arg == "configure"):
     commands.configure()
 elif(arg == "setup"):

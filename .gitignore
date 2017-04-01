@@ -1,5 +1,6 @@
 # Ignore these
 Scripts/
+iplists/
 __pycache__/
 topologies/
 pssh-hosts
