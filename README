@@ -22,7 +22,7 @@ START STEPS:
 - Command: "python3 racksuite.py start"
 - Will prompt for a save file created from web app, then
   automatically start emane on each rackspace node
-- Will take no significant amount of time
+- May take up to 150 seconds before nodes can ping eachother
 
 4. Start GrapeVine on cloud instances
 - "./start_emane_java_10_rack.sh"
