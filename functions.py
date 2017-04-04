@@ -98,6 +98,7 @@ def edit_ssh_config():
         address = pair[1]
         writestring = fmt.format(nodename=name, nodeaddress=address)
         file.write(writestring)
+    file.close()
 
 
 # Run script at script_path, must be shell/bash script
@@ -124,8 +125,6 @@ def fill_platform_template(xml_string, nem_string):
 
 # Get the ips of the rackspace nodes and write to ip file and ~/.ssh/config
 def generate_iplist(num_nodes, save_file):
-    edit_ssh_config()
-
     if(not os.path.isdir("./iplists/")):
       os.makedirs("./iplists/")
 
@@ -292,13 +291,21 @@ def remote_copy_scenario(save_folder, iplist):
 # Create topologies directory and topologies/save_name/ on each rackspace node
 def remote_create_dirs(save_folder):
     ip_file = "./iplists/" + save_folder + "-hosts"
+
+    # Make GrapeVine directory
+    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+    'cd ~ && mkdir GrapeVine'], stdout=subprocess.DEVNULL)
+    time.sleep(1)
+
     # Make topologies directory
     subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
     'cd ~/GrapeVine && mkdir topologies'], stdout=subprocess.DEVNULL)
+    time.sleep(1)
 
     # Make specific topology directory
     subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
-    'cd ~/GrapeVine/topologies && mkdir ' + save_folder], stdout=subprocess.DEVNULL) 
+    'cd ~/GrapeVine/topologies && mkdir ' + save_folder]) 
+    time.sleep(1)
 
 
 # Delete specific topology from each rackspace node
@@ -310,7 +317,7 @@ def remote_delete_topology(save_folder):
 
 
 # Run file on each rackspace node in ip_file file
-def remote_run_emane(save_file, file):
+def remote_start_emane(save_file, file):
     save_path = '~/GrapeVine/topologies/' + save_file
     ip_file = "./iplists/" + save_file + "-hosts"
     subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
@@ -318,17 +325,78 @@ def remote_run_emane(save_file, file):
 
 
 # Start gvine on each rackspace node
-def remote_start_gvine():
-    command = "cd ~/test/emane/gvine/node/ && java -jar jvine.jar $i 500 >> log_node$i.txt"
-
+def remote_start_gvine(iplist):
     key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect('23.253.108.97', username="emane-01", pkey=key)
 
-    stdin, stdout, stderr = ssh.exec_command(command)
-    print(stdout.readlines())
-    ssh.close()
+    for index in range(1, len(iplist) + 1):
+        print("Starting on " + str(iplist[index - 1]))
+        ssh.connect(iplist[index - 1], username="emane-01", pkey=key)
+        command = "cd ~/test/emane/gvine/node/ && java -jar jvine.jar " + str(index) + " 500 >> log_node" + str(index) + ".txt &"
+        stdin, stdout, stderr = ssh.exec_command(command)
+        ssh.close()
+
+
+def remote_stop_gvine(save_file):
+    ip_file = "./iplists/" + save_file + "-hosts"
+    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+        'sudo pkill java'], stdout=subprocess.DEVNULL)
+
+
+def setup_grapevine(save_file):
+    hosts_file = "./iplists/" + save_file + "-hosts"
+
+    command = "if [ ! -d /home/emane-01/test/emane/gvine/node/ ]\n then mkdir -p  /home/emane-01/test/emane/gvine/node\n fi"
+    
+    subprocess.Popen(['pssh', '-h', hosts_file, '-l', 'emane-01', '-i', '-P', command ])
+    time.sleep(2)
+
+    command = "if [ ! -f /home/emane-01/test/emane/gvine/node/flushrt.sh ]\n then cp /home/emane-01/gvine/trunk/gvine/flushrt.sh /home/emane-01/test/emane/gvine/node/\n fi"
+    
+    subprocess.Popen(['pssh', '-h', hosts_file, '-l', 'emane-01', '-i', '-P', command ])
+    time.sleep(2)
+
+    command = "if [ ! -f /home/emane-01/test/emane/gvine/node/emane_data.db ]\n then cp /home/emane-01/gvine/trunk/gvine/emane_data.db /home/emane-01/test/emane/gvine/node/\n fi"
+    
+    subprocess.Popen(['pssh', '-h', hosts_file, '-l', 'emane-01', '-i', '-P', command ])
+    time.sleep(2)
+
+    command = "if [ ! -f /home/emane-01/test/emane/gvine/node/ncfilerx.sh ]\n then cp /home/emane-01/gvine/trunk/gvine/ncfilerx.sh /home/emane-01/test/emane/gvine/node/\n fi"
+    
+    subprocess.Popen(['pssh', '-h', hosts_file, '-l', 'emane-01', '-i', '-P', command ])
+    time.sleep(2)
+
+    command = "if [ ! -f /home/emane-01/test/emane/gvine/node/ncfiletx.sh ]\n then cp /home/emane-01/gvine/trunk/gvine/ncfiletx.sh /home/emane-01/test/emane/gvine/node/\n fi"
+
+    subprocess.Popen(['pssh', '-h', hosts_file, '-l', 'emane-01', '-i', '-P', command ])
+    time.sleep(2)
+
+    command = "if [ ! -f /home/emane-01/test/emane/gvine/node/gvine.conf.json ]\n then cp /home/emane-01/gvine/trunk/source_gvine/gvine.conf.json /home/emane-01/test/emane/gvine/node/\n fi"
+
+    subprocess.Popen(['pssh', '-h', hosts_file, '-l', 'emane-01', '-i', '-P', command ])
+    time.sleep(2)
+
+    command = "if [ ! -f /home/emane-01/test/emane/gvine/node/jvine.jar ]\n then cp /home/emane-01/gvine/trunk/source_gvine/jvine.jar /home/emane-01/test/emane/gvine/node/\n fi"
+
+    subprocess.Popen(['pssh', '-h', hosts_file, '-l', 'emane-01', '-i', '-P', command ])
+    time.sleep(2)
+
+    command = "if [ ! -f /home/emane-01/test/emane/gvine/node/jvineapp.jar ]\n then cp /home/emane-01/gvine/trunk/source_gvine/jvineapp.jar /home/emane-01/test/emane/gvine/node/\n fi"
+
+
+    subprocess.Popen(['pssh', '-h', hosts_file, '-l', 'emane-01', '-i', '-P', command ])
+    time.sleep(2)
+
+    command = "cp /home/emane-01/gvine/trunk/source_gvine/emanelog.jar /home/emane-01/test/emane/gvine/node"
+
+    subprocess.Popen(['pssh', '-h', hosts_file, '-l', 'emane-01', '-i', '-P', command ])
+    time.sleep(2)
+
+    command = "cd /home/emane-01/test/emane/gvine/node/ && rm -r data"
+
+    subprocess.Popen(['pssh', '-h', hosts_file, '-l', 'emane-01', '-i', '-P', command ])
+    time.sleep(2)
 
 
 # Sort iplist to have node 1 at beginning and the last node at the end

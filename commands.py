@@ -29,8 +29,9 @@ def initialize():
     # Create rackspace instances
     num_instances = len(nodes)
     image_name = "crypto"
+    img1 = "CleanEncryption"
     img2 = "Encryptionupdate"
-    functions.create_rackspace_instances(num_instances, img2, save_file)
+    functions.create_rackspace_instances(num_instances, img1, save_file)
 
 
 def make_iplist():
@@ -41,8 +42,8 @@ def make_iplist():
     # Get the save from firebase
     json_string = functions.get_json_from_firebase(save_file)
     subnets, nodes = functions.convert_json_to_object(json_string)
-    
-    functions.generate_iplist(len(nodes), save_file)
+
+    functions.edit_ssh_config()
 
 
 # Creates the configuration files for the desired topology on THIS COMPUTER
@@ -73,7 +74,10 @@ def setup():
     save_file, num_nodes = configure()
 
     # Get list of ip addresses from rackspace
+    # Uncomment line below if using node-1, node-2 rather than save_file-1 etc
+    #iplist = functions.generate_iplist(num_nodes, "node")
     iplist = functions.generate_iplist(num_nodes, save_file)
+    functions.edit_ssh_config()
     time.sleep(2)
 
     # Add all rackspace node ip addresses to this computer's known_hosts file
@@ -101,16 +105,28 @@ def setup():
     print("Copying emane scripts")
     functions.remote_copy_emane_scripts(save_file, iplist)
 
+    # Move grapevine files from svn folder to test folder on each rack instance
+    print("Preparing GrapeVine test")
+    functions.setup_grapevine(save_file)
+
 
 # Synchronizes rackspace nodes (not sure what it does, soroush had it),
 # then runs emane_start.sh on each rackspace node in the topology
 def start():
     save_file = input("Input Save File Name: ")
-    file = 'emane_start.sh'
+    json_string = functions.get_json_from_firebase(save_file)
+    subnets, nodes = functions.convert_json_to_object(json_string)
+    iplist = functions.generate_iplist(len(nodes), save_file)
+
     ip_file = "./iplists/" + save_file + "-hosts"
     functions.synchronize(ip_file)
-    functions.remote_run_emane(save_file, file)
-    #functions.remote_start_gvine()
+
+    print("Starting emane")
+    file = 'emane_start.sh'
+    functions.remote_start_emane(save_file, file)
+
+    print("Starting GrapeVine")
+    functions.remote_start_gvine(iplist)
 
 
 def ping():
@@ -132,15 +148,15 @@ def stats():
 # Runs emane_stop.sh on each rackspace node in the topology
 def stop():
     save_file = input("Input Save File Name: ")
-    save_path = '~/GrapeVine/topologies/' + save_file
     file = 'emane_stop.sh'
-    functions.remote_run_emane(save_path, file)
+    functions.remote_start_emane(save_file, file)
 
 
 # Deletes the topologies/<topology-name>/ folder on each rackspace node
 def delete():
     save_file = input("Input Save File Name: ")
     functions.remote_delete_topology(save_file)
+    functions.remote_stop_gvine(save_file)
 
 
 # Kills EVERY rackspace node
