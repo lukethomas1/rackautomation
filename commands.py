@@ -14,6 +14,8 @@ import testsuite
 import objects
 import time
 
+NODE_PREFIX = "node-"
+
 # Functions are ordered in usage order
 
 # Creates # of nodes necessary for desired topology on rackspace
@@ -31,7 +33,9 @@ def initialize():
     image_name = "crypto"
     img1 = "CleanEncryption"
     img2 = "Encryptionupdate"
-    functions.create_rackspace_instances(num_instances, img1, save_file)
+    img3 = "Gvpki"
+    functions.create_rackspace_instances(num_instances, img3, save_file, NODE_PREFIX)
+    print("Done.")
 
 
 def make_iplist():
@@ -43,6 +47,7 @@ def make_iplist():
     json_string = functions.get_json_from_firebase(save_file)
     subnets, nodes = functions.convert_json_to_object(json_string)
 
+    functions.generate_iplist(len(nodes), NODE_PREFIX)
     functions.edit_ssh_config()
 
 
@@ -74,23 +79,22 @@ def setup():
     save_file, num_nodes = configure()
 
     # Get list of ip addresses from rackspace
-    # Uncomment line below if using node-1, node-2 rather than save_file-1 etc
-    #iplist = functions.generate_iplist(num_nodes, "node")
-    iplist = functions.generate_iplist(num_nodes, save_file)
+    iplist = functions.generate_iplist(num_nodes, NODE_PREFIX)
     functions.edit_ssh_config()
+    ip_file = "./iplists/" + NODE_PREFIX + "hosts"
     time.sleep(2)
 
     # Add all rackspace node ip addresses to this computer's known_hosts file
     functions.add_known_hosts(iplist)
 
     # Create topology directory on each rackspace node
-    print("Creating remote directories")
-    functions.remote_create_dirs(save_file)
+    print("Creating remote directories with ipfile: " + ip_file)
+    functions.remote_create_dirs(save_file, ip_file)
     time.sleep(2)
 
     # Copy the default config to each rackspace node
     print("Copying default config")
-    functions.remote_copy_default_config(save_file)
+    functions.remote_copy_default_config(save_file, ip_file)
     time.sleep(2)
 
     # Copy the scenario.eel file to each rackspace node
@@ -107,7 +111,8 @@ def setup():
 
     # Move grapevine files from svn folder to test folder on each rack instance
     print("Preparing GrapeVine test")
-    functions.setup_grapevine(save_file)
+    functions.setup_grapevine(save_file, ip_file)
+    print("Done.")
 
 
 # Synchronizes rackspace nodes (not sure what it does, soroush had it),
@@ -116,17 +121,19 @@ def start():
     save_file = input("Input Save File Name: ")
     json_string = functions.get_json_from_firebase(save_file)
     subnets, nodes = functions.convert_json_to_object(json_string)
-    iplist = functions.generate_iplist(len(nodes), save_file)
+    iplist = functions.generate_iplist(len(nodes), NODE_PREFIX)
 
-    ip_file = "./iplists/" + save_file + "-hosts"
+    ip_file = "./iplists/" + NODE_PREFIX + "hosts"
     functions.synchronize(ip_file)
 
     print("Starting emane")
-    file = 'emane_start.sh'
-    functions.remote_start_emane(save_file, file)
+    script_file = 'emane_start.sh'
+    functions.remote_start_emane(save_file, ip_file, script_file)
+    time.sleep(2)
 
     print("Starting GrapeVine")
     functions.remote_start_gvine(iplist)
+    print("Done.")
 
 
 def ping():
@@ -137,8 +144,18 @@ def ping():
     subnets, nodes = functions.convert_json_to_object(json_string)
 
     print("Setting up")
-    functions.generate_network_ping_list(subnets, nodes, save_file)
+    ip_file = "./iplists/" + NODE_PREFIX + "hosts"
+    functions.generate_network_ping_list(subnets, nodes, ip_file)
     testsuite.ping_network()
+    print("Done.")
+
+
+def test_message():
+    save_file = input("Input Save File Name: ")
+    message_name = input("Choose message name: ")
+    ip_file = open("./iplists/" + NODE_PREFIX + "hosts", 'r')
+    iplist = ip_file.readlines()
+    testsuite.message_test_gvine(iplist, message_name)
 
 
 def stats():
@@ -148,15 +165,18 @@ def stats():
 # Runs emane_stop.sh on each rackspace node in the topology
 def stop():
     save_file = input("Input Save File Name: ")
-    file = 'emane_stop.sh'
-    functions.remote_start_emane(save_file, file)
+    ip_file = "./iplists/" + NODE_PREFIX + "hosts"
+    script_file = 'emane_stop.sh'
+    functions.remote_start_emane(save_file, ip_file, script_file)
+    functions.remote_stop_gvine(ip_file)
+    time.sleep(2)
+    print("Done.")
 
 
 # Deletes the topologies/<topology-name>/ folder on each rackspace node
 def delete():
     save_file = input("Input Save File Name: ")
     functions.remote_delete_topology(save_file)
-    functions.remote_stop_gvine(save_file)
 
 
 # Kills EVERY rackspace node

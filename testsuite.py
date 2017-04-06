@@ -4,6 +4,7 @@
 # Description: Tests to run on topologies running on rackspace
 
 import paramiko
+import time
 
 SUCCESS = '\033[92m'
 FAIL = '\033[91m'
@@ -41,3 +42,35 @@ def ping_network():
                 print(FAIL + ip + " FAILED" + ENDCOLOR)
         ssh.close()
 
+
+def message_test_gvine(iplist, message_name):
+    print("Sending test message")
+    sender_ip = iplist[0]
+    key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(sender_ip, username="emane-01", pkey=key)
+    
+    command = "cd ~/test/emane/gvine/node/"
+    command += " && dd if=/dev/urandom of=" + message_name + " bs=100k count=1"
+    command += " && java -jar gvapp.jar file " + message_name + " 1"
+    print("Executing command: " + command + " on " + sender_ip)
+    stdin, stdout, stderr = ssh.exec_command(command)
+    ssh.close()
+    print("Message sent\n")
+
+    wait_time = 25
+    for index in range(wait_time):
+        print("Waiting " + str(wait_time - index) + " seconds")
+        time.sleep(1)
+
+    for ip in iplist[1:]:
+        ssh.connect(ip, username="emane-01", pkey=key)
+        command = "[ -f ~/test/emane/gvine/node/data/" + message_name + " ];"
+        stdin, stdout, stderr = ssh.exec_command(command)
+        exit_status = stdout.channel.recv_exit_status()
+        if(not exit_status):
+            print(SUCCESS + ip + " SUCCESS" + ENDCOLOR)
+        else:
+            print(FAIL + ip + " FAILED" + ENDCOLOR)
+        ssh.close()

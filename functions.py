@@ -63,18 +63,19 @@ def create_file_from_list(file_path, contents):
 
 
 # Call rackspace API to create num_instances nodes with image_name image
-def create_rackspace_instances(num_instances, image_name, save_file):
+def create_rackspace_instances(num_instances, image_name, save_file, node_prefix):
     print("Creating " + str(num_instances) + " Rackspace nodes with image '"
         + image_name + "'")
     for index in range(1, num_instances + 1):
-        node_name = save_file + "-" + str(index)
+        node_name = node_prefix + str(index)
         print("Creating " + node_name);
         # Long command, just a bunch of arguments, see 'rack -h' for more info
         subprocess.Popen(['rack', 'servers', 'instance',
             'create', '--name', node_name, '--image-name',
             image_name, '--flavor-name', '4 GB General Purpose v1',
             '--region', 'DFW', '--keypair', 'mykey', '--networks',
-            '00000000-0000-0000-0000-000000000000,3a95350a-676c-4280-9f08-aeea40ffb32b'], stdout=subprocess.PIPE)
+            '00000000-0000-0000-0000-000000000000,3a95350a-676c-4280-9f08-aeea40ffb32b'],
+            stdout=subprocess.PIPE)
 
 
 # Create directory at folder_path
@@ -97,7 +98,8 @@ def edit_ssh_config():
         name = pair[0]
         address = pair[1]
         writestring = fmt.format(nodename=name, nodeaddress=address)
-        file.write(writestring)
+        if(len(address) > 0):
+            file.write(writestring)
     file.close()
 
 
@@ -124,25 +126,26 @@ def fill_platform_template(xml_string, nem_string):
 
 
 # Get the ips of the rackspace nodes and write to ip file and ~/.ssh/config
-def generate_iplist(num_nodes, save_file):
+def generate_iplist(num_nodes, sort_term):
     if(not os.path.isdir("./iplists/")):
       os.makedirs("./iplists/")
 
-    # Remove first entry (the header entry) with [1:]
     iplist = get_rack_pair_list()
-    sortedlist = sort_iplist(iplist, save_file)[:num_nodes]
+    sortedlist = sort_iplist(iplist, sort_term)[:num_nodes]
+
+    if(len(sortedlist) == 0):
+        print("ERROR NO NODES IN SORTEDLIST from " + str(iplist) + " sort_term: " + sort_term)
 
     desired_ips = []
     for pair in sortedlist:
         ip = pair.split('\t')[1]
         desired_ips.append(ip)
 
-    create_file_from_list("./iplists/" + save_file + "-hosts", desired_ips)
+    create_file_from_list("./iplists/" + sort_term + "hosts", desired_ips)
     return desired_ips
 
 
-def generate_network_ping_list(subnets, nodes, save_file):
-    ip_file = "./iplists/" + save_file + "-hosts"
+def generate_network_ping_list(subnets, nodes, ip_file):
     ip_process = open(ip_file, 'r')
     ip_list = ip_process.read().splitlines()
 
@@ -245,8 +248,7 @@ def print_subnets_and_nodes(subnets, nodes):
 
 
 # Copy default config to topology directory
-def remote_copy_default_config(save_folder):
-    ip_file = "./iplists/" + save_folder + "-hosts"
+def remote_copy_default_config(save_folder, ip_file):
     os.system("pscp -h " + ip_file + " -l emane-01 ./default_config/* /home/emane-01/GrapeVine/topologies/" + save_folder)
     print("Sleep 5 seconds")
     time.sleep(5)
@@ -289,9 +291,8 @@ def remote_copy_scenario(save_folder, iplist):
 
 
 # Create topologies directory and topologies/save_name/ on each rackspace node
-def remote_create_dirs(save_folder):
-    ip_file = "./iplists/" + save_folder + "-hosts"
-
+def remote_create_dirs(save_folder, ip_file):
+    print(ip_file)
     # Make GrapeVine directory
     subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
     'cd ~ && mkdir GrapeVine'], stdout=subprocess.DEVNULL)
@@ -310,18 +311,17 @@ def remote_create_dirs(save_folder):
 
 # Delete specific topology from each rackspace node
 def remote_delete_topology(save_folder):
-    ip_file = "./iplists/" + save_folder + "-hosts"
+    ip_file = "./iplists/" + save_folder + "hosts"
     subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
-        'rm -r ~/GrapeVine/topologies/' + save_folder])
+    'rm -r ~/GrapeVine/topologies/' + save_folder])
     time.sleep(2)
 
 
 # Run file on each rackspace node in ip_file file
-def remote_start_emane(save_file, file):
+def remote_start_emane(save_file, ip_file, script_file):
     save_path = '~/GrapeVine/topologies/' + save_file
-    ip_file = "./iplists/" + save_file + "-hosts"
     subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
-        'cd ' + save_path + ' && sudo ./' + file], stdout=subprocess.DEVNULL)
+    'cd ' + save_path + ' && sudo ./' + script_file], stdout=subprocess.DEVNULL)
 
 
 # Start gvine on each rackspace node
@@ -333,77 +333,83 @@ def remote_start_gvine(iplist):
     for index in range(1, len(iplist) + 1):
         print("Starting on " + str(iplist[index - 1]))
         ssh.connect(iplist[index - 1], username="emane-01", pkey=key)
-        command = "cd ~/test/emane/gvine/node/ && java -jar jvine.jar " + str(index) + " 500 >> log_node" + str(index) + ".txt &"
+        command = "cd ~/test/emane/gvine/node/ && java -jar jvine.jar node" + str(index) + " 500 >> log_node" + str(index) + ".txt &"
         stdin, stdout, stderr = ssh.exec_command(command)
         ssh.close()
 
 
-def remote_stop_gvine(save_file):
-    ip_file = "./iplists/" + save_file + "-hosts"
+def remote_stop_gvine(ip_file):
     subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
-        'sudo pkill java'], stdout=subprocess.DEVNULL)
+    'sudo pkill java'])
 
 
-def setup_grapevine(save_file):
-    hosts_file = "./iplists/" + save_file + "-hosts"
-
+def setup_grapevine(save_file, ip_file):
     command = "if [ ! -d /home/emane-01/test/emane/gvine/node/ ]\n then mkdir -p  /home/emane-01/test/emane/gvine/node\n fi"
     
-    subprocess.Popen(['pssh', '-h', hosts_file, '-l', 'emane-01', '-i', '-P', command ])
+    print("\nMaking /home/emane-01/test/emane/gvine/node/ directory")
+    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     time.sleep(2)
 
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/flushrt.sh ]\n then cp /home/emane-01/gvine/trunk/gvine/flushrt.sh /home/emane-01/test/emane/gvine/node/\n fi"
     
-    subprocess.Popen(['pssh', '-h', hosts_file, '-l', 'emane-01', '-i', '-P', command ])
+    print("\nCopying flushrt.sh")
+    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     time.sleep(2)
 
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/emane_data.db ]\n then cp /home/emane-01/gvine/trunk/gvine/emane_data.db /home/emane-01/test/emane/gvine/node/\n fi"
     
-    subprocess.Popen(['pssh', '-h', hosts_file, '-l', 'emane-01', '-i', '-P', command ])
+    print("\nCopying emane_data.db")
+    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     time.sleep(2)
 
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/ncfilerx.sh ]\n then cp /home/emane-01/gvine/trunk/gvine/ncfilerx.sh /home/emane-01/test/emane/gvine/node/\n fi"
     
-    subprocess.Popen(['pssh', '-h', hosts_file, '-l', 'emane-01', '-i', '-P', command ])
+    print("\nCopying ncfilerx.sh")
+    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     time.sleep(2)
 
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/ncfiletx.sh ]\n then cp /home/emane-01/gvine/trunk/gvine/ncfiletx.sh /home/emane-01/test/emane/gvine/node/\n fi"
 
-    subprocess.Popen(['pssh', '-h', hosts_file, '-l', 'emane-01', '-i', '-P', command ])
+    print("\nCopying ncfiletx.sh")
+    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     time.sleep(2)
 
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/gvine.conf.json ]\n then cp /home/emane-01/gvine/trunk/source_gvine/gvine.conf.json /home/emane-01/test/emane/gvine/node/\n fi"
 
-    subprocess.Popen(['pssh', '-h', hosts_file, '-l', 'emane-01', '-i', '-P', command ])
+    print("\nCopying gvine.conf.json")
+    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     time.sleep(2)
 
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/jvine.jar ]\n then cp /home/emane-01/gvine/trunk/source_gvine/jvine.jar /home/emane-01/test/emane/gvine/node/\n fi"
 
-    subprocess.Popen(['pssh', '-h', hosts_file, '-l', 'emane-01', '-i', '-P', command ])
+    print("\nCopying jvine.jar")
+    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     time.sleep(2)
 
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/jvineapp.jar ]\n then cp /home/emane-01/gvine/trunk/source_gvine/jvineapp.jar /home/emane-01/test/emane/gvine/node/\n fi"
 
-
-    subprocess.Popen(['pssh', '-h', hosts_file, '-l', 'emane-01', '-i', '-P', command ])
+    print("\nCopying jvineapp.jar")
+    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     time.sleep(2)
 
     command = "cp /home/emane-01/gvine/trunk/source_gvine/emanelog.jar /home/emane-01/test/emane/gvine/node"
 
-    subprocess.Popen(['pssh', '-h', hosts_file, '-l', 'emane-01', '-i', '-P', command ])
+    print("\nCopying emanelog.jar")
+    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     time.sleep(2)
 
     command = "cd /home/emane-01/test/emane/gvine/node/ && rm -r data"
 
-    subprocess.Popen(['pssh', '-h', hosts_file, '-l', 'emane-01', '-i', '-P', command ])
+    print("\nRemoving data folder")
+    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     time.sleep(2)
 
 
 # Sort iplist to have node 1 at beginning and the last node at the end
-def sort_iplist(iplist, save_file):
+def sort_iplist(iplist, sort_term):
     sortlist = []
     for index in range(1, len(iplist) + 1):
-        node_name = save_file + "-" + str(index)
+        node_name = sort_term + str(index)
         for string in iplist:
             if(node_name + "\t" in string):
                 sortlist.append(string)

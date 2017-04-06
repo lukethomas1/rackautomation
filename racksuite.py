@@ -30,6 +30,8 @@ elif(arg == "start"):
     commands.start()
 elif(arg == "ping"):
     commands.ping()
+elif(arg == "msgtest"):
+    commands.test_message()
 elif(arg == "stats"):
     commands.stats()
 elif(arg == "stop"):
