@@ -79,7 +79,7 @@ def create_rackspace_instances(num_instances, image_name, save_file, node_prefix
 
 
 # Create directory at folder_path
-def create_save_dir(folder_path):
+def create_dir(folder_path):
     os.makedirs(folder_path, exist_ok=True)
 
 
@@ -127,8 +127,7 @@ def fill_platform_template(xml_string, nem_string):
 
 # Get the ips of the rackspace nodes and write to ip file and ~/.ssh/config
 def generate_iplist(num_nodes, sort_term):
-    if(not os.path.isdir("./iplists/")):
-      os.makedirs("./iplists/")
+    create_dir("./iplists/")
 
     iplist = get_rack_pair_list()
     sortedlist = sort_iplist(iplist, sort_term)[:num_nodes]
@@ -162,6 +161,17 @@ def generate_network_ping_list(subnets, nodes, ip_file):
                         file.write(" " + to_ip)
                 file.write("\n")
     file.close()
+
+
+def get_iplist(ip_file):
+    ipfile = open(ip_file, 'r')
+    iplist_with_newlines = ipfile.readlines()
+    ipfile.close()
+
+    iplist = []
+    for line in iplist_with_newlines:
+        iplist.append(line.strip("\n"))
+    return iplist
 
 
 # Get json topology under save name save_file from firebase
@@ -386,9 +396,9 @@ def setup_grapevine(save_file, ip_file):
     subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     time.sleep(2)
 
-    command = "if [ ! -f /home/emane-01/test/emane/gvine/node/jvineapp.jar ]\n then cp /home/emane-01/gvine/trunk/source_gvine/jvineapp.jar /home/emane-01/test/emane/gvine/node/\n fi"
+    command = "if [ ! -f /home/emane-01/test/emane/gvine/node/gvapp.jar ]\n then cp /home/emane-01/gvine/trunk/source_gvine/gvapp.jar /home/emane-01/test/emane/gvine/node/\n fi"
 
-    print("\nCopying jvineapp.jar")
+    print("\nCopying gvapp.jar")
     subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     time.sleep(2)
 
@@ -416,7 +426,7 @@ def sort_iplist(iplist, sort_term):
     return sortlist
 
 
-# Synchronize rackspace nodes, not sure what it does
+# Synchronize rackspace nodes, necessary for accurate stats gathering
 def synchronize(ip_file):
     subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
         'sudo service ntp stop'], stdout=subprocess.DEVNULL)

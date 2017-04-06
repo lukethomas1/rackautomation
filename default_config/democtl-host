@@ -261,7 +261,7 @@ case "$1" in
         
         if [ -z "$starttime" ]
         then
-            starttime=$(date -R --date "now + 100 sec")
+            starttime=$(date -R --date "now + 10 sec")
         else
             starttime=$(date --date "$starttime" "+%H:%M:%S")
         fi

@@ -44,25 +44,17 @@ def ping_network():
 
 
 def message_test_gvine(iplist, message_name):
-    print("Sending test message")
     sender_ip = iplist[0]
-    key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(sender_ip, username="emane-01", pkey=key)
-    
-    command = "cd ~/test/emane/gvine/node/"
-    command += " && dd if=/dev/urandom of=" + message_name + " bs=100k count=1"
-    command += " && java -jar gvapp.jar file " + message_name + " 1"
-    print("Executing command: " + command + " on " + sender_ip)
-    stdin, stdout, stderr = ssh.exec_command(command)
-    ssh.close()
-    print("Message sent\n")
+    send_message(sender_ip, message_name)
 
     wait_time = 25
     for index in range(wait_time):
         print("Waiting " + str(wait_time - index) + " seconds")
         time.sleep(1)
+
+    key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
     for ip in iplist[1:]:
         ssh.connect(ip, username="emane-01", pkey=key)
@@ -74,3 +66,17 @@ def message_test_gvine(iplist, message_name):
         else:
             print(FAIL + ip + " FAILED" + ENDCOLOR)
         ssh.close()
+
+def send_message(sender_ip, message_name, file_size_kb):
+    print("Sending Message from " + sender_ip)
+    key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(sender_ip, username="emane-01", pkey=key)
+    
+    command = "cd ~/test/emane/gvine/node/"
+    command += " && dd if=/dev/urandom of=" + message_name + " bs=" + file_size_kb + "k count=1"
+    command += " && java -jar gvapp.jar file " + message_name + " 1"
+    stdin, stdout, stderr = ssh.exec_command(command)
+    ssh.close()
+    print("Message sent.\n")
