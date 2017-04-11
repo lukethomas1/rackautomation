@@ -43,9 +43,9 @@ def ping_network():
         ssh.close()
 
 
-def message_test_gvine(iplist, message_name):
+def message_test_gvine(iplist, message_name, file_size):
     sender_ip = iplist[0]
-    send_message(sender_ip, message_name)
+    send_message(sender_ip, message_name, file_size)
 
     wait_time = 25
     for index in range(wait_time):

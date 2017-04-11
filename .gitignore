@@ -1,15 +1,18 @@
-# Ignore these
+# Ignore Folders
 Scripts/
 iplists/
 stats/
 __pycache__/
 topologies/
+
+# Ignore Files
 pssh-hosts
 test.py
 network
+data.pickle
 
-# Ignore all files that start with .
+# Ignore all hidden
 .*
 
-# But dont ignore .gitignore
+# But dont ignore these
 !.gitignore

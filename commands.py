@@ -9,58 +9,76 @@
 # finish that a user would desire, such as initializing rackspace nodes, or
 # configuring a topology.
 
+# System Imports
+import pickle
+import time
+
+# Local Imports
 import functions
 import testsuite
 import statsuite
 import objects
-import time
 
-NODE_PREFIX = "node-"
+NODE_PREFIX = "node"
 IP_FILE = "./iplists/" + NODE_PREFIX + "hosts"
 
 # Functions are ordered in usage order
 
-# Creates # of nodes necessary for desired topology on rackspace
-def initialize():
-    # Get user input for which save file to pull down from firebase
+# Gets json from firebase and saves topology data for reuse
+def set_topology():
     save_file = input("Input Save File Name: ")
-    topo_path = "./topologies/" + save_file + "/"
-
-    # Get the save from firebase
     json_string = functions.get_json_from_firebase(save_file)
     subnets, nodes = functions.convert_json_to_object(json_string)
+    iplist = functions.generate_iplist(len(nodes), NODE_PREFIX)
 
-    # Create rackspace instances
-    num_instances = len(nodes)
+    data = {
+        'save': save_file,
+        'json': json_string,
+        'subnets': subnets,
+        'nodes': nodes,
+        'iplist': iplist
+    }
+
+    with open('data.pickle', 'wb') as file:
+        pickle.dump(data, file)
+
+
+def load_data():
+    with open('data.pickle', 'rb') as file:
+        data = pickle.load(file)
+    return data
+
+
+def print_data(data):
+    print("\nSave Name:\n")
+    print(data['save'])
+    print("\nJson:\n")
+    print(data['json'])
+    print("\nSubnets:\n")
+    print(data['subnets'])
+    print("\nNodes:\n")
+    print(data['nodes'])
+    print("\nIplist:\n")
+    print(data['iplist'])
+
+    
+# Creates # of nodes necessary for desired topology on rackspace
+def initialize(save_file, num_nodes):
     img = "NewGvpki"
-    functions.create_rackspace_instances(num_instances, img, save_file, NODE_PREFIX)
+    functions.create_rackspace_instances(num_nodes, img, save_file, NODE_PREFIX)
     print("Done.")
 
 
-def make_iplist():
-    # Get user input for which save file to pull down from firebase
-    save_file = input("Input Save File Name: ")
-    topo_path = "./topologies/" + save_file + "/"
-
-    # Get the save from firebase
-    json_string = functions.get_json_from_firebase(save_file)
-    subnets, nodes = functions.convert_json_to_object(json_string)
-
-    functions.generate_iplist(len(nodes), NODE_PREFIX)
+def make_iplist(num_nodes):
+    functions.generate_iplist(num_nodes, NODE_PREFIX)
     functions.edit_ssh_config()
 
 
 # Creates the configuration files for the desired topology on THIS COMPUTER
 # Creates platform xmls, emane_start.sh, emane_stop.sh, scenario.eel
 # The files are created in ./topologies/<topology-name>/
-def configure():
-    # Get user input for which save file to pull down from firebase
-    save_file = input("Input Save File Name: ")
+def configure(save_file, subnets, nodes):
     topo_path = "./topologies/" + save_file + "/"
-
-    # Get the save from firebase
-    json_string = functions.get_json_from_firebase(save_file)
-    subnets, nodes = functions.convert_json_to_object(json_string)
 
     # Generate and copy files to the local topology folder
     print("Configuring files")
@@ -68,17 +86,14 @@ def configure():
     functions.write_platform_xmls(subnets, nodes, topo_path)
     functions.write_emane_start_stop_scripts(save_file, len(nodes))
     functions.write_scenario(subnets, nodes, topo_path)
-    return save_file, len(nodes)
 
 
 # Runs configure() to create topology locally, 
 # then distributes topology to rackspace nodes
-def setup():
+def setup(save_file, subnets, nodes, iplist):
     # Write configuration files (configure() method) before sending to nodes
-    save_file, num_nodes = configure()
+    configure(save_file, subnets, nodes)
 
-    # Get list of ip addresses from rackspace
-    iplist = functions.generate_iplist(num_nodes, NODE_PREFIX)
     functions.edit_ssh_config()
     time.sleep(2)
 
@@ -115,69 +130,60 @@ def setup():
 
 # Synchronizes rackspace nodes (not sure what it does, soroush had it),
 # then runs emane_start.sh on each rackspace node in the topology
-def start():
-    save_file = input("Input Save File Name: ")
-    json_string = functions.get_json_from_firebase(save_file)
-    subnets, nodes = functions.convert_json_to_object(json_string)
-    iplist = functions.get_iplist(IP_FILE)
-
+def start(save_file, iplist):
     functions.synchronize(IP_FILE)
 
     print("Starting emane")
-    script_file = 'emane_start.sh'
-    functions.remote_start_emane(save_file, IP_FILE, script_file)
+    script_name = 'emane_start.sh'
+    functions.remote_start_emane(save_file, IP_FILE, script_name)
     time.sleep(2)
 
     print("Starting GrapeVine")
     functions.remote_start_gvine(iplist)
+    #functions.remote_start_console(iplist, "/home/emane-01/test/emane/gvine/node")
     print("Done.")
 
 
-def ping():
-    save_file = input("Input Save File Name: ")
+def start_gvine(iplist):
+    functions.remote_start_gvine(iplist)
 
-    # Get the save from firebase
-    json_string = functions.get_json_from_firebase(save_file)
-    subnets, nodes = functions.convert_json_to_object(json_string)
 
+def ping(subnets, nodes):
     print("Setting up")
     functions.generate_network_ping_list(subnets, nodes, IP_FILE)
     testsuite.ping_network()
     print("Done.")
 
 
-def test_message():
-    save_file = input("Input Save File Name: ")
+def message(iplist):
     message_name = input("Choose message file name: ")
     file_size = input("Choose file size (kilobytes): ")
-    iplist = functions.get_iplist(IP_FILE)
+    testsuite.send_message(iplist[0], message_name, file_size)
+
+
+def test_message(iplist):
+    message_name = input("Choose message file name: ")
+    file_size = input("Choose file size (kilobytes): ")
     testsuite.message_test_gvine(iplist, message_name, file_size)
 
 
-def stats():
-    save_file = input("Input Save File Name: ")
-
-    # Get the save from firebase
-    json_string = functions.get_json_from_firebase(save_file)
-    subnets, nodes = functions.convert_json_to_object(json_string)
-
+def stats(save_file, num_nodes, iplist):
     # Create dirs, append timestamp in seconds to delay folder
-    seconds = statsuite.get_time()
-    folder_name = save_file + "_" + str(seconds)
+    folder_name = save_file
     folder_path = "./stats/delays/"
     functions.create_dir("./stats/")
     functions.create_dir(folder_path)
     functions.create_dir(folder_path + folder_name)
 
-    iplist = functions.get_iplist(IP_FILE)
     path_to_delay = "/home/emane-01/test/emane/gvine/node/delay.txt"
     statsuite.retrieve_delayfiles(iplist, path_to_delay, folder_path + folder_name)
+    delays = statsuite.parse_delayfiles(folder_path + folder_name, num_nodes)
+    statsuite.scatter_plot(delays)
     print("Done.")
 
 
 # Runs emane_stop.sh on each rackspace node in the topology
-def stop():
-    save_file = input("Input Save File Name: ")
+def stop(save_file):
     script_file = 'emane_stop.sh'
     functions.remote_start_emane(save_file, IP_FILE, script_file)
     functions.remote_stop_gvine(IP_FILE)
@@ -186,8 +192,7 @@ def stop():
 
 
 # Deletes the topologies/<topology-name>/ folder on each rackspace node
-def delete():
-    save_file = input("Input Save File Name: ")
+def delete(save_file):
     functions.remote_delete_topology(save_file)
 
 

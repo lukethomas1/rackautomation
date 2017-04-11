@@ -348,6 +348,16 @@ def remote_start_gvine(iplist):
         ssh.close()
 
 
+def remote_start_console(iplist, gvine_dir):
+        user = "emane-01"
+        terminal = ['gnome-terminal']
+        jar = "jvine.jar"
+        for i in range(1, len(iplist) + 1):
+            path = gvine_dir
+            terminal.extend(['--tab', '-e','''ssh -t %s@%s 'cd %s && java -jar %s node%s 250 2>&1|tee log.txt' ''' % (user, iplist[i-1], path, jar, i)])
+        subprocess.call(terminal)
+
+
 def remote_stop_gvine(ip_file):
     subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
     'sudo pkill java'])

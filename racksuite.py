@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 
 # File: racksuite.py
 # Author: Luke Thomas
@@ -6,10 +6,15 @@
 # Description: This is the driver file of the program, delegates to
 # commands.py for actual logic
 
-import functions
-import commands
-import objects
+# System Imports
 import sys
+import os
+
+# Local imports
+import commands
+import functions
+import objects
+import testsuite
 
 # Check for valid amount of arguments
 if(len(sys.argv) != 2):
@@ -18,26 +23,45 @@ if(len(sys.argv) != 2):
 
 arg = sys.argv[1]
 
+if(arg == "topology"):
+    commands.set_topology()
+elif(os.path.isfile("data.pickle")):
+    data = commands.load_data()
+    save = data['save']
+    json = data['json']
+    subnets = data['subnets']
+    nodes = data['nodes']
+    iplist = data['iplist']
+else:
+    print("Use ./racksuite.py topology to set data")
+    exit()
+
 if(arg == "init"):
-    commands.initialize()
+    commands.initialize(save, len(nodes))
 elif(arg == "iplist"):
-    commands.make_iplist()
+    commands.make_iplist(len(nodes))
 elif(arg == "configure"):
-    commands.configure()
+    commands.configure(save, subnets, nodes)
 elif(arg == "setup"):
-    commands.setup()
+    commands.setup(save, subnets, nodes, iplist)
 elif(arg == "start"):
-    commands.start()
+    commands.start(save, iplist)
+elif(arg == "start_gvine"):
+    commands.start_gvine(iplist)
+elif(arg == "data"):
+    commands.print_data(data)
 elif(arg == "ping"):
-    commands.ping()
-elif(arg == "msgtest"):
-    commands.test_message()
+    commands.ping(subnets, nodes)
+elif(arg == "message"):
+    commands.message(iplist)
+elif(arg == "testmessage"):
+    commands.test_message(iplist)
 elif(arg == "stats"):
-    commands.stats()
+    commands.stats(save, len(nodes), iplist)
 elif(arg == "stop"):
-    commands.stop()
+    commands.stop(save)
 elif(arg == "delete"):
-    commands.delete()
+    commands.delete(save)
 elif(arg == "kill"):
     commands.kill()
 else:
