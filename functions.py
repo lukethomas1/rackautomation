@@ -83,6 +83,13 @@ def create_dir(folder_path):
     os.makedirs(folder_path, exist_ok=True)
 
 
+def delete_gvine_log_files(ip_file):
+    command = "cd /home/emane-01/test/emane/gvine/node/ && rm log_*"
+    print("Removing log files")
+    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command],
+        stdout=subprocess.DEVNULL)
+
+
 # Edit this computer's ~/.ssh/config file for each sshing to rackspace nodes
 def edit_ssh_config():
     fmt = 'Host {nodename}\nHostName {nodeaddress}\nUser emane-01\nIdentityFile ~/.ssh/id_rsa\n\n'
@@ -302,7 +309,6 @@ def remote_copy_scenario(save_folder, iplist):
 
 # Create topologies directory and topologies/save_name/ on each rackspace node
 def remote_create_dirs(save_folder, ip_file):
-    print(ip_file)
     # Make GrapeVine directory
     subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
     'cd ~ && mkdir GrapeVine'], stdout=subprocess.DEVNULL)

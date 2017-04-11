@@ -138,6 +138,7 @@ def start(save_file, iplist):
     functions.remote_start_emane(save_file, IP_FILE, script_name)
     time.sleep(2)
 
+    functions.delete_gvine_log_files(IP_FILE)
     print("Starting GrapeVine")
     functions.remote_start_gvine(iplist)
     #functions.remote_start_console(iplist, "/home/emane-01/test/emane/gvine/node")

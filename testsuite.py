@@ -46,6 +46,7 @@ def ping_network():
 def message_test_gvine(iplist, message_name, file_size):
     sender_ip = iplist[0]
     send_message(sender_ip, message_name, file_size)
+    time.sleep(1)
 
     key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
     ssh = paramiko.SSHClient()
