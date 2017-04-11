@@ -47,18 +47,13 @@ def message_test_gvine(iplist, message_name, file_size):
     sender_ip = iplist[0]
     send_message(sender_ip, message_name, file_size)
 
-    wait_time = 25
-    for index in range(wait_time):
-        print("Waiting " + str(wait_time - index) + " seconds")
-        time.sleep(1)
-
     key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
     for ip in iplist[1:]:
         ssh.connect(ip, username="emane-01", pkey=key)
-        command = "[ -f ~/test/emane/gvine/node/data/" + message_name + " ];"
+        command = "tail -c 10000 ~/test/emane/gvine/node/log_* | grep -F 'Beacon\":[{'"
         stdin, stdout, stderr = ssh.exec_command(command)
         exit_status = stdout.channel.recv_exit_status()
         if(not exit_status):
