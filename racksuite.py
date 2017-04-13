@@ -40,13 +40,15 @@ else:
     exit()
 
 if(arg == "init"):
-    commands.set_topology(save)
     commands.initialize(save, len(nodes))
 elif(arg == "iplist"):
     commands.make_iplist(len(nodes))
 elif(arg == "configure"):
     commands.configure(save, subnets, nodes)
 elif(arg == "setup"):
+    # Update the ip list
+    commands.set_topology(save)
+    iplist = commands.load_data()['iplist']
     commands.setup(save, subnets, nodes, iplist)
 elif(arg == "start"):
     commands.start(save, iplist)
@@ -64,6 +66,9 @@ elif(arg == "stats"):
     commands.stats(save, len(nodes), iplist)
 elif(arg == "emane_stats"):
     commands.stats_emane(save, len(nodes), iplist)
+elif(arg == "parse"):
+    parse_term = input("Enter parse term: ")
+    commands.stats_parse(save, len(nodes), parse_term)
 elif(arg == "stop"):
     commands.stop(save)
 elif(arg == "delete"):

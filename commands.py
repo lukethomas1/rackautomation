@@ -190,6 +190,10 @@ def stats_emane(save_file, num_nodes, iplist):
     print("Done.")
 
 
+def stats_parse(save_file, num_nodes, parse_term):
+    statsuite.parse_emane_stats(NODE_PREFIX, save_file, num_nodes, parse_term)
+
+
 # Runs emane_stop.sh on each rackspace node in the topology
 def stop(save_file):
     script_file = 'emane_stop.sh'
