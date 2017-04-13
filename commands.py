@@ -25,8 +25,7 @@ IP_FILE = "./iplists/" + NODE_PREFIX + "hosts"
 # Functions are ordered in usage order
 
 # Gets json from firebase and saves topology data for reuse
-def set_topology():
-    save_file = input("Input Save File Name: ")
+def set_topology(save_file):
     json_string = functions.get_json_from_firebase(save_file)
     subnets, nodes = functions.convert_json_to_object(json_string)
     iplist = functions.generate_iplist(len(nodes), NODE_PREFIX)
@@ -39,12 +38,12 @@ def set_topology():
         'iplist': iplist
     }
 
-    with open('data.pickle', 'wb') as file:
+    with open('.data.pickle', 'wb') as file:
         pickle.dump(data, file)
 
 
 def load_data():
-    with open('data.pickle', 'rb') as file:
+    with open('.data.pickle', 'rb') as file:
         data = pickle.load(file)
     return data
 
@@ -94,6 +93,7 @@ def setup(save_file, subnets, nodes, iplist):
     # Write configuration files (configure() method) before sending to nodes
     configure(save_file, subnets, nodes)
 
+    functions.generate_iplist(len(nodes), NODE_PREFIX)
     functions.edit_ssh_config()
     time.sleep(2)
 
@@ -169,17 +169,24 @@ def test_message(iplist):
 
 
 def stats(save_file, num_nodes, iplist):
-    # Create dirs, append timestamp in seconds to delay folder
-    folder_name = save_file
-    folder_path = "./stats/delays/"
     functions.create_dir("./stats/")
-    functions.create_dir(folder_path)
-    functions.create_dir(folder_path + folder_name)
+    functions.create_dir("./stats/delays")
+    functions.create_dir("./stats/emane")
+    functions.create_dir("./stats/delays/" + save_file)
+    functions.create_dir("./stats/emane/" + save_file)
 
     path_to_delay = "/home/emane-01/test/emane/gvine/node/delay.txt"
-    statsuite.retrieve_delayfiles(iplist, path_to_delay, folder_path + folder_name)
-    delays = statsuite.parse_delayfiles(folder_path + folder_name, num_nodes)
+    statsuite.retrieve_delayfiles(iplist, path_to_delay, "./stats/delays/" + save_file)
+    delays = statsuite.parse_delayfiles("./stats/delays/" + save_file, num_nodes)
     statsuite.scatter_plot(delays)
+    print("Done.")
+
+
+def stats_emane(save_file, num_nodes, iplist):
+    print("\nGenerating EMANE statistics\n")
+    statsuite.generate_emane_stats(NODE_PREFIX, save_file, num_nodes, iplist)
+    print("\nCopying EMANE statistics to this computer\n")
+    statsuite.copy_emane_stats(NODE_PREFIX, save_file, num_nodes, iplist)
     print("Done.")
 
 

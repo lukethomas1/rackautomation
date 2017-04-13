@@ -275,12 +275,12 @@ case "$1" in
         fi
 
 
-        mkdir -p persist/host/var/log
-        mkdir -p persist/host/var/run
+        mkdir -p data/host/var/log
+        mkdir -p data/host/var/run
 
         if [ -n "$SUDO_USER" ]
             then
-            chown -R $SUDO_USER:$SUDO_USER persist
+            chown -R $SUDO_USER:$SUDO_USER data
         fi
 
         if [ -f  /var/run/demo.lock ]
@@ -325,20 +325,6 @@ case "$1" in
 
         # disable realtime scheduling contraints
         sysctl kernel.sched_rt_runtime_us=-1
-for nodeid in $(seq 1 $nodecount)
-        do
-             
-            mkdir -p persist/$nodeid/var/log
-            mkdir -p persist/$nodeid/var/run
-            rm -f persist/$nodeid/var/log/*
-            rm -f persist/$nodeid/var/run/*
-            
-            if [ -n "$SUDO_USER" ]
-            then
-                chown -R $SUDO_USER:$SUDO_USER persist/$nodeid
-            fi
-	done
-
 
         nodeId=1
 
@@ -348,9 +334,9 @@ for nodeid in $(seq 1 $nodecount)
     
             start_emanetransportd \
                 transportdaemon.xml \
-                persist/host/var/log/transportdaemon.log \
-                persist/host/var/run/transportdaemon.pid \
-                persist/host/var/run/transportdaemon.uuid
+                data/host/var/log/transportdaemon.log \
+                data/host/var/run/transportdaemon.pid \
+                data/host/var/run/transportdaemon.uuid
         fi
 
         if [ -f platform.xml ] &&
@@ -359,20 +345,20 @@ for nodeid in $(seq 1 $nodecount)
             
             start_emane \
                 platform.xml \
-                persist/host/var/log/emane.log \
-                persist/host/var/run/emane.pid \
-                persist/host/var/run/emane.uuid
+                data/host/var/log/emane.log \
+                data/host/var/run/emane.pid \
+                data/host/var/run/emane.uuid
         fi
         
-        if [ ! -f persist/host/var/run/emaneeventservice.pid ]
+        if [ ! -f data/host/var/run/emaneeventservice.pid ]
         then
             if [ -f eventservice.xml ] &&
                 [ ! -f NO-host-emaneeventservice ]
             then
                 start_emaneeventservice eventservice.xml \
                     persit/host/var/log/emaneeventservice.log \
-                    persist/host/var/run/emaneeventservice.pid \
-                    persist/host/var/run/emaneeventservice.uuid \
+                    data/host/var/run/emaneeventservice.pid \
+                    data/host/var/run/emaneeventservice.uuid \
                     "$starttime"
             fi
         else
@@ -383,44 +369,6 @@ for nodeid in $(seq 1 $nodecount)
         then
             ./host-poststart $demoid $nodecount
         fi
-
-
-		#check if mgen working soroush
-
-		if [ -f mgen$nodeId ] &&
-    [ ! -f NO-node-mgen$nodeId ] && 
-    [ ! -f NO-node-mgen ]
-then
-
-    if [ -f  persist/$nodeId/var/run/transportdaemon.pid ]
-    then
-        wait_for_device emane0 10
-    fi
-
-    start_mgen \
-        mgen$nodeId \
-        persist/$nodeId/var/log/mgen.out \
-        persist/$nodeId/var/run/mgen.pid \
-        persist/$nodeId/var/log/mgen.log \
-        "$starttime"
-
-elif [ -f mgen ] &&
-    [ ! -f NO-node-mgen$nodeId ] && 
-    [ ! -f NO-node-mgen ]
-then
-
-    if [ -f  persist/$nodeId/var/run/transportdaemon.pid ]
-    then
-        wait_for_device emane0 10
-    fi
-
-    start_mgen \
-        mgen \
-        persist/$nodeId/var/log/mgen.out \
-        persist/$nodeId/var/run/mgen.pid \
-        persist/$nodeId/var/log/mgen.log \
-        "$starttime"
-fi
 
         ;;
 
@@ -489,22 +437,22 @@ fi
 
        # done
         
-        if [ -f persist/host/var/run/emaneeventservice.pid ]
+        if [ -f data/host/var/run/emaneeventservice.pid ]
         then
-            kill -QUIT $(cat persist/host/var/run/emaneeventservice.pid)
-            rm -f persist/host/var/run/emaneeventservice.pid
+            kill -QUIT $(cat data/host/var/run/emaneeventservice.pid)
+            rm -f data/host/var/run/emaneeventservice.pid
         fi
                 
-        if [ -f persist/host/var/run/emane.pid ]
+        if [ -f data/host/var/run/emane.pid ]
         then
-            kill -QUIT $(cat persist/host/var/run/emane.pid)
-            rm -f persist/host/var/run/emane.pid
+            kill -QUIT $(cat data/host/var/run/emane.pid)
+            rm -f data/host/var/run/emane.pid
         fi
 
-        if [ -f persist/host/var/run/transportdaemon.pid ]
+        if [ -f data/host/var/run/transportdaemon.pid ]
         then
-            kill -QUIT $(cat persist/host/var/run/transportdaemon.pid)
-            rm -f persist/host/var/run/transportdaemon.pid
+            kill -QUIT $(cat data/host/var/run/transportdaemon.pid)
+            rm -f data/host/var/run/transportdaemon.pid
         fi
         
         if [[ $bridgecontrol -ne 0 ]]

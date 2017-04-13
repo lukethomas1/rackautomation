@@ -24,8 +24,11 @@ if(len(sys.argv) != 2):
 arg = sys.argv[1]
 
 if(arg == "topology"):
-    commands.set_topology()
-elif(os.path.isfile("data.pickle")):
+    save_file = input("Input Save File Name: ")
+    commands.set_topology(save_file)
+    print("Done.")
+    exit()
+elif(os.path.isfile(".data.pickle")):
     data = commands.load_data()
     save = data['save']
     json = data['json']
@@ -37,6 +40,7 @@ else:
     exit()
 
 if(arg == "init"):
+    commands.set_topology(save)
     commands.initialize(save, len(nodes))
 elif(arg == "iplist"):
     commands.make_iplist(len(nodes))
@@ -58,6 +62,8 @@ elif(arg == "testmessage"):
     commands.test_message(iplist)
 elif(arg == "stats"):
     commands.stats(save, len(nodes), iplist)
+elif(arg == "emane_stats"):
+    commands.stats_emane(save, len(nodes), iplist)
 elif(arg == "stop"):
     commands.stop(save)
 elif(arg == "delete"):
