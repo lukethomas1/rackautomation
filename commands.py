@@ -63,7 +63,8 @@ def print_data(data):
     
 # Creates # of nodes necessary for desired topology on rackspace
 def initialize(save_file, num_nodes):
-    img = "NewGvpki"
+    img = "GvineV352"
+    lastimg = "NewGvpki"
     functions.create_rackspace_instances(num_nodes, img, save_file, NODE_PREFIX)
     print("Done.")
 
@@ -169,16 +170,23 @@ def test_message(iplist):
 
 
 def stats(save_file, num_nodes, iplist):
+    print("Creating stats directories")
     functions.create_dir("./stats/")
     functions.create_dir("./stats/delays")
     functions.create_dir("./stats/emane")
     functions.create_dir("./stats/delays/" + save_file)
     functions.create_dir("./stats/emane/" + save_file)
 
+    print("Retrieving delay files")
     path_to_delay = "/home/emane-01/test/emane/gvine/node/delay.txt"
     statsuite.retrieve_delayfiles(iplist, path_to_delay, "./stats/delays/" + save_file)
     delays = statsuite.parse_delayfiles("./stats/delays/" + save_file, num_nodes)
-    statsuite.scatter_plot(delays)
+    statsuite.plot_values(delays, "delay")
+
+    print("\nGenerating EMANE statistics\n")
+    statsuite.generate_emane_stats(NODE_PREFIX, save_file, num_nodes, iplist)
+    print("\nCopying EMANE statistics to this computer\n")
+    statsuite.copy_emane_stats(save_file, num_nodes, iplist)
     print("Done.")
 
 
@@ -186,12 +194,15 @@ def stats_emane(save_file, num_nodes, iplist):
     print("\nGenerating EMANE statistics\n")
     statsuite.generate_emane_stats(NODE_PREFIX, save_file, num_nodes, iplist)
     print("\nCopying EMANE statistics to this computer\n")
-    statsuite.copy_emane_stats(NODE_PREFIX, save_file, num_nodes, iplist)
+    statsuite.copy_emane_stats(save_file, num_nodes, iplist)
     print("Done.")
 
 
 def stats_parse(save_file, num_nodes, parse_term):
-    statsuite.parse_emane_stats(NODE_PREFIX, save_file, num_nodes, parse_term)
+    phys = statsuite.parse_emane_stats(save_file, num_nodes, parse_term)
+    statsuite.sub_plot(phys)
+    statsuite.plot_values(phys, "emane")
+
 
 
 # Runs emane_stop.sh on each rackspace node in the topology

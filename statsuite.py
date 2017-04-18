@@ -48,11 +48,20 @@ def parse_delayfiles(folder_path, num_nodes):
     return delays
 
 
-def scatter_plot(values):
+def plot_values(values, plot_name):
+    trace = get_plot_trace(values)
+    data = [trace]
+    plotly.plotly.iplot(data, filename=plot_name)
+
+
+def get_plot_trace(values):
     x = []
     y = []
 
-    if(isinstance(values[0], list)):
+    if(isinstance(values, int)):
+        x.append(1)
+        y.append(values)
+    elif(isinstance(values[0], list)):
         for i in range(1, len(values) + 1):
             for j in range(len(values[i - 1])):
                 x.append(i)
@@ -69,9 +78,21 @@ def scatter_plot(values):
             mode = 'markers'
         )
 
-    data = [trace]
+    return trace
 
-    plotly.plotly.iplot(data, filename='stats-scatter')
+
+
+def sub_plot(node_data):
+    num_columns = 5
+    num_rows = int(len(node_data) / 5 + 1)
+    figure = plotly.tools.make_subplots(rows=num_rows, cols=num_columns)
+    for index in range(1, len(node_data) + 1):
+        row_num = int(index / 5) + 1
+        col_num = index % 5 + 1
+        figure.append_trace(get_plot_trace(node_data[index - 1]), row_num, col_num)
+    figure['layout'].update(title=str(len(node_data)) + " Nodes")
+    plotly.plotly.iplot(figure, filename="test-subplot")
+
 
 ##### EMANE Statistics #####
 
@@ -116,10 +137,10 @@ def generate_emane_stats(node_prefix, save_folder, num_nodes, iplist):
         ssh.close()
 
 
-def copy_emane_stats(node_prefix, save_folder, num_nodes, iplist):
+def copy_emane_stats(save_folder, num_nodes, iplist):
     for index in range(0, num_nodes):
         node_ip = iplist[index]
-        dest_dir = './stats/emane/' + save_folder + "/" + node_prefix + str(index + 1)
+        dest_dir = './stats/emane/' + save_folder + "/node" + str(index + 1)
         from_dir = (
             'root@' + node_ip + ':/home/emane-01/GrapeVine/topologies/'
             + save_folder + '/data/stats/.'
@@ -129,11 +150,11 @@ def copy_emane_stats(node_prefix, save_folder, num_nodes, iplist):
         time.sleep(1)
 
 
-def parse_emane_stats(node_prefix, save_folder, num_nodes, parse_term):
+def parse_emane_stats(save_folder, num_nodes, parse_term):
     all_values = []
     for index in range(1, num_nodes + 1):
         file_path = (
-                "./stats/emane/" + save_folder + "/" + node_prefix +
+                "./stats/emane/" + save_folder + "/node" +
                 str(index) + "/emane.stats"
         )
         file = open(file_path, 'r')
@@ -153,5 +174,6 @@ def parse_emane_stats(node_prefix, save_folder, num_nodes, parse_term):
         for index in range(int(len(derplist) / 3)):
             sum += int(derplist[index * 3 + 2])
         phys.append(sum)
-    scatter_plot(phys)
+    print("phys: " + str(phys))
+    return phys
 
