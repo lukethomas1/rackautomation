@@ -446,6 +446,12 @@ def setup_grapevine(save_file, ip_file):
     subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     time.sleep(2)
 
+    command = "cd /home/emane-01/test/emane/gvine/node/ && rm delay.txt"
+
+    print("\nRemoving delay.txt")
+    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    time.sleep(2)
+
 
 # Sort iplist to have node 1 at beginning and the last node at the end
 def sort_iplist(iplist, sort_term):

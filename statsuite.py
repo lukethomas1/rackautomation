@@ -45,7 +45,9 @@ def parse_delayfiles(folder_path, num_nodes):
 
 
 def plot_values(values, plot_name):
+    print("Plot name: " + plot_name)
     data = get_plot_trace(values)
+    print("Plotting " + str(len(data)) + " traces")
     plotly.plotly.iplot(data, filename=plot_name)
 
 
@@ -58,7 +60,10 @@ def get_plot_trace(values):
         for j in range(len(values[0])):
             y = []
             for i in range(1, len(values) + 1):
-                y.append(values[i - 1][j])
+                if(len(values[i - 1]) > j):
+                    y.append(values[i - 1][j])
+                else:
+                    y.append(0)
             trace = plotly.graph_objs.Scatter(
                 x = x,
                 y = y,
