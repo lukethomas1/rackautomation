@@ -19,15 +19,12 @@ import functions
 import testsuite
 import statsuite
 import objects
+import config
 
-NODE_PREFIX = "node"
-IP_FILE = "./iplists/" + NODE_PREFIX + "hosts"
-IP_BLACK_LIST = [
-    "10.0.3",
-    "23.253.107",
-    "192.168.3",
-    "127.0.0"
-]
+# Constants defined in config.py
+NODE_PREFIX = config.NODE_PREFIX
+IP_FILE = config.IP_FILE
+IP_BLACK_LIST = config.IP_BLACK_LIST
 
 # Functions are ordered in usage order
 
@@ -162,7 +159,7 @@ def start_gvine(iplist):
 
 def ping(subnets, nodes):
     print("Setting up")
-    functions.generate_network_ping_list(subnets, nodes, IP_FILE)
+    functions.generate_network_ping_list(subnets, nodes, IP_FILE, IP_BLACK_LIST)
     testsuite.ping_network()
     print("Done.")
 

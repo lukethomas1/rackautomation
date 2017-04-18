@@ -167,9 +167,11 @@ def generate_iplist(num_nodes, sort_term):
     return desired_ips
 
 
-def generate_network_ping_list(subnets, nodes, ip_file):
+def generate_network_ping_list(subnets, nodes, ip_file, blacklist):
     ip_process = open(ip_file, 'r')
     ip_list = ip_process.read().splitlines()
+
+    assign_subnet_addresses(subnets, blacklist)
 
     file = open("./tests/pingtest/network", "w")
     for subnet in subnets:
