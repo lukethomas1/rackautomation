@@ -12,6 +12,7 @@
 # System Imports
 import pickle
 import time
+import os
 
 # Local Imports
 import functions
@@ -21,6 +22,12 @@ import objects
 
 NODE_PREFIX = "node"
 IP_FILE = "./iplists/" + NODE_PREFIX + "hosts"
+IP_BLACK_LIST = [
+    "10.0.3",
+    "23.253.107",
+    "192.168.3",
+    "127.0.0"
+]
 
 # Functions are ordered in usage order
 
@@ -83,7 +90,7 @@ def configure(save_file, subnets, nodes):
     # Generate and copy files to the local topology folder
     print("Configuring files")
     functions.create_dir(topo_path)
-    functions.write_platform_xmls(subnets, nodes, topo_path)
+    functions.write_platform_xmls(subnets, nodes, topo_path, IP_BLACK_LIST)
     functions.write_emane_start_stop_scripts(save_file, len(nodes))
     functions.write_scenario(subnets, nodes, topo_path)
 
@@ -92,7 +99,10 @@ def configure(save_file, subnets, nodes):
 # then distributes topology to rackspace nodes
 def setup(save_file, subnets, nodes, iplist):
     # Write configuration files (configure() method) before sending to nodes
-    configure(save_file, subnets, nodes)
+    if(not os.path.isdir("./topologies/" + save_file)):
+        configure(save_file, subnets, nodes)
+    else:
+        print(save_file + " already configured")
 
     functions.generate_iplist(len(nodes), NODE_PREFIX)
     functions.edit_ssh_config()
@@ -180,8 +190,6 @@ def stats(save_file, num_nodes, iplist):
     print("Retrieving delay files")
     path_to_delay = "/home/emane-01/test/emane/gvine/node/delay.txt"
     statsuite.retrieve_delayfiles(iplist, path_to_delay, "./stats/delays/" + save_file)
-    delays = statsuite.parse_delayfiles("./stats/delays/" + save_file, num_nodes)
-    statsuite.plot_values(delays, "delay")
 
     print("\nGenerating EMANE statistics\n")
     statsuite.generate_emane_stats(NODE_PREFIX, save_file, num_nodes, iplist)
@@ -203,6 +211,10 @@ def stats_parse(save_file, num_nodes, parse_term):
     statsuite.sub_plot(phys)
     statsuite.plot_values(phys, "emane")
 
+
+def stats_delays(save_file, num_nodes):
+    delays = statsuite.parse_delayfiles("./stats/delays/" + save_file, num_nodes)
+    statsuite.plot_values(delays, "delay")
 
 
 # Runs emane_stop.sh on each rackspace node in the topology

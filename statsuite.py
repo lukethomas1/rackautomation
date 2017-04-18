@@ -15,11 +15,6 @@ import subprocess
 import plotly
 import paramiko
 
-def get_time():
-    milliseconds = time.time()
-    seconds = math.floor(milliseconds)
-    return seconds
-
 ##### Delay Statistics #####
 
 def retrieve_delayfiles(iplist, path_to_delay, dest_path):
@@ -32,54 +27,57 @@ def retrieve_delayfiles(iplist, path_to_delay, dest_path):
 
 def parse_delayfiles(folder_path, num_nodes):
     delays = []
-    for index in range(1, num_nodes + 1):
-        path = folder_path + "/delay" + str(index) + ".txt"
+    for node_index in range(1, num_nodes + 1):
+        path = folder_path + "/delay" + str(node_index) + ".txt"
         if(os.path.isfile(path)):
             delay_file = open(path)
             delay_text = delay_file.read()
             delay_file.close()
             delay_list = delay_text.split(" ")
             curr_node_list = []
-            for index in range(len(delay_list) + 1):
+            for delay_index in range(len(delay_list) + 1):
                 # Every 5th element is the actual value
-                if(index % 5 == 4):
-                    curr_node_list.append(delay_list[index])
+                if(delay_index % 5 == 4):
+                    curr_node_list.append(delay_list[delay_index])
+            print("node" + str(node_index) + " has delays: " + str(curr_node_list))
             delays.append(curr_node_list)
     return delays
 
 
 def plot_values(values, plot_name):
-    trace = get_plot_trace(values)
-    data = [trace]
+    data = get_plot_trace(values)
     plotly.plotly.iplot(data, filename=plot_name)
 
 
 def get_plot_trace(values):
-    x = []
+    x = list(range(1, len(values) + 1))
     y = []
+    traces = []
 
-    if(isinstance(values, int)):
-        x.append(1)
-        y.append(values)
-    elif(isinstance(values[0], list)):
-        for i in range(1, len(values) + 1):
-            for j in range(len(values[i - 1])):
-                x.append(i)
+    if(isinstance(values[0], list)):
+        for j in range(len(values[0])):
+            y = []
+            for i in range(1, len(values) + 1):
                 y.append(values[i - 1][j])
+            trace = plotly.graph_objs.Scatter(
+                x = x,
+                y = y,
+                mode = 'lines',
+                name = 'delay' + str(j)
+            )
+            traces.append(trace)
+
     else:
         for i in range(1, len(values) + 1):
             x.append(i)
             y.append(values[i - 1])
-
-
-    trace = plotly.graph_objs.Scatter(
-            x = x,
-            y = y,
-            mode = 'markers'
-        )
-
-    return trace
-
+        trace = plotly.graph_objs.Scatter(
+                x = x,
+                y = y,
+                mode = 'markers'
+            )
+        return [trace]
+    return traces
 
 
 def sub_plot(node_data):

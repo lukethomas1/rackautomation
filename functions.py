@@ -22,6 +22,22 @@ def add_known_hosts(iplist):
         time.sleep(1)
 
 
+# Assigns each subnet an address that doesnt conflict with other subnets or blacklist
+def assign_subnet_addresses(subnets, blacklist):
+    taken_addresses = []
+    for subnet in subnets:
+        subaddr = subnet['addr']
+        if(subaddr and subaddr not in taken_addresses and subaddr not in blacklist):
+            taken_addresses.append(subaddr)
+        else:
+            counter = subnet['number']
+            while(not subaddr or subaddr in taken_addresses or subaddr in blacklist):
+                subaddr = "10.0." + str(counter)
+                counter += 1
+            subnet['addr'] = subaddr
+            taken_addresses.append(subaddr)
+
+
 def copy_default_config(config_path, destination_path):
     # Get name of all files in default config directory
     config_files = os.listdir(config_path)
@@ -476,7 +492,7 @@ def write_emane_start_stop_scripts(save_folder, num_instances):
 
 
 # Write platform.xml for each node, lots of configuration logic involved
-def write_platform_xmls(subnets, nodes, topo_path):
+def write_platform_xmls(subnets, nodes, topo_path, blacklist):
     # Read templates
     platform_template_file = open("./templates/platform_template.xml", 'r')
     platform_template = platform_template_file.read()
@@ -484,6 +500,8 @@ def write_platform_xmls(subnets, nodes, topo_path):
     nem_template_file = open("./templates/nem_template.xml", 'r')
     nem_template = nem_template_file.read()
     nem_template_file.close()
+
+    assign_subnet_addresses(subnets, blacklist)
 
     for node in nodes:
         filled_nem = ""

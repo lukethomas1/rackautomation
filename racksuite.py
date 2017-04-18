@@ -64,6 +64,8 @@ elif(arg == "testmessage"):
     commands.test_message(iplist)
 elif(arg == "stats"):
     commands.stats(save, len(nodes), iplist)
+elif(arg == "delays"):
+    commands.stats_delays(save, len(nodes))
 elif(arg == "emane_stats"):
     commands.stats_emane(save, len(nodes), iplist)
 elif(arg == "parse"):
