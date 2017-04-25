@@ -23,6 +23,7 @@ import config
 
 # Constants defined in config.py
 NODE_PREFIX = config.NODE_PREFIX
+IMAGE_NAME = config.IMAGE_NAME
 IP_FILE = config.IP_FILE
 IP_BLACK_LIST = config.IP_BLACK_LIST
 
@@ -67,9 +68,7 @@ def print_data(data):
     
 # Creates # of nodes necessary for desired topology on rackspace
 def initialize(save_file, num_nodes):
-    img = "GvineV352"
-    lastimg = "NewGvpki"
-    functions.create_rackspace_instances(num_nodes, img, save_file, NODE_PREFIX)
+    functions.create_rackspace_instances(num_nodes, IMAGE_NAME, save_file, NODE_PREFIX)
     print("Done.")
 
 
@@ -101,6 +100,7 @@ def setup(save_file, subnets, nodes, iplist):
     else:
         print(save_file + " already configured")
 
+    print("Generating rackspace nodes ip list")
     functions.generate_iplist(len(nodes), NODE_PREFIX)
     functions.edit_ssh_config()
     time.sleep(2)
@@ -148,13 +148,20 @@ def start(save_file, iplist):
 
     functions.delete_gvine_log_files(IP_FILE)
     print("Starting GrapeVine")
-    functions.remote_start_gvine(iplist)
+    functions.remote_start_gvine(iplist, "jvine.jar")
     #functions.remote_start_console(iplist, "/home/emane-01/test/emane/gvine/node")
     print("Done.")
 
 
 def start_gvine(iplist):
-    functions.remote_start_gvine(iplist)
+    jar_name = input("Name of jar file(leave blank for jvine.jar): ")
+    if(not jar_name):
+        jar_name = "jvine.jar"
+    functions.remote_start_gvine(iplist, jar_name)
+
+
+def stop_gvine():
+    functions.remote_stop_gvine(IP_FILE)
 
 
 def ping(subnets, nodes):
@@ -238,13 +245,22 @@ def usage():
     usage += "---------- USAGE ----------\n"
     usage += "python3 racksuite.py <command>\n\n"
     usage += "---------- COMMANDS ----------\n"
+    usage += "topology\t\t\t set the topology to use\n"
     usage += "init\t\t\t create rackspace cloud instances\n"
     usage += "iplist\t\t\t update iplist and pssh-hosts\n"
     usage += "configure\t\t\t write platform files, scenario.eel, emane scripts\n"
     usage += "setup\t\t\t configure command + send to nodes on rackspace\n"
     usage += "start\t\t\t start emane and grapevine\n"
+    usage += "start_gvine\t\t\t start only grapevine\n"
+    usage += "stop_gvine\t\t\t stop only grapevine\n"
+    usage += "data\t\t\t print data\n"
     usage += "ping\t\t\t ping nodes to test if they are connected\n"
+    usage += "message\t\t\t send a message on grapevine\n"
+    usage += "testmessage\t\t\t send a message on grapevine and check if it sent correctly\n"
     usage += "stats\t\t\t save statistics\n"
+    usage += "delays\t\t\t save grapevine delay statistics\n"
+    usage += "emane_stats\t\t\t get emane statistics\n"
+    usage += "parse\t\t\t parse emane statistics\n"
     usage += "stop\t\t\t stop emane and grapevine\n"
     usage += "delete\t\t\t delete cloud topology folders\n"
     usage += "kill\t\t\t kill rackspace cloud instances\n"

@@ -155,9 +155,6 @@ def generate_iplist(num_nodes, sort_term):
     iplist = get_rack_pair_list()
     sortedlist = sort_iplist(iplist, sort_term)[:num_nodes]
 
-    if(len(sortedlist) == 0):
-        print("ERROR NO NODES IN SORTEDLIST from " + str(iplist) + " sort_term: " + sort_term)
-
     desired_ips = []
     for pair in sortedlist:
         ip = pair.split('\t')[1]
@@ -173,7 +170,10 @@ def generate_network_ping_list(subnets, nodes, ip_file, blacklist):
 
     assign_subnet_addresses(subnets, blacklist)
 
+    if(not os.path.isdir("./tests/pingtest/"):
+        os.makedirs("./tests/pingtest/")
     file = open("./tests/pingtest/network", "w")
+
     for subnet in subnets:
         num_members = len(subnet['memberids'])
         if(num_members > 1):
@@ -359,7 +359,7 @@ def remote_start_emane(save_file, ip_file, script_file):
 
 
 # Start gvine on each rackspace node
-def remote_start_gvine(iplist):
+def remote_start_gvine(iplist, jar_name):
     key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -367,7 +367,7 @@ def remote_start_gvine(iplist):
     for index in range(1, len(iplist) + 1):
         print("Starting on " + str(iplist[index - 1]))
         ssh.connect(iplist[index - 1], username="emane-01", pkey=key)
-        command = "cd ~/test/emane/gvine/node/ && java -jar jvine.jar node" + str(index) + " 500 >> log_node" + str(index) + ".txt &"
+        command = "cd ~/test/emane/gvine/node/ && java -jar " + jar_name + " node" + str(index) + " 500 >> log_node" + str(index) + ".txt &"
         stdin, stdout, stderr = ssh.exec_command(command)
         ssh.close()
 

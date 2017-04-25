@@ -54,6 +54,8 @@ elif(arg == "start"):
     commands.start(save, iplist)
 elif(arg == "start_gvine"):
     commands.start_gvine(iplist)
+elif(arg == "stop_gvine"):
+    commands.stop_gvine()
 elif(arg == "data"):
     commands.print_data(data)
 elif(arg == "ping"):

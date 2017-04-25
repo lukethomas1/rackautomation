@@ -1,6 +1,8 @@
 # Used for rackspace node naming and some other naming, will break things if changed
 NODE_PREFIX = "node"
 
+IMAGE_NAME = "NewGvpki"
+
 # Where to find the ip file for all the rackspace nodes
 IP_FILE = "./iplists/" + NODE_PREFIX + "hosts"
 

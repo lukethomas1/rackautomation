@@ -8,6 +8,7 @@ topologies/
 # Ignore Files
 pssh-hosts
 test.py
+config.py
 network
 data.pickle
 
