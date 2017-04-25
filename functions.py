@@ -170,7 +170,7 @@ def generate_network_ping_list(subnets, nodes, ip_file, blacklist):
 
     assign_subnet_addresses(subnets, blacklist)
 
-    if(not os.path.isdir("./tests/pingtest/"):
+    if(not os.path.isdir("./tests/pingtest/")):
         os.makedirs("./tests/pingtest/")
     file = open("./tests/pingtest/network", "w")
 

@@ -1,5 +1,5 @@
 # Used for rackspace node naming and some other naming, will break things if changed
-NODE_PREFIX = "node"
+NODE_PREFIX = "node-"
 
 IMAGE_NAME = "NewGvpki"
 
