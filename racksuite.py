@@ -23,35 +23,28 @@ if(len(sys.argv) != 2):
 
 arg = sys.argv[1]
 
-if(arg == "topology"):
-    save_file = input("Input Save File Name: ")
-    commands.set_topology(save_file)
-    print("Done.")
-    exit()
-elif(os.path.isfile(".data.pickle")):
-    data = commands.load_data()
-    save = data['save']
-    json = data['json']
-    subnets = data['subnets']
-    nodes = data['nodes']
-    iplist = data['iplist']
-else:
-    print("Use ./racksuite.py topology to set data")
-    exit()
+# Check config
+config_result = commands.update_config()
+save = config_result['save']
+json = config_result['json']
+subnets = config_result['subnets']
+nodes = config_result['nodes']
+iplist = config_result['iplist']
 
 if(arg == "init"):
     commands.initialize(save, len(nodes))
 elif(arg == "iplist"):
     commands.make_iplist(len(nodes))
+elif(arg == "reset"):
+    commands.set_topology(save)
 elif(arg == "configure"):
     commands.configure(save, subnets, nodes)
 elif(arg == "setup"):
-    # Update the ip list
-    commands.set_topology(save)
-    iplist = commands.load_data()['iplist']
     commands.setup(save, subnets, nodes, iplist)
 elif(arg == "start"):
     commands.start(save, iplist)
+elif(arg == "start_console"):
+    commands.start_console(iplist)
 elif(arg == "start_gvine"):
     commands.start_gvine(iplist)
 elif(arg == "stop_gvine"):
@@ -75,6 +68,8 @@ elif(arg == "parse"):
     commands.stats_parse(save, len(nodes), parse_term)
 elif(arg == "stop"):
     commands.stop(save)
+elif(arg == "clean"):
+    commands.clean()
 elif(arg == "delete"):
     commands.delete(save)
 elif(arg == "kill"):

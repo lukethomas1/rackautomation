@@ -7,14 +7,60 @@
 # functions do all of the dirty work in terms of raw logic, sshing to things,
 # generating files, etc.
 
-import json
-import objects
+# System Imports
 import os
-import paramiko
-import pyrebase
 import shutil
 import subprocess
 import time
+import json
+
+# Third Party Imports
+import paramiko
+import pickle
+import pyrebase
+
+# Local Imports
+import objects
+
+### LOCAL DATA PERSISTENCE ###
+
+def check_config(old_config):
+    new_config_file = open("config.py", 'r')
+    new_config = new_config_file.read()
+    new_config_file.close()
+
+    if(old_config != new_config):
+        return True
+    return False
+
+
+def load_data():
+    with open('.data.pickle', 'rb') as file:
+        data = pickle.load(file)
+    return data
+
+
+# Gets json from firebase and saves topology data for reuse
+def set_topology(save_file, node_prefix):
+    json_string = get_json_from_firebase(save_file)
+    subnets, nodes = convert_json_to_object(json_string)
+    iplist = generate_iplist(len(nodes), node_prefix)
+
+    with open("config.py", "r") as config_file:
+        config_contents = config_file.read()
+
+    data = {
+        'save': save_file,
+        'json': json_string,
+        'subnets': subnets,
+        'nodes': nodes,
+        'iplist': iplist,
+        'config': config_contents
+    }
+
+    with open('.data.pickle', 'wb') as file:
+        pickle.dump(data, file)
+
 
 def add_known_hosts(iplist):
     for host in iplist:
@@ -36,6 +82,12 @@ def assign_subnet_addresses(subnets, blacklist):
                 counter += 1
             subnet['addr'] = subaddr
             taken_addresses.append(subaddr)
+
+
+def clean_nodes(ip_file):
+    command = "cd ~/test/emane/gvine/node/ && rm $(ls -I '*.jar')"    
+    print("Deleting all non .jar files from nodes")
+    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
 
 
 def copy_default_config(config_path, destination_path):
@@ -372,10 +424,7 @@ def remote_start_gvine(iplist, jar_name):
         ssh.close()
 
 
-def remote_start_console(iplist, gvine_dir):
-        user = "emane-01"
-        terminal = ['gnome-terminal']
-        jar = "jvine.jar"
+def remote_start_console(user, terminal, jar, iplist, gvine_dir):
         for i in range(1, len(iplist) + 1):
             path = gvine_dir
             terminal.extend(['--tab', '-e','''ssh -t %s@%s 'cd %s && java -jar %s node%s 250 2>&1|tee log.txt' ''' % (user, iplist[i-1], path, jar, i)])
@@ -397,25 +446,25 @@ def setup_grapevine(save_file, ip_file):
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/flushrt.sh ]\n then cp /home/emane-01/gvine/trunk/gvine/flushrt.sh /home/emane-01/test/emane/gvine/node/\n fi"
     
     print("\nCopying flushrt.sh")
-    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    #subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     time.sleep(2)
 
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/emane_data.db ]\n then cp /home/emane-01/gvine/trunk/gvine/emane_data.db /home/emane-01/test/emane/gvine/node/\n fi"
     
     print("\nCopying emane_data.db")
-    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    #subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     time.sleep(2)
 
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/ncfilerx.sh ]\n then cp /home/emane-01/gvine/trunk/gvine/ncfilerx.sh /home/emane-01/test/emane/gvine/node/\n fi"
     
     print("\nCopying ncfilerx.sh")
-    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    #subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     time.sleep(2)
 
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/ncfiletx.sh ]\n then cp /home/emane-01/gvine/trunk/gvine/ncfiletx.sh /home/emane-01/test/emane/gvine/node/\n fi"
 
     print("\nCopying ncfiletx.sh")
-    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    #subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     time.sleep(2)
 
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/gvine.conf.json ]\n then cp /home/emane-01/gvine/trunk/source_gvine/gvine.conf.json /home/emane-01/test/emane/gvine/node/\n fi"

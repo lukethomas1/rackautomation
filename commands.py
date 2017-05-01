@@ -10,7 +10,6 @@
 # configuring a topology.
 
 # System Imports
-import pickle
 import time
 import os
 
@@ -23,49 +22,30 @@ import config
 
 # Constants defined in config.py
 NODE_PREFIX = config.NODE_PREFIX
+SAVE_FILE = config.SAVE_FILE
 IMAGE_NAME = config.IMAGE_NAME
 IP_FILE = config.IP_FILE
 IP_BLACK_LIST = config.IP_BLACK_LIST
 
 # Functions are ordered in usage order
 
-# Gets json from firebase and saves topology data for reuse
-def set_topology(save_file):
-    json_string = functions.get_json_from_firebase(save_file)
-    subnets, nodes = functions.convert_json_to_object(json_string)
-    iplist = functions.generate_iplist(len(nodes), NODE_PREFIX)
+def update_config():
+    # There is no saved data, possibly first time user
+    if(not os.path.isfile(".data.pickle")):
+        print("No .data.pickle file detected, creating...")
+        functions.set_topology(SAVE_FILE, NODE_PREFIX)
+        return functions.load_data()
 
-    data = {
-        'save': save_file,
-        'json': json_string,
-        'subnets': subnets,
-        'nodes': nodes,
-        'iplist': iplist
-    }
+    data = functions.load_data()
+    if(functions.check_config(data['config'])):
+        print("Config changed, reconfiguring...")
+        functions.set_topology(SAVE_FILE, NODE_PREFIX)
+        return functions.load_data()
 
-    with open('.data.pickle', 'wb') as file:
-        pickle.dump(data, file)
-
-
-def load_data():
-    with open('.data.pickle', 'rb') as file:
-        data = pickle.load(file)
+    # Return data if config.py hasn't been changed
     return data
 
 
-def print_data(data):
-    print("\nSave Name:\n")
-    print(data['save'])
-    print("\nJson:\n")
-    print(data['json'])
-    print("\nSubnets:\n")
-    print(data['subnets'])
-    print("\nNodes:\n")
-    print(data['nodes'])
-    print("\nIplist:\n")
-    print(data['iplist'])
-
-    
 # Creates # of nodes necessary for desired topology on rackspace
 def initialize(save_file, num_nodes):
     functions.create_rackspace_instances(num_nodes, IMAGE_NAME, save_file, NODE_PREFIX)
@@ -153,6 +133,14 @@ def start(save_file, iplist):
     print("Done.")
 
 
+def start_console(iplist):
+    user = "emane-01"
+    terminal = ['gnome-terminal']
+    jar = "jvine.jar"
+    gvine_dir = "~/test/emane/gvine/node"
+    functions.remote_start_console(user, terminal, jar, iplist, gvine_dir)
+
+
 def start_gvine(iplist):
     jar_name = input("Name of jar file(leave blank for jvine.jar): ")
     if(not jar_name):
@@ -228,6 +216,10 @@ def stop(save_file):
     functions.remote_stop_gvine(IP_FILE)
     time.sleep(2)
     print("Done.")
+    
+
+def clean():
+    functions.clean_nodes(IP_FILE)
 
 
 # Deletes the topologies/<topology-name>/ folder on each rackspace node
@@ -245,23 +237,24 @@ def usage():
     usage += "---------- USAGE ----------\n"
     usage += "python3 racksuite.py <command>\n\n"
     usage += "---------- COMMANDS ----------\n"
-    usage += "topology\t\t\t set the topology to use\n"
+    usage += "topology\t\t set the topology to use\n"
     usage += "init\t\t\t create rackspace cloud instances\n"
     usage += "iplist\t\t\t update iplist and pssh-hosts\n"
-    usage += "configure\t\t\t write platform files, scenario.eel, emane scripts\n"
+    usage += "configure\t\t write platform files, scenario.eel, emane scripts\n"
     usage += "setup\t\t\t configure command + send to nodes on rackspace\n"
     usage += "start\t\t\t start emane and grapevine\n"
-    usage += "start_gvine\t\t\t start only grapevine\n"
-    usage += "stop_gvine\t\t\t stop only grapevine\n"
+    usage += "start_gvine\t\t start only grapevine\n"
+    usage += "stop_gvine\t\t stop only grapevine\n"
     usage += "data\t\t\t print data\n"
     usage += "ping\t\t\t ping nodes to test if they are connected\n"
     usage += "message\t\t\t send a message on grapevine\n"
-    usage += "testmessage\t\t\t send a message on grapevine and check if it sent correctly\n"
+    usage += "testmessage\t\t send a message on grapevine and check if it sent correctly\n"
     usage += "stats\t\t\t save statistics\n"
     usage += "delays\t\t\t save grapevine delay statistics\n"
-    usage += "emane_stats\t\t\t get emane statistics\n"
+    usage += "emane_stats\t\t get emane statistics\n"
     usage += "parse\t\t\t parse emane statistics\n"
     usage += "stop\t\t\t stop emane and grapevine\n"
+    usage += "clean\t\t\t remove all non .jar files from ~/test/emane/gvine/node/ on nodes\n"
     usage += "delete\t\t\t delete cloud topology folders\n"
     usage += "kill\t\t\t kill rackspace cloud instances\n"
     usage += "help\t\t\t show this help message"
