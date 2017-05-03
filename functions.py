@@ -85,9 +85,10 @@ def assign_subnet_addresses(subnets, blacklist):
 
 
 def clean_nodes(ip_file):
-    command = "cd ~/test/emane/gvine/node/ && rm $(ls -I '*.jar')"    
+    command = "cd ~/test/emane/gvine/node/ && rm $(ls -I '*.jar' -I '*.json')"    
     print("Deleting all non .jar files from nodes")
     subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    time.sleep(1)
 
 
 def copy_default_config(config_path, destination_path):
@@ -396,8 +397,8 @@ def remote_create_dirs(save_folder, ip_file):
 
 
 # Delete specific topology from each rackspace node
-def remote_delete_topology(save_folder):
-    ip_file = "./iplists/" + save_folder + "hosts"
+def remote_delete_topology(node_prefix, save_folder):
+    ip_file = "./iplists/" + node_prefix + "hosts"
     subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
     'rm -r ~/GrapeVine/topologies/' + save_folder])
     time.sleep(2)
@@ -446,25 +447,25 @@ def setup_grapevine(save_file, ip_file):
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/flushrt.sh ]\n then cp /home/emane-01/gvine/trunk/gvine/flushrt.sh /home/emane-01/test/emane/gvine/node/\n fi"
     
     print("\nCopying flushrt.sh")
-    #subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     time.sleep(2)
 
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/emane_data.db ]\n then cp /home/emane-01/gvine/trunk/gvine/emane_data.db /home/emane-01/test/emane/gvine/node/\n fi"
     
     print("\nCopying emane_data.db")
-    #subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     time.sleep(2)
 
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/ncfilerx.sh ]\n then cp /home/emane-01/gvine/trunk/gvine/ncfilerx.sh /home/emane-01/test/emane/gvine/node/\n fi"
     
     print("\nCopying ncfilerx.sh")
-    #subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     time.sleep(2)
 
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/ncfiletx.sh ]\n then cp /home/emane-01/gvine/trunk/gvine/ncfiletx.sh /home/emane-01/test/emane/gvine/node/\n fi"
 
     print("\nCopying ncfiletx.sh")
-    #subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     time.sleep(2)
 
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/gvine.conf.json ]\n then cp /home/emane-01/gvine/trunk/source_gvine/gvine.conf.json /home/emane-01/test/emane/gvine/node/\n fi"

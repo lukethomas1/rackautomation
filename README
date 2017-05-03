@@ -14,40 +14,35 @@ START STEPS:
 
 2. Setup topography configuration
 - Command: "python3 racksuite.py setup"
-- Will prompt for a save file created from web app, then
-  automatically generate the topography and distribute to rackspace nodes
+- Will automatically generate the topography and distribute to rackspace nodes
 - Will take about a minute
 
-3. Start emane on each cloud instance on rackspace 
+3. Start Emane and GrapeVine on each cloud instance on rackspace 
 - Command: "python3 racksuite.py start"
-- Will prompt for a save file created from web app, then
-  automatically start emane on each rackspace node
-- May take up to 150 seconds before nodes can ping eachother
+- Will automatically start emane on each rackspace node
+- May take up to 30 seconds before nodes can ping eachother
 
-4. Start GrapeVine on cloud instances
-- "./start_emane_java_10_rack.sh"
-- Must have setup_emane_java_10_rack.sh and start_emane_java_10_rack.sh in the
-  same folder
-
-5. Success! You should now be able to send messages between nodes.
+4. Success! You should now be able to send messages between nodes.
 
 
 STOP STEPS:
 
-1. To collect EMANE statistics after sending messages with GrapeVine use
-   "./integrated.sh emanestat '# of nodes'"
+1. To collect EMANE statistics and GrapeVine delay statistics after sending
+ messages with GrapeVine use "./racksuite.py stats"
 
-2. To import EMANE statistics to GvineStatisticDatabase and copy emane statistic
+2. To collect delay statistics, use "./racksuite.py delay"
+
+3. To import EMANE statistics to GvineStatisticDatabase and copy emane statistic
 table to the common folder: (./integrated  logfilecopy   “number of nodes”
 imports the drop packet time to sql db), imports the emane stats to common
 directory
 
-3. To download all statistics and log files to your local machine : (./integrated
+4. To download all statistics and log files to your local machine : (./integrated
 get  “complete path to the destination folder”. 
 
-4. To stop EMANE (./integrated  emane_stop  “EMANE folder number”)
+5. To stop EMANE (./integrated  emane_stop  “EMANE folder number”)
 
-5. To delete files and wipe out the system to start new run: ( ./integrated
+6. To delete files and wipe out the system to start new run: ( ./integrated
 delete  “EMANE folder number”)
 
-6. TO PLOT run query.py -> merge.py
+7. TO PLOT run query.py -> merge.py

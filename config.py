@@ -3,7 +3,9 @@ NODE_PREFIX = "node"
 
 SAVE_FILE = "basic1"
 
-IMAGE_NAME = "GvineEvents2"
+IMAGE_NAME = "events2"
+
+JAR_FILE = "gvine-java.jar"
 
 # Where to find the ip file for all the rackspace nodes
 IP_FILE = "./iplists/" + NODE_PREFIX + "hosts"

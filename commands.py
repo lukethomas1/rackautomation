@@ -26,6 +26,7 @@ SAVE_FILE = config.SAVE_FILE
 IMAGE_NAME = config.IMAGE_NAME
 IP_FILE = config.IP_FILE
 IP_BLACK_LIST = config.IP_BLACK_LIST
+JAR_FILE = config.JAR_FILE
 
 # Functions are ordered in usage order
 
@@ -132,7 +133,7 @@ def start(save_file, iplist):
 
     functions.delete_gvine_log_files(IP_FILE)
     print("Starting GrapeVine")
-    functions.remote_start_gvine(iplist, "jvine.jar")
+    functions.remote_start_gvine(iplist, JAR_FILE)
     #functions.remote_start_console(iplist, "/home/emane-01/test/emane/gvine/node")
     print("Done.")
 
@@ -228,7 +229,7 @@ def clean():
 
 # Deletes the topologies/<topology-name>/ folder on each rackspace node
 def delete(save_file):
-    functions.remote_delete_topology(save_file)
+    functions.remote_delete_topology(NODE_PREFIX, SAVE_FILE)
 
 
 # Kills EVERY rackspace node
