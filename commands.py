@@ -46,6 +46,10 @@ def update_config():
     return data
 
 
+def reset():
+    functions.set_topology(SAVE_FILE, NODE_PREFIX)
+
+
 # Creates # of nodes necessary for desired topology on rackspace
 def initialize(save_file, num_nodes):
     functions.create_rackspace_instances(num_nodes, IMAGE_NAME, save_file, NODE_PREFIX)

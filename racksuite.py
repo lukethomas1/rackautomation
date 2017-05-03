@@ -36,7 +36,7 @@ if(arg == "init"):
 elif(arg == "iplist"):
     commands.make_iplist(len(nodes))
 elif(arg == "reset"):
-    commands.set_topology(save)
+    commands.reset()
 elif(arg == "configure"):
     commands.configure(save, subnets, nodes)
 elif(arg == "setup"):

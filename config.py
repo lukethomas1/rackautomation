@@ -1,9 +1,9 @@
 # Used for rackspace node naming and some other naming, will break things if changed
-NODE_PREFIX = "node-"
+NODE_PREFIX = "node"
 
 SAVE_FILE = "basic1"
 
-IMAGE_NAME = "GvineEvents"
+IMAGE_NAME = "GvineEvents2"
 
 # Where to find the ip file for all the rackspace nodes
 IP_FILE = "./iplists/" + NODE_PREFIX + "hosts"
