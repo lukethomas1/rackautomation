@@ -3,7 +3,7 @@ NODE_PREFIX = "node"
 
 SAVE_FILE = "basic1"
 
-IMAGE_NAME = "events2"
+IMAGE_NAME = "DbReader"
 
 JAR_FILE = "gvine-java.jar"
 

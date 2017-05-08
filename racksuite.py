@@ -40,7 +40,7 @@ elif(arg == "reset"):
 elif(arg == "configure"):
     commands.configure(save, subnets, nodes)
 elif(arg == "setup"):
-    commands.setup(save, subnets, nodes, iplist)
+    commands.setup(save, subnets, nodes)
 elif(arg == "start"):
     commands.start(save, iplist)
 elif(arg == "start_console"):

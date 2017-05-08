@@ -42,6 +42,14 @@ def update_config():
         print("Config changed, reconfiguring...")
         functions.set_topology(SAVE_FILE, NODE_PREFIX)
         return functions.load_data()
+    elif(functions.check_timestamp(data['timestamp'])):
+        print("Old config, reconfiguring...")
+        functions.set_topology(SAVE_FILE, NODE_PREFIX)
+        return functions.load_data()
+    elif(len(data['iplist']) == 0):
+        print("Iplist empty, attempting to populate")
+        functions.set_topology(SAVE_FILE, NODE_PREFIX)
+        return functions.load_data()
 
     # Return data if config.py hasn't been changed
     return data
@@ -78,7 +86,7 @@ def configure(save_file, subnets, nodes):
 
 # Runs configure() to create topology locally, 
 # then distributes topology to rackspace nodes
-def setup(save_file, subnets, nodes, iplist):
+def setup(save_file, subnets, nodes):
     # Write configuration files (configure() method) before sending to nodes
     if(not os.path.isdir("./topologies/" + save_file)):
         configure(save_file, subnets, nodes)
@@ -86,7 +94,7 @@ def setup(save_file, subnets, nodes, iplist):
         print(save_file + " already configured")
 
     print("Generating rackspace nodes ip list")
-    functions.generate_iplist(len(nodes), NODE_PREFIX)
+    iplist = functions.generate_iplist(len(nodes), NODE_PREFIX)
     functions.edit_ssh_config()
     time.sleep(2)
 
@@ -102,6 +110,9 @@ def setup(save_file, subnets, nodes, iplist):
     print("Copying default config")
     functions.remote_copy_default_config(save_file, IP_FILE)
     time.sleep(2)
+
+    if(len(iplist) == 0):
+        print("IPLIST IS EMPTY")
 
     # Copy the scenario.eel file to each rackspace node
     print("Copying scenario.eel")
@@ -132,9 +143,10 @@ def start(save_file, iplist):
     time.sleep(2)
 
     functions.delete_gvine_log_files(IP_FILE)
+    time.sleep(2)
+
     print("Starting GrapeVine")
     functions.remote_start_gvine(iplist, JAR_FILE)
-    #functions.remote_start_console(iplist, "/home/emane-01/test/emane/gvine/node")
     print("Done.")
 
 

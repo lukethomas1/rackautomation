@@ -34,6 +34,13 @@ def check_config(old_config):
     return False
 
 
+def check_timestamp(old_timestamp):
+    new_timestamp = time.time()
+    if(new_timestamp - 86400 > old_timestamp):
+        return True
+    return False
+
+
 def load_data():
     with open('.data.pickle', 'rb') as file:
         data = pickle.load(file)
@@ -45,6 +52,7 @@ def set_topology(save_file, node_prefix):
     json_string = get_json_from_firebase(save_file)
     subnets, nodes = convert_json_to_object(json_string)
     iplist = generate_iplist(len(nodes), node_prefix)
+    timestamp = time.time();
 
     with open("config.py", "r") as config_file:
         config_contents = config_file.read()
@@ -55,7 +63,8 @@ def set_topology(save_file, node_prefix):
         'subnets': subnets,
         'nodes': nodes,
         'iplist': iplist,
-        'config': config_contents
+        'config': config_contents,
+        'timestamp': timestamp
     }
 
     with open('.data.pickle', 'wb') as file:
@@ -153,8 +162,8 @@ def create_dir(folder_path):
 
 
 def delete_gvine_log_files(ip_file):
-    command = "cd /home/emane-01/test/emane/gvine/node/ && rm log_*"
     print("Removing log files")
+    command = "cd /home/emane-01/test/emane/gvine/node/ && rm log_*"
     subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command],
         stdout=subprocess.DEVNULL)
 
@@ -172,7 +181,7 @@ def edit_ssh_config():
     for p in pairs:
         pair = p.split('\t')
         name = pair[0]
-        address = pair[1]
+        address = pair[-1]
         writestring = fmt.format(nodename=name, nodeaddress=address)
         if(len(address) > 0):
             file.write(writestring)
@@ -210,7 +219,7 @@ def generate_iplist(num_nodes, sort_term):
 
     desired_ips = []
     for pair in sortedlist:
-        ip = pair.split('\t')[1]
+        ip = pair.split('\t')[-1]
         desired_ips.append(ip)
 
     create_file_from_list("./iplists/" + sort_term + "hosts", desired_ips)
