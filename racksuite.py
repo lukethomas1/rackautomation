@@ -40,7 +40,7 @@ elif(arg == "reset"):
 elif(arg == "configure"):
     commands.configure(save, subnets, nodes)
 elif(arg == "setup"):
-    commands.setup(save, subnets, nodes)
+    commands.setup(save, subnets, nodes, iplist)
 elif(arg == "start"):
     commands.start(save, iplist)
 elif(arg == "start_console"):
@@ -59,6 +59,8 @@ elif(arg == "testmessage"):
     commands.test_message(iplist)
 elif(arg == "stats"):
     commands.stats(save, len(nodes), iplist)
+elif(arg == "stats_events"):
+    commands.stats_events(save, iplist)
 elif(arg == "delays"):
     commands.stats_delays(save, len(nodes))
 elif(arg == "emane_stats"):

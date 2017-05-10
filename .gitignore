@@ -15,5 +15,8 @@ data.pickle
 # Ignore all hidden
 .*
 
+# Ignore all compiled python
+*.pyc
+
 # But dont ignore these
 !.gitignore

@@ -38,16 +38,11 @@ def update_config():
         return functions.load_data()
 
     data = functions.load_data()
-    if(functions.check_config(data['config'])):
-        print("Config changed, reconfiguring...")
-        functions.set_topology(SAVE_FILE, NODE_PREFIX)
-        return functions.load_data()
-    elif(functions.check_timestamp(data['timestamp'])):
-        print("Old config, reconfiguring...")
-        functions.set_topology(SAVE_FILE, NODE_PREFIX)
-        return functions.load_data()
-    elif(len(data['iplist']) == 0):
-        print("Iplist empty, attempting to populate")
+    if(functions.check_config(data['config'])
+        or functions.check_timestamp(data['timestamp'])
+        or len(data['iplist']) == 0
+        or functions.check_rack_nodes(data['racknodes'])):
+        print("Updating configuration...")
         functions.set_topology(SAVE_FILE, NODE_PREFIX)
         return functions.load_data()
 
@@ -86,7 +81,7 @@ def configure(save_file, subnets, nodes):
 
 # Runs configure() to create topology locally, 
 # then distributes topology to rackspace nodes
-def setup(save_file, subnets, nodes):
+def setup(save_file, subnets, nodes, iplist):
     # Write configuration files (configure() method) before sending to nodes
     if(not os.path.isdir("./topologies/" + save_file)):
         configure(save_file, subnets, nodes)
@@ -94,7 +89,7 @@ def setup(save_file, subnets, nodes):
         print(save_file + " already configured")
 
     print("Generating rackspace nodes ip list")
-    iplist = functions.generate_iplist(len(nodes), NODE_PREFIX)
+    #iplist = functions.generate_iplist(len(nodes), NODE_PREFIX)
     functions.edit_ssh_config()
     time.sleep(2)
 
@@ -193,26 +188,47 @@ def stats(save_file, num_nodes, iplist):
     functions.create_dir("./stats/")
     functions.create_dir("./stats/delays")
     functions.create_dir("./stats/emane")
+    functions.create_dir("./stats/events")
     functions.create_dir("./stats/delays/" + save_file)
     functions.create_dir("./stats/emane/" + save_file)
+    functions.create_dir("./stats/events/" + save_file)
+    functions.create_dir("./stats/events/" + save_file + "/nodedata/")
 
-    print("Retrieving delay files")
+    print("\nRetrieving delay files")
     path_to_delay = "/home/emane-01/test/emane/gvine/node/delay.txt"
     statsuite.retrieve_delayfiles(iplist, path_to_delay, "./stats/delays/" + save_file)
 
-    print("\nGenerating EMANE statistics\n")
+    print("\nGenerating EMANE statistics")
     statsuite.generate_emane_stats(NODE_PREFIX, save_file, num_nodes, iplist)
-    print("\nCopying EMANE statistics to this computer\n")
+    print("\nCopying EMANE statistics to this computer")
     statsuite.copy_emane_stats(save_file, num_nodes, iplist)
     print("Done.")
+
+    print("\nGathering Event data")
+    statsuite.generate_event_dbs(iplist)
+    time.sleep(2)
+    print("\nCopying Event data")
+    path_to_db = "/home/emane-01/test/emane/gvine/node/dbs/eventsql_copy.db"
+    statsuite.copy_event_dbs(iplist, path_to_db, "./stats/events/" + save_file + "/nodedata/")
+    input_dir = "./stats/events/" + save_file + "/nodedata/"
+    output_dir = "./stats/events/" + save_file + "/"
+    statsuite.combine_event_dbs(input_dir, output_dir)
 
 
 def stats_emane(save_file, num_nodes, iplist):
-    print("\nGenerating EMANE statistics\n")
+    print("\nGenerating EMANE statistics")
     statsuite.generate_emane_stats(NODE_PREFIX, save_file, num_nodes, iplist)
-    print("\nCopying EMANE statistics to this computer\n")
+    print("\nCopying EMANE statistics to this computer")
     statsuite.copy_emane_stats(save_file, num_nodes, iplist)
     print("Done.")
+
+
+def stats_events(save_file, iplist):
+    print("Generating Event data")
+    statsuite.generate_event_dbs(iplist)
+    print("Copying Event data")
+    path_to_db = "/home/emane-01/test/emane/gvine/node/dbs/eventsql_copy.db"
+    statsuite.copy_event_dbs(iplist, path_to_db, "./stats/events/" + save_file)
 
 
 def stats_parse(save_file, num_nodes, parse_term):

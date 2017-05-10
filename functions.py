@@ -41,6 +41,14 @@ def check_timestamp(old_timestamp):
     return False
 
 
+def check_rack_nodes(old_rack_nodes):
+    racknodes = subprocess.Popen(['rack', 'servers', 'instance', 'list', '--fields',
+        'name,publicipv4'], stdout=subprocess.PIPE).stdout.read().decode()
+    if(old_rack_nodes != racknodes):
+        return True
+    return False
+
+
 def load_data():
     with open('.data.pickle', 'rb') as file:
         data = pickle.load(file)
@@ -53,6 +61,8 @@ def set_topology(save_file, node_prefix):
     subnets, nodes = convert_json_to_object(json_string)
     iplist = generate_iplist(len(nodes), node_prefix)
     timestamp = time.time();
+    racknodes = subprocess.Popen(['rack', 'servers', 'instance', 'list', '--fields',
+        'name,publicipv4'], stdout=subprocess.PIPE).stdout.read().decode()
 
     with open("config.py", "r") as config_file:
         config_contents = config_file.read()
@@ -64,7 +74,8 @@ def set_topology(save_file, node_prefix):
         'nodes': nodes,
         'iplist': iplist,
         'config': config_contents,
-        'timestamp': timestamp
+        'timestamp': timestamp,
+        'racknodes': racknodes
     }
 
     with open('.data.pickle', 'wb') as file:
@@ -143,7 +154,7 @@ def create_file_from_list(file_path, contents):
 # Call rackspace API to create num_instances nodes with image_name image
 def create_rackspace_instances(num_instances, image_name, save_file, node_prefix):
     print("Creating " + str(num_instances) + " Rackspace nodes with image '"
-        + image_name + "'")
+        + image_name + "' and save file '" + save_file + "'")
     for index in range(1, num_instances + 1):
         node_name = node_prefix + str(index)
         print("Creating " + node_name);

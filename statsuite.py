@@ -1,19 +1,20 @@
-#!/usr/bin/env python3
-
 # File: statsuite.py
 # Author: Luke Thomas
 # Date: April 6, 2017
 # Description: This file is used for stats from emane tests
 
 # System Imports
-import time
+import glob
 import os
 import math
+import re
 import subprocess
+import sqlite3
+import time
 
 # 3rd Party Imports
-import plotly
 import paramiko
+import plotly
 
 ##### Delay Statistics #####
 
@@ -99,6 +100,7 @@ def sub_plot(node_data):
 
 ##### EMANE Statistics #####
 
+
 def generate_emane_stats(node_prefix, save_folder, num_nodes, iplist):
     key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
     ssh = paramiko.SSHClient()
@@ -180,3 +182,135 @@ def parse_emane_stats(save_folder, num_nodes, parse_term):
     print("phys: " + str(phys))
     return phys
 
+
+##### Event Statistics #####
+
+
+def generate_event_dbs(iplist):
+    key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    for index in range(1, len(iplist) + 1):
+        ssh.connect(iplist[index - 1], username="emane-01", pkey=key)
+
+        command = (
+            "cd /home/emane-01/test/emane/gvine/node/eventlogs/ && " +
+            "ls -dlt */"
+        )
+        stdin, stdout, stderr = ssh.exec_command(command)
+        target_dir = stdout.read().decode().splitlines()[0].split(" ")[-1]
+
+        command = (
+            "cd /home/emane-01/test/emane/gvine/node/ && " +
+            "java -jar dbreader.jar eventlogs/" + target_dir + " LaJollaCove eventsql"
+        )
+        stdin, stdout, stderr = ssh.exec_command(command)
+        ssh.close()
+
+
+def copy_event_dbs(iplist, path_to_db, dest_path):
+    for index in range(len(iplist)):
+        ip = iplist[index]
+        command = (
+            "scp emane-01@" + ip + ":" + path_to_db + " " + dest_path +
+            "/eventsql" + str(index + 1) + ".db"
+        )
+        os.system(command)
+
+
+def combine_event_dbs(input_dir, output_dir):
+    # Make a new database named by timestamp
+    date_time = time.strftime("%Y-%m-%d_%H:%M:%S", time.gmtime())
+    main_connection = sqlite3.connect(output_dir + "/" + date_time + ".db")
+    # Get the database names for each separate database we want to combine
+    db_names = [name for name in glob.glob(input_dir + "*.db") if "eventsql" in name]
+    # Get the table names and schemas needed to create the new database
+    table_names, schemas = gather_table_schemas(input_dir, db_names)
+    # Create the tables in the new database
+    create_db_tables(main_connection, schemas)
+    # Insert data from all the databases into the new database
+    insert_db_data(main_connection, db_names, table_names)
+    # Save the changes made to the new database
+    main_connection.commit()
+    # Close the database connection
+    main_connection.close()
+
+
+def gather_table_schemas(path_to_dbs, db_names):
+    table_names = []
+    schemas = []
+    for db_name in db_names:
+        conn = sqlite3.connect(db_name)
+        cursor = conn.cursor()
+        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = cursor.fetchall()
+
+        # Loop through and add non-duplicate table names
+        for table in tables:
+            table = table[0]
+            if table not in table_names:
+                table_names.append(table)
+            schema = conn.execute("SELECT sql FROM sqlite_master where type='table' and name='" + table + "'").fetchall()[0][0]
+            if schema not in schemas:
+                schemas.append(schema)
+        conn.close()
+    return table_names, schemas
+
+
+def create_db_tables(main_connection, schemas):
+    for schema in schemas:
+        schema = schema.replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS")
+        schema = schema.replace("eventId INTEGER PRIMARY KEY UNIQUE, ", "")
+        index = schema.index(" (") + 2
+        schema = schema[:index] + "nodeNumber TEXT, eventId INTEGER, " + schema[index:]
+        schema = schema.replace(")", ", unique(nodeNumber, eventId));")
+        cursor = main_connection.execute(schema)
+
+
+def insert_db_data(main_connection, db_names, table_names):
+    sorted_names = natural_sort(db_names)
+
+    for index in range(1, len(sorted_names) + 1):
+        db_name = sorted_names[index - 1]
+        print("Inserting from " + db_name)
+        conn = sqlite3.connect(db_name)
+        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = cursor.fetchall()
+
+        for table in tables:
+            table_name = table[0]
+            cursor = conn.execute("SELECT * FROM " + table_name + ";")
+            table_data = cursor.fetchall()
+            column_names = [description[0] for description in cursor.description]
+
+            # Insert the data
+            for row in table_data:
+                insert_sql = create_insert_stmt(table_name, column_names, index, row)
+                try:
+                    main_connection.execute(insert_sql)
+                except sqlite3.IntegrityError:
+                    # This is caused by a duplicate input, ignore it and dont insert
+                    pass
+        conn.close()
+
+# Sort strings based on the numbers inside them, look up "natural sorting"
+def natural_sort(l): 
+    convert = lambda text: int(text) if text.isdigit() else text.lower() 
+    alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ] 
+    return sorted(l, key = alphanum_key)
+
+
+def create_insert_stmt(table_name, column_names, node_index, row_data):
+    insert_stmt = "INSERT INTO " + table_name + " (nodeNumber"
+    for column_name in column_names:
+        insert_stmt += ", " + column_name
+    insert_stmt += ") VALUES ('node" + str(node_index) + "'"
+    for data_value in row_data:
+        # Insert it as a string or integer
+        try:
+            insert_stmt += ", '" + data_value + "'"
+        except TypeError:
+            insert_stmt += ", " + str(data_value)
+    insert_stmt += ")"
+    return insert_stmt
