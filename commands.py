@@ -10,14 +10,13 @@
 # configuring a topology.
 
 # System Imports
-import time
-import os
+from time import sleep
+from os import path
 
 # Local Imports
 import functions
 import testsuite
 import statsuite
-import objects
 import config
 
 # Constants defined in config.py
@@ -32,7 +31,7 @@ JAR_FILE = config.JAR_FILE
 
 def update_config():
     # There is no saved data, possibly first time user
-    if(not os.path.isfile(".data.pickle")):
+    if(not path.isfile(".data.pickle")):
         print("No .data.pickle file detected, creating...")
         functions.set_topology(SAVE_FILE, NODE_PREFIX)
         return functions.load_data()
@@ -70,7 +69,6 @@ def make_iplist(num_nodes):
 # The files are created in ./topologies/<topology-name>/
 def configure(save_file, subnets, nodes):
     topo_path = "./topologies/" + save_file + "/"
-
     # Generate and copy files to the local topology folder
     print("Configuring files")
     functions.create_dir(topo_path)
@@ -83,7 +81,7 @@ def configure(save_file, subnets, nodes):
 # then distributes topology to rackspace nodes
 def setup(save_file, subnets, nodes, iplist):
     # Write configuration files (configure() method) before sending to nodes
-    if(not os.path.isdir("./topologies/" + save_file)):
+    if(not path.isdir("./topologies/" + save_file)):
         configure(save_file, subnets, nodes)
     else:
         print(save_file + " already configured")
@@ -91,7 +89,7 @@ def setup(save_file, subnets, nodes, iplist):
     print("Generating rackspace nodes ip list")
     #iplist = functions.generate_iplist(len(nodes), NODE_PREFIX)
     functions.edit_ssh_config()
-    time.sleep(2)
+    sleep(2)
 
     # Add all rackspace node ip addresses to this computer's known_hosts file
     functions.add_known_hosts(iplist)
@@ -99,12 +97,12 @@ def setup(save_file, subnets, nodes, iplist):
     # Create topology directory on each rackspace node
     print("Creating remote directories with ipfile: " + IP_FILE)
     functions.remote_create_dirs(save_file, IP_FILE)
-    time.sleep(2)
+    sleep(2)
 
     # Copy the default config to each rackspace node
     print("Copying default config")
     functions.remote_copy_default_config(save_file, IP_FILE)
-    time.sleep(2)
+    sleep(2)
 
     if(len(iplist) == 0):
         print("IPLIST IS EMPTY")
@@ -135,10 +133,10 @@ def start(save_file, iplist):
     print("Starting emane")
     script_name = 'emane_start.sh'
     functions.remote_start_emane(save_file, IP_FILE, script_name)
-    time.sleep(2)
+    sleep(2)
 
     functions.delete_gvine_log_files(IP_FILE)
-    time.sleep(2)
+    sleep(2)
 
     print("Starting GrapeVine")
     functions.remote_start_gvine(iplist, JAR_FILE)
@@ -160,8 +158,18 @@ def start_gvine(iplist):
     functions.remote_start_gvine(iplist, jar_name)
 
 
+def start_norm(iplist, subnets, nodes):
+    functions.start_norm(iplist, subnets, nodes)
+
+
 def stop_gvine():
-    functions.remote_stop_gvine(IP_FILE)
+    print("Stopping gvine")
+    functions.parallel_ssh(IP_FILE, "sudo pkill java")
+
+
+def stop_norm():
+    print("Stopping norm")
+    functions.parallel_ssh(IP_FILE, "sudo pkill norm")
 
 
 def ping(subnets, nodes):
@@ -174,8 +182,15 @@ def ping(subnets, nodes):
 def message(iplist):
     message_name = input("Choose message file name: ")
     file_size = input("Choose file size (kilobytes): ")
-    testsuite.send_message(iplist[0], message_name, file_size)
+    testsuite.send_gvine_message(iplist[0], message_name, file_size)
 
+
+def norm_message(iplist):
+    message_name = input("Choose message file name: ")
+    file_size = input("Choose file size (kilobytes): ")
+    testsuite.send_norm_message(iplist[0], message_name, file_size)
+    testsuite.norm_monitor(iplist[5], message_name)
+    
 
 def test_message(iplist):
     message_name = input("Choose message file name: ")
@@ -194,9 +209,9 @@ def stats(save_file, num_nodes, iplist):
     functions.create_dir("./stats/events/" + save_file)
     functions.create_dir("./stats/events/" + save_file + "/nodedata/")
 
-    print("\nRetrieving delay files")
-    path_to_delay = "/home/emane-01/test/emane/gvine/node/delay.txt"
-    statsuite.retrieve_delayfiles(iplist, path_to_delay, "./stats/delays/" + save_file)
+    #print("\nRetrieving delay files")
+    #path_to_delay = "/home/emane-01/test/emane/gvine/node/delay.txt"
+    #statsuite.retrieve_delayfiles(iplist, path_to_delay, "./stats/delays/" + save_file)
 
     print("\nGenerating EMANE statistics")
     statsuite.generate_emane_stats(NODE_PREFIX, save_file, num_nodes, iplist)
@@ -204,15 +219,23 @@ def stats(save_file, num_nodes, iplist):
     statsuite.copy_emane_stats(save_file, num_nodes, iplist)
     print("Done.")
 
-    print("\nGathering Event data")
+    print("\nGenerating Event data")
     statsuite.generate_event_dbs(iplist)
-    time.sleep(2)
+    sleep(2)
+
     print("\nCopying Event data")
     path_to_db = "/home/emane-01/test/emane/gvine/node/dbs/eventsql_copy.db"
     statsuite.copy_event_dbs(iplist, path_to_db, "./stats/events/" + save_file + "/nodedata/")
+
+    print("\nCombining Event data")
     input_dir = "./stats/events/" + save_file + "/nodedata/"
     output_dir = "./stats/events/" + save_file + "/"
-    statsuite.combine_event_dbs(input_dir, output_dir)
+    path_to_sql_db = statsuite.combine_event_dbs(input_dir, output_dir)
+
+    print("\nPlotting message delays at plot.ly/~sunjaun2/")
+    rows = statsuite.get_sql_delay_data(path_to_sql_db)
+    dict = statsuite.parse_sql_db(rows)
+    statsuite.plot_delays(dict)
 
 
 def stats_emane(save_file, num_nodes, iplist):
@@ -224,11 +247,24 @@ def stats_emane(save_file, num_nodes, iplist):
 
 
 def stats_events(save_file, iplist):
-    print("Generating Event data")
+    print("Creating stats directories")
+    functions.create_dir("./stats/")
+    functions.create_dir("./stats/events")
+    functions.create_dir("./stats/events/" + save_file)
+    functions.create_dir("./stats/events/" + save_file + "/nodedata/")
+
+    print("\nGathering Event data")
     statsuite.generate_event_dbs(iplist)
-    print("Copying Event data")
+    sleep(2)
+
+    print("\nCopying Event data")
     path_to_db = "/home/emane-01/test/emane/gvine/node/dbs/eventsql_copy.db"
-    statsuite.copy_event_dbs(iplist, path_to_db, "./stats/events/" + save_file)
+    statsuite.copy_event_dbs(iplist, path_to_db, "./stats/events/" + save_file + "/nodedata/")
+
+    print("\nCombining Event data")
+    input_dir = "./stats/events/" + save_file + "/nodedata/"
+    output_dir = "./stats/events/" + save_file + "/"
+    statsuite.combine_event_dbs(input_dir, output_dir)
 
 
 def stats_parse(save_file, num_nodes, parse_term):
@@ -246,8 +282,9 @@ def stats_delays(save_file, num_nodes):
 def stop(save_file):
     script_file = 'emane_stop.sh'
     functions.remote_start_emane(save_file, IP_FILE, script_file)
-    functions.remote_stop_gvine(IP_FILE)
-    time.sleep(2)
+    functions.parallel_ssh(IP_FILE, "sudo pkill java")
+    functions.parallel_ssh(IP_FILE, "sudo pkill norm")
+    sleep(2)
     print("Done.")
     
 

@@ -4,17 +4,89 @@
 # Description: This file is used for stats from emane tests
 
 # System Imports
-import glob
-import os
-import math
-import re
-import subprocess
-import sqlite3
-import time
+from glob import glob
+from os import path, system
+from math import ceil
+from re import search, split
+from subprocess import Popen
+from sqlite3 import connect, IntegrityError
+from time import gmtime, strftime, sleep
 
 # 3rd Party Imports
-import paramiko
+from paramiko import AutoAddPolicy, RSAKey, SSHClient
 import plotly
+
+##### Delays from SQL #####
+
+def get_sql_delay_data(path_to_db):
+    main_connection = connect(path_to_db)
+    cursor = main_connection.cursor()
+    select_stmt = "select * from loggableeventmessagereceived;"
+    cursor.execute(select_stmt)
+    rows = cursor.fetchall()
+    return rows
+
+
+def parse_sql_db(rows):
+    dict = {}
+    files = {file[3] for file in rows} # Look up set comprehension
+    print(str(files))
+    num_files = len(files)
+
+    for index in range(num_files):
+        file_name = files.pop()
+        dict[file_name] = {}
+        file_rows = [row for row in rows if row[3] == file_name]
+        for row in file_rows:
+            node_name = row[0]
+            start_time = row[5]
+            end_time = row[2]
+            delay = end_time - start_time
+            dict[file_name][node_name] = delay
+            print("Adding " + str(delay) + " to " + node_name + " in " + file_name)
+
+    print(str(dict))
+    return dict
+
+def plot_delays(delays_dict):
+    traces = []
+
+    for file_name in delays_dict:
+        x = []
+        y = []
+        file_dict = delays_dict[file_name]
+        for node_name in file_dict:
+            node_number = get_trailing_number(node_name)
+            x.append(node_number)
+            y.append(file_dict[node_name] / 1000)
+        trace = plotly.graph_objs.Scatter(
+            x = x,
+            y = y,
+            mode = 'markers',
+            name = file_name
+        )
+        print("Trace: " + str(trace))
+        traces.append(trace)
+
+    num_columns = 2
+    num_rows = ceil(len(traces) / 2)
+    print("Num rows: " + str(num_rows))
+    figure = plotly.tools.make_subplots(rows=num_rows, cols=num_columns)
+
+    for index in range(1, len(traces) + 1):
+        row_num = ceil(index / 2)
+        column_num = (index - 1) % 2 + 1
+        figure.append_trace(traces[index - 1], row_num, column_num)
+
+    figure['layout'].update(title="testing title")
+    plot_name = "testplot"
+    print("Plotting " + plot_name)
+    plotly.plotly.iplot(figure, filename=plot_name)
+
+
+def get_trailing_number(str):
+    m = search(r'\d+$', str)
+    return int(m.group()) if m else None
 
 ##### Delay Statistics #####
 
@@ -23,14 +95,14 @@ def retrieve_delayfiles(iplist, path_to_delay, dest_path):
         ip = iplist[index]
         command = "scp emane-01@" + ip + ":" + path_to_delay + " "
         command += dest_path + "/delay" + str(index + 1) + ".txt"
-        os.system(command)
+        system(command)
 
 
 def parse_delayfiles(folder_path, num_nodes):
     delays = []
     for node_index in range(1, num_nodes + 1):
         path = folder_path + "/delay" + str(node_index) + ".txt"
-        if(os.path.isfile(path)):
+        if(path.isfile(path)):
             delay_file = open(path)
             delay_text = delay_file.read()
             delay_file.close()
@@ -102,9 +174,9 @@ def sub_plot(node_data):
 
 
 def generate_emane_stats(node_prefix, save_folder, num_nodes, iplist):
-    key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    ssh = SSHClient()
+    ssh.set_missing_host_key_policy(AutoAddPolicy())
 
     for index in range(1, num_nodes + 1):
         ssh.connect(iplist[index - 1], username="emane-01", pkey=key)
@@ -151,8 +223,8 @@ def copy_emane_stats(save_folder, num_nodes, iplist):
             + save_folder + '/data/stats/.'
         )
         print("Copying from node" + str(index + 1))
-        subprocess.Popen(['scp', '-r', from_dir, dest_dir])
-        time.sleep(1)
+        Popen(['scp', '-r', from_dir, dest_dir])
+        sleep(1)
 
 
 def parse_emane_stats(save_folder, num_nodes, parse_term):
@@ -187,9 +259,9 @@ def parse_emane_stats(save_folder, num_nodes, parse_term):
 
 
 def generate_event_dbs(iplist):
-    key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    ssh = SSHClient()
+    ssh.set_missing_host_key_policy(AutoAddPolicy())
 
     for index in range(1, len(iplist) + 1):
         ssh.connect(iplist[index - 1], username="emane-01", pkey=key)
@@ -216,34 +288,54 @@ def copy_event_dbs(iplist, path_to_db, dest_path):
             "scp emane-01@" + ip + ":" + path_to_db + " " + dest_path +
             "/eventsql" + str(index + 1) + ".db"
         )
-        os.system(command)
+        system(command)
 
 
 def combine_event_dbs(input_dir, output_dir):
     # Make a new database named by timestamp
-    date_time = time.strftime("%Y-%m-%d_%H:%M:%S", time.gmtime())
-    main_connection = sqlite3.connect(output_dir + "/" + date_time + ".db")
+    date_time = strftime("%Y-%m-%d_%H:%M:%S", gmtime())
+    new_db_name = output_dir + "/" + date_time + ".db"
+    print("Opening main connection")
+    main_connection = connect(new_db_name)
     # Get the database names for each separate database we want to combine
-    db_names = [name for name in glob.glob(input_dir + "*.db") if "eventsql" in name]
+    print("Getting db names")
+    db_names = [name for name in glob(input_dir + "*.db") if "eventsql" in name]
     # Get the table names and schemas needed to create the new database
+    print("Getting tables names and schemas")
     table_names, schemas = gather_table_schemas(input_dir, db_names)
     # Create the tables in the new database
+    print("Creating db tables")
     create_db_tables(main_connection, schemas)
     # Insert data from all the databases into the new database
+    print("Inserting db data")
     insert_db_data(main_connection, db_names, table_names)
     # Save the changes made to the new database
+    print("committing main connection")
     main_connection.commit()
     # Close the database connection
+    print("closing main connection")
     main_connection.close()
+    return new_db_name
 
 
 def gather_table_schemas(path_to_dbs, db_names):
     table_names = []
     schemas = []
     for db_name in db_names:
-        conn = sqlite3.connect(db_name)
+        conn = connect(db_name)
         cursor = conn.cursor()
-        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        derp = False
+        counter = 0
+        while(not derp):
+            try:
+                cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table';")
+                derp = True
+            except Error:
+                counter += 1
+                print("messed up: " + str(counter))
+
+                
+
         tables = cursor.fetchall()
 
         # Loop through and add non-duplicate table names
@@ -273,8 +365,7 @@ def insert_db_data(main_connection, db_names, table_names):
 
     for index in range(1, len(sorted_names) + 1):
         db_name = sorted_names[index - 1]
-        print("Inserting from " + db_name)
-        conn = sqlite3.connect(db_name)
+        conn = connect(db_name)
         cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table';")
         tables = cursor.fetchall()
 
@@ -289,7 +380,7 @@ def insert_db_data(main_connection, db_names, table_names):
                 insert_sql = create_insert_stmt(table_name, column_names, index, row)
                 try:
                     main_connection.execute(insert_sql)
-                except sqlite3.IntegrityError:
+                except IntegrityError:
                     # This is caused by a duplicate input, ignore it and dont insert
                     pass
         conn.close()
@@ -297,7 +388,7 @@ def insert_db_data(main_connection, db_names, table_names):
 # Sort strings based on the numbers inside them, look up "natural sorting"
 def natural_sort(l): 
     convert = lambda text: int(text) if text.isdigit() else text.lower() 
-    alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ] 
+    alphanum_key = lambda key: [ convert(c) for c in split('([0-9]+)', key) ] 
     return sorted(l, key = alphanum_key)
 
 

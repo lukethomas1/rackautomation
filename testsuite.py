@@ -4,7 +4,7 @@
 # Description: Tests to run on topologies running on rackspace
 
 import paramiko
-import time
+from time import sleep, time
 
 SUCCESS = '\033[92m'
 FAIL = '\033[91m'
@@ -45,7 +45,7 @@ def ping_network():
 
 def message_test_gvine(iplist, message_name, file_size):
     sender_ip = iplist[0]
-    send_message(sender_ip, message_name, file_size)
+    send_gvine_message(sender_ip, message_name, file_size)
     time.sleep(1)
 
     key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
@@ -63,8 +63,9 @@ def message_test_gvine(iplist, message_name, file_size):
             print(FAIL + ip + " FAILED" + ENDCOLOR)
         ssh.close()
 
-def send_message(sender_ip, message_name, file_size_kb):
-    print("Sending Message from " + sender_ip)
+
+def send_gvine_message(sender_ip, message_name, file_size_kb):
+    print("Sending message on GrapeVine from " + sender_ip)
     key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -76,3 +77,39 @@ def send_message(sender_ip, message_name, file_size_kb):
     stdin, stdout, stderr = ssh.exec_command(command)
     ssh.close()
     print("Message sent.\n")
+
+
+def send_norm_message(sender_ip, message_name, file_size_kb):
+    print("Sending message on Norm from " + sender_ip)
+    key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(sender_ip, username="emane-01", pkey=key)
+    
+    command = "cd ~/norm/bin/outbox/"
+    command += " && dd if=/dev/urandom of=" + message_name + " bs=" + file_size_kb + "k count=1"
+    stdin, stdout, stderr = ssh.exec_command(command)
+    ssh.close()
+    print("Message sent.\n")
+    with open("./tests/norm_messages/delay.txt", 'a') as file:
+        file.write(str(time()))
+
+
+def norm_monitor(node_ip, file_name):
+    key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(node_ip, username="emane-01", pkey=key)
+    exit_status = 1
+
+    while(exit_status):
+        command = "ls ~/norm/bin/outbox/" + file_name
+        stdin, stdout, stderr = ssh.exec_command(command)
+        exit_status = stdout.channel.recv_exit_status()
+        sleep(1)
+    ssh.close()
+    with open("./tests/norm_messages/delay.txt", 'r') as file:
+        start_time = float(file.read())
+    with open("./tests/norm_messages/delay.txt", 'w') as file:
+        file.write("Delay " + file_name + ": " + str(time() - start_time) + "\n")
+    print("Message " + file_name + " received on " + node_ip)

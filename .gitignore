@@ -2,6 +2,7 @@
 Scripts/
 iplists/
 stats/
+tests/
 __pycache__/
 topologies/
 

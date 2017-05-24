@@ -8,21 +8,19 @@
 # generating files, etc.
 
 # System Imports
-import os
-import shutil
-import subprocess
-import time
-import json
+from json import loads
+from math import asin, cos, sqrt
+from os import listdir, makedirs, path, system
+from shutil import copy
+from subprocess import call, Popen, PIPE, DEVNULL
+from time import sleep, time
 
 # Third Party Imports
-import paramiko
-import pickle
-import pyrebase
+from paramiko import AutoAddPolicy, RSAKey, SSHClient
+from pickle import load, dump
+from pyrebase import initialize_app
 
-# Local Imports
-import objects
-
-### LOCAL DATA PERSISTENCE ###
+##### LOCAL DATA PERSISTENCE #####
 
 def check_config(old_config):
     new_config_file = open("config.py", 'r')
@@ -34,24 +32,24 @@ def check_config(old_config):
     return False
 
 
-def check_timestamp(old_timestamp):
-    new_timestamp = time.time()
-    if(new_timestamp - 86400 > old_timestamp):
+def check_rack_nodes(old_rack_nodes):
+    racknodes = Popen(['rack', 'servers', 'instance', 'list', '--fields',
+        'name,publicipv4'], stdout=PIPE).stdout.read().decode()
+    if(old_rack_nodes != racknodes):
         return True
     return False
 
 
-def check_rack_nodes(old_rack_nodes):
-    racknodes = subprocess.Popen(['rack', 'servers', 'instance', 'list', '--fields',
-        'name,publicipv4'], stdout=subprocess.PIPE).stdout.read().decode()
-    if(old_rack_nodes != racknodes):
+def check_timestamp(old_timestamp):
+    new_timestamp = time()
+    if(new_timestamp - 86400 > old_timestamp):
         return True
     return False
 
 
 def load_data():
     with open('.data.pickle', 'rb') as file:
-        data = pickle.load(file)
+        data = load(file)
     return data
 
 
@@ -60,9 +58,9 @@ def set_topology(save_file, node_prefix):
     json_string = get_json_from_firebase(save_file)
     subnets, nodes = convert_json_to_object(json_string)
     iplist = generate_iplist(len(nodes), node_prefix)
-    timestamp = time.time();
-    racknodes = subprocess.Popen(['rack', 'servers', 'instance', 'list', '--fields',
-        'name,publicipv4'], stdout=subprocess.PIPE).stdout.read().decode()
+    timestamp = time();
+    racknodes = Popen(['rack', 'servers', 'instance', 'list', '--fields',
+        'name,publicipv4'], stdout=PIPE).stdout.read().decode()
 
     with open("config.py", "r") as config_file:
         config_contents = config_file.read()
@@ -79,13 +77,14 @@ def set_topology(save_file, node_prefix):
     }
 
     with open('.data.pickle', 'wb') as file:
-        pickle.dump(data, file)
+        dump(data, file)
 
+##### TOPOLOGY CONFIGURATION #####
 
 def add_known_hosts(iplist):
     for host in iplist:
-        os.system("ssh-keygen -f /home/joins/.ssh/known_hosts -R " + host + " > /dev/null 2>&1")
-        time.sleep(1)
+        system("ssh-keygen -f /home/joins/.ssh/known_hosts -R " + host + " > /dev/null 2>&1")
+        sleep(1)
 
 
 # Assigns each subnet an address that doesnt conflict with other subnets or blacklist
@@ -107,16 +106,16 @@ def assign_subnet_addresses(subnets, blacklist):
 def clean_nodes(ip_file):
     command = "cd ~/test/emane/gvine/node/ && rm $(ls -I '*.jar' -I '*.json')"    
     print("Deleting all non .jar files from nodes")
-    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
-    time.sleep(1)
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    sleep(1)
 
 
 def copy_default_config(config_path, destination_path):
     # Get name of all files in default config directory
-    config_files = os.listdir(config_path)
+    config_files = listdir(config_path)
     for file_name in config_files:
-        full_file_name = os.path.join(config_path, file_name)
-        if(os.path.isfile(full_file_name)):
+        full_file_name = path.join(config_path, file_name)
+        if(path.isfile(full_file_name)):
             shutil.copy(full_file_name, destination_path)
 
 
@@ -127,7 +126,7 @@ def convert_json_to_object(json_string):
         return [],[]
 
     # Parse the json string that we got from firebase
-    load = json.loads(json_string)
+    load = loads(json_string)
 
     # Initialize subnets and nodes arrays
     subnets = []
@@ -159,24 +158,24 @@ def create_rackspace_instances(num_instances, image_name, save_file, node_prefix
         node_name = node_prefix + str(index)
         print("Creating " + node_name);
         # Long command, just a bunch of arguments, see 'rack -h' for more info
-        subprocess.Popen(['rack', 'servers', 'instance',
+        Popen(['rack', 'servers', 'instance',
             'create', '--name', node_name, '--image-name',
             image_name, '--flavor-name', '4 GB General Purpose v1',
             '--region', 'DFW', '--keypair', 'mykey', '--networks',
             '00000000-0000-0000-0000-000000000000,3a95350a-676c-4280-9f08-aeea40ffb32b'],
-            stdout=subprocess.PIPE)
+            stdout=PIPE)
 
 
 # Create directory at folder_path
 def create_dir(folder_path):
-    os.makedirs(folder_path, exist_ok=True)
+    makedirs(folder_path, exist_ok=True)
 
 
 def delete_gvine_log_files(ip_file):
     print("Removing log files")
     command = "cd /home/emane-01/test/emane/gvine/node/ && rm log_*"
-    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command],
-        stdout=subprocess.DEVNULL)
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command],
+        stdout=DEVNULL)
 
 
 # Edit this computer's ~/.ssh/config file for each sshing to rackspace nodes
@@ -185,8 +184,8 @@ def edit_ssh_config():
     file = open("/home/joins/.ssh/config", 'w')
 
     # Get pairs of node names with ip addresses from rackspace
-    process = subprocess.Popen(['rack', 'servers', 'instance', 'list', '--fields',
-        'name,publicipv4'], stdout=subprocess.PIPE)
+    process = Popen(['rack', 'servers', 'instance', 'list', '--fields',
+        'name,publicipv4'], stdout=PIPE)
     pairs = process.stdout.read().decode().splitlines()[1:]
 
     for p in pairs:
@@ -201,7 +200,7 @@ def edit_ssh_config():
 
 # Run script at script_path, must be shell/bash script
 def execute_bash_script(args):
-    subprocess.call(args);
+    call(args);
 
 
 # Replace placeholders in xml_string with the configuration details provided
@@ -243,8 +242,8 @@ def generate_network_ping_list(subnets, nodes, ip_file, blacklist):
 
     assign_subnet_addresses(subnets, blacklist)
 
-    if(not os.path.isdir("./tests/pingtest/")):
-        os.makedirs("./tests/pingtest/")
+    if(not path.isdir("./tests/pingtest/")):
+        makedirs("./tests/pingtest/")
     file = open("./tests/pingtest/network", "w")
 
     for subnet in subnets:
@@ -283,7 +282,7 @@ def get_json_from_firebase(save_file):
     }
 
     # Firebase variables
-    firebase = pyrebase.initialize_app(config);
+    firebase = initialize_app(config);
     db = firebase.database()
     saves = db.child("saves").get().val()
 
@@ -313,24 +312,24 @@ def get_nem_config(nem_template, subnet, node, device_num):
 
 # Returns a list of ip addresses of rackspace nodes
 def get_rack_ip_list():
-    process = subprocess.Popen(['rack', 'servers', 'instance', 'list', '--fields',
-        'publicipv4'], stdout=subprocess.PIPE)
+    process = Popen(['rack', 'servers', 'instance', 'list', '--fields',
+        'publicipv4'], stdout=PIPE)
     output = process.stdout.read().decode().splitlines()
     return output
 
 
 # Returns a list of names of rackspace nodes
 def get_rack_name_list():
-    process = subprocess.Popen(['rack', 'servers', 'instance', 'list', '--fields',
-      'name'], stdout=subprocess.PIPE)
+    process = Popen(['rack', 'servers', 'instance', 'list', '--fields',
+      'name'], stdout=PIPE)
     output = process.stdout.read().decode().splitlines()[1:]
     return output
 
 
 # Get pairs of node names with ip addresses from rackspace
 def get_rack_pair_list():
-    process = subprocess.Popen(['rack', 'servers', 'instance', 'list', '--fields',
-        'name,publicipv4'], stdout=subprocess.PIPE)
+    process = Popen(['rack', 'servers', 'instance', 'list', '--fields',
+        'name,publicipv4'], stdout=PIPE)
     pairs = process.stdout.read().decode().splitlines()[1:]
     return pairs
 
@@ -339,8 +338,12 @@ def get_rack_pair_list():
 def kill_all_instances():
     names = get_rack_name_list()
     for name in names:
-        process = subprocess.Popen(['rack', 'servers', 'instance', 'delete',
-            '--name', name], stdout=subprocess.PIPE)
+        process = Popen(['rack', 'servers', 'instance', 'delete',
+            '--name', name], stdout=PIPE)
+
+
+def parallel_ssh(ip_file, command):
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command], stdout=DEVNULL)
 
 
 # Debugging method, prints node and subnet names
@@ -357,9 +360,9 @@ def print_subnets_and_nodes(subnets, nodes):
 
 # Copy default config to topology directory
 def remote_copy_default_config(save_folder, ip_file):
-    os.system("pscp -h " + ip_file + " -l emane-01 ./default_config/* /home/emane-01/GrapeVine/topologies/" + save_folder)
+    system("pscp -h " + ip_file + " -l emane-01 ./default_config/* /home/emane-01/GrapeVine/topologies/" + save_folder)
     print("Sleep 5 seconds")
-    time.sleep(5)
+    sleep(5)
 
 
 # Copy emane_start.sh and emane_stop.sh to each rackspace node in iplist
@@ -370,9 +373,9 @@ def remote_copy_emane_scripts(save_folder, iplist):
         start_dir = './topologies/' + save_folder + '/emane_start.sh'
         stop_dir = './topologies/' + save_folder + '/emane_stop.sh'
         to_dir = 'root@' + node_ip + ':/home/emane-01/GrapeVine/topologies/' + save_folder
-        subprocess.Popen(['scp', start_dir, to_dir])
-        subprocess.Popen(['scp', stop_dir, to_dir])
-        time.sleep(1)
+        Popen(['scp', start_dir, to_dir])
+        Popen(['scp', stop_dir, to_dir])
+        sleep(1)
     
 
 # Copy corresponding platform#.xml to corresponding rackspace node in iplist
@@ -383,8 +386,8 @@ def remote_copy_platform_xmls(save_folder, iplist):
         node_ip = iplist[node_index]
         from_dir = './topologies/' + save_folder + '/' + file_name
         to_dir = 'root@' + node_ip + ':/home/emane-01/GrapeVine/topologies/' + save_folder + "/platform.xml"
-        subprocess.Popen(['scp', from_dir, to_dir])
-        time.sleep(1)
+        Popen(['scp', from_dir, to_dir])
+        sleep(1)
 
 
 # Copy scenario.eel to each rackspace node in iplist
@@ -394,48 +397,53 @@ def remote_copy_scenario(save_folder, iplist):
         node_ip = iplist[node_index]
         from_dir = './topologies/' + save_folder + '/scenario.eel'
         to_dir = 'root@' + node_ip + ':/home/emane-01/GrapeVine/topologies/' + save_folder + "/scenario.eel"
-        subprocess.Popen(['scp', from_dir, to_dir])
-        time.sleep(1)
+        Popen(['scp', from_dir, to_dir])
+        sleep(1)
 
 
 # Create topologies directory and topologies/save_name/ on each rackspace node
 def remote_create_dirs(save_folder, ip_file):
     # Make GrapeVine directory
-    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
-    'cd ~ && mkdir GrapeVine'], stdout=subprocess.DEVNULL)
-    time.sleep(1)
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+    'cd ~ && mkdir GrapeVine'], stdout=DEVNULL)
+    sleep(1)
 
     # Make topologies directory
-    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
-    'cd ~/GrapeVine && mkdir topologies'], stdout=subprocess.DEVNULL)
-    time.sleep(1)
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+    'cd ~/GrapeVine && mkdir topologies'], stdout=DEVNULL)
+    sleep(1)
 
     # Make specific topology directory
-    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
     'cd ~/GrapeVine/topologies && mkdir ' + save_folder]) 
-    time.sleep(1)
+    sleep(1)
+
+    # Make norm output/input "outbox" directory
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+    'cd ~/norm/bin/ && mkdir outbox'], stdout=DEVNULL)
+    sleep(1)
 
 
 # Delete specific topology from each rackspace node
 def remote_delete_topology(node_prefix, save_folder):
     ip_file = "./iplists/" + node_prefix + "hosts"
-    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
     'rm -r ~/GrapeVine/topologies/' + save_folder])
-    time.sleep(2)
+    sleep(2)
 
 
 # Run file on each rackspace node in ip_file file
 def remote_start_emane(save_file, ip_file, script_file):
     save_path = '~/GrapeVine/topologies/' + save_file
-    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
-    'cd ' + save_path + ' && sudo ./' + script_file], stdout=subprocess.DEVNULL)
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+    'cd ' + save_path + ' && sudo ./' + script_file], stdout=DEVNULL)
 
 
 # Start gvine on each rackspace node
 def remote_start_gvine(iplist, jar_name):
-    key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    ssh = SSHClient()
+    ssh.set_missing_host_key_policy(AutoAddPolicy())
 
     for index in range(1, len(iplist) + 1):
         print("Starting on " + str(iplist[index - 1]))
@@ -449,80 +457,75 @@ def remote_start_console(user, terminal, jar, iplist, gvine_dir):
         for i in range(1, len(iplist) + 1):
             path = gvine_dir
             terminal.extend(['--tab', '-e','''ssh -t %s@%s 'cd %s && java -jar %s node%s 250 2>&1|tee log.txt' ''' % (user, iplist[i-1], path, jar, i)])
-        subprocess.call(terminal)
-
-
-def remote_stop_gvine(ip_file):
-    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
-    'sudo pkill java'])
+        call(terminal)
 
 
 def setup_grapevine(save_file, ip_file):
     command = "if [ ! -d /home/emane-01/test/emane/gvine/node/ ]\n then mkdir -p  /home/emane-01/test/emane/gvine/node\n fi"
     
     print("\nMaking /home/emane-01/test/emane/gvine/node/ directory")
-    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
-    time.sleep(2)
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    sleep(2)
 
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/flushrt.sh ]\n then cp /home/emane-01/gvine/trunk/gvine/flushrt.sh /home/emane-01/test/emane/gvine/node/\n fi"
     
     print("\nCopying flushrt.sh")
-    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
-    time.sleep(2)
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    sleep(2)
 
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/emane_data.db ]\n then cp /home/emane-01/gvine/trunk/gvine/emane_data.db /home/emane-01/test/emane/gvine/node/\n fi"
     
     print("\nCopying emane_data.db")
-    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
-    time.sleep(2)
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    sleep(2)
 
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/ncfilerx.sh ]\n then cp /home/emane-01/gvine/trunk/gvine/ncfilerx.sh /home/emane-01/test/emane/gvine/node/\n fi"
     
     print("\nCopying ncfilerx.sh")
-    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
-    time.sleep(2)
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    sleep(2)
 
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/ncfiletx.sh ]\n then cp /home/emane-01/gvine/trunk/gvine/ncfiletx.sh /home/emane-01/test/emane/gvine/node/\n fi"
 
     print("\nCopying ncfiletx.sh")
-    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
-    time.sleep(2)
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    sleep(2)
 
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/gvine.conf.json ]\n then cp /home/emane-01/gvine/trunk/source_gvine/gvine.conf.json /home/emane-01/test/emane/gvine/node/\n fi"
 
     print("\nCopying gvine.conf.json")
-    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
-    time.sleep(2)
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    sleep(2)
 
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/jvine.jar ]\n then cp /home/emane-01/gvine/trunk/source_gvine/jvine.jar /home/emane-01/test/emane/gvine/node/\n fi"
 
     print("\nCopying jvine.jar")
-    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
-    time.sleep(2)
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    sleep(2)
 
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/gvapp.jar ]\n then cp /home/emane-01/gvine/trunk/source_gvine/gvapp.jar /home/emane-01/test/emane/gvine/node/\n fi"
 
     print("\nCopying gvapp.jar")
-    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
-    time.sleep(2)
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    sleep(2)
 
     command = "cp /home/emane-01/gvine/trunk/source_gvine/emanelog.jar /home/emane-01/test/emane/gvine/node"
 
     print("\nCopying emanelog.jar")
-    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
-    time.sleep(2)
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    sleep(2)
 
     command = "cd /home/emane-01/test/emane/gvine/node/ && rm -r data"
 
     print("\nRemoving data folder")
-    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
-    time.sleep(2)
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    sleep(2)
 
     command = "cd /home/emane-01/test/emane/gvine/node/ && rm delay.txt"
 
     print("\nRemoving delay.txt")
-    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
-    time.sleep(2)
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    sleep(2)
 
 
 # Sort iplist to have node 1 at beginning and the last node at the end
@@ -538,14 +541,14 @@ def sort_iplist(iplist, sort_term):
 
 # Synchronize rackspace nodes, necessary for accurate stats gathering
 def synchronize(ip_file):
-    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
-        'sudo service ntp stop'], stdout=subprocess.DEVNULL)
-    time.sleep(1)
-    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
-        'sudo ntpd -gq'], stdout=subprocess.DEVNULL)
-    time.sleep(1)
-    subprocess.Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
-        'sudo service ntp start'], stdout=subprocess.DEVNULL)
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+        'sudo service ntp stop'], stdout=DEVNULL)
+    sleep(1)
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+        'sudo ntpd -gq'], stdout=DEVNULL)
+    sleep(1)
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+        'sudo service ntp start'], stdout=DEVNULL)
 
 
 # Write emane_start.sh and emane_stop.sh on this computer
@@ -566,7 +569,7 @@ def write_emane_start_stop_scripts(save_folder, num_instances):
     stop.close()
 
     # Change permission to executable
-    subprocess.Popen(["chmod", "+x", topo_path + "emane_start.sh", topo_path + "emane_stop.sh"])
+    Popen(["chmod", "+x", topo_path + "emane_start.sh", topo_path + "emane_stop.sh"])
 
 
 # Write platform.xml for each node, lots of configuration logic involved
@@ -593,6 +596,7 @@ def write_platform_xmls(subnets, nodes, topo_path, blacklist):
         file.write(filled_platform)
         file.close()
 
+##### EMANE SCENARIOS #####
 
 # Write scenario.eel, currently sets pathloss from each node to all the others
 def write_scenario(subnets, nodes, topo_path):
@@ -610,3 +614,74 @@ def write_scenario(subnets, nodes, topo_path):
                         scenario_file.write(" nem:" + str(to_nemid) + "," + str(pathloss_value))
                 scenario_file.write("\n")
     scenario_file.close()
+
+
+def coord_distance(lat1, lon1, lat2, lon2):
+    KM_PER_MILE = 1.60934
+    p = 0.017453292519943295     #Pi/180
+    a = (0.5 - cos((lat2 - lat1) * p)/2 +
+            cos(lat1 * p) * cos(lat2 * p) * (1 - cos((lon2 - lon1) * p)) / 2)
+    return 12742 * asin(sqrt(a)) * KM_PER_MILE #2*R*asin...
+
+##### NORM CONFIGURATION #####
+
+def start_norm(iplist, subnets, nodes):
+    send_commands = get_norm_send_commands(iplist, subnets, nodes)
+    receive_commands = get_norm_receive_commands(iplist, subnets, nodes)
+    key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    ssh = SSHClient()
+    ssh.set_missing_host_key_policy(AutoAddPolicy())
+
+    for index in range(1, len(iplist) + 1):
+        node_name = "node" + str(index)
+        print("Starting norm protocol on " + node_name)
+        ssh.connect(iplist[index - 1], username="emane-01", pkey=key)
+        for send_command in send_commands[node_name]:
+            command = "cd ~/norm/bin/ && " + send_command
+            stdin, stdout, stderr = ssh.exec_command(command)
+        for receive_command in receive_commands[node_name]:
+            command = "cd ~/norm/bin/ && " + str(receive_command)
+            stdin, stdout, stderr = ssh.exec_command(command)
+        ssh.close()
+
+
+def get_norm_receive_commands(iplist, subnets, nodes):
+    RECEIVE_COMMAND = "./norm addr 239.255.255.0/{0!s} interface {1} rxcachedir ./outbox &"
+    commands = {}
+    for index in range(0, len(nodes)):
+        node = nodes[index]
+        node_name = 'node' + str(node['number'])
+        commands[node_name] = []
+        num_subnets = -1
+        for ind in range(0, len(subnets)):
+            subnet = subnets[ind]
+            if(node['number'] in subnet['memberids']):
+                num_subnets += 1
+                for member_num in subnet['memberids']:
+                    if(member_num != node['number']):
+                        receive_port = 10000 + 1000 * subnet['number'] + member_num
+                        interface_name = "emane" + str(num_subnets)
+                        bits_per_second = 8000 # 1000 bytes per second, 1KB per second
+                        receive = RECEIVE_COMMAND.format(receive_port, interface_name)
+                        commands[node_name].append(receive)
+    return commands
+
+
+def get_norm_send_commands(iplist, subnets, nodes):
+    SEND_COMMAND = "./norm addr 239.255.255.0/{0!s} interface {1} rate {2!s} sendfile ./outbox repeat -1 updatesOnly &"
+    commands = {}
+    for index in range(0, len(nodes)):
+        node = nodes[index]
+        node_name = 'node' + str(node['number'])
+        commands[node_name] = []
+        num_subnets = 0
+        for ind in range(0, len(subnets)):
+            subnet = subnets[ind]
+            if(node['number'] in subnet['memberids']):
+                send_port = 10000 + 1000 * subnet['number'] + node['number']
+                interface_name = "emane" + str(num_subnets)
+                num_subnets += 1
+                bits_per_second = 800000 # 8 bits in a byte, 8000 is 1KB/s, 800,000 is 100KB/s
+                send = SEND_COMMAND.format(send_port, interface_name, bits_per_second)
+                commands[node_name].append(send)
+    return commands

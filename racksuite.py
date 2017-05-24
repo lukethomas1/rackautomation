@@ -7,8 +7,7 @@
 # commands.py for actual logic
 
 # System Imports
-import sys
-import os
+from sys import argv
 
 # Local imports
 import commands
@@ -17,11 +16,11 @@ import objects
 import testsuite
 
 # Check for valid amount of arguments
-if(len(sys.argv) != 2):
+if(len(argv) != 2):
     commands.usage()
     exit()
 
-arg = sys.argv[1]
+arg = argv[1]
 
 # Check config
 config_result = commands.update_config()
@@ -41,6 +40,8 @@ elif(arg == "configure"):
     commands.configure(save, subnets, nodes)
 elif(arg == "setup"):
     commands.setup(save, subnets, nodes, iplist)
+elif(arg == "push_scenario"):
+    functions.remote_copy_scenario(save, iplist)
 elif(arg == "start"):
     commands.start(save, iplist)
 elif(arg == "start_console"):
@@ -49,12 +50,18 @@ elif(arg == "start_gvine"):
     commands.start_gvine(iplist)
 elif(arg == "stop_gvine"):
     commands.stop_gvine()
+elif(arg == "start_norm"):
+    commands.start_norm(iplist, subnets, nodes)
+elif(arg == "stop_norm"):
+    commands.stop_norm()
 elif(arg == "data"):
     commands.print_data(data)
 elif(arg == "ping"):
     commands.ping(subnets, nodes)
 elif(arg == "message"):
     commands.message(iplist)
+elif(arg == "norm_message"):
+    commands.norm_message(iplist)
 elif(arg == "testmessage"):
     commands.test_message(iplist)
 elif(arg == "stats"):
