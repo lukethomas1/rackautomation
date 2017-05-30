@@ -3,8 +3,14 @@
 # Date: March 31, 2017
 # Description: Tests to run on topologies running on rackspace
 
-import paramiko
+# System Imports
 from time import sleep, time
+
+# 3rd Party Imports
+from paramiko import SSHClient, AutoAddPolicy, RSAKey
+
+# Local Imports
+from functions import create_dir
 
 SUCCESS = '\033[92m'
 FAIL = '\033[91m'
@@ -25,9 +31,9 @@ def ping_network():
         # Nodes to ping to from the sshed node
         ping_ips = derp[1:]
 
-        key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+        ssh = SSHClient()
+        ssh.set_missing_host_key_policy(AutoAddPolicy())
         ssh.connect(node_ip, username="emane-01", pkey=key)
 
         print("---------- Pinging from " + node_ip + " ----------")
@@ -45,12 +51,12 @@ def ping_network():
 
 def message_test_gvine(iplist, message_name, file_size):
     sender_ip = iplist[0]
-    send_gvine_message(sender_ip, message_name, file_size)
-    time.sleep(1)
+    send_gvine_message(sender_ip, message_name, file_size, "1", "")
+    sleep(1)
 
-    key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    ssh = SSHClient()
+    ssh.set_missing_host_key_policy(AutoAddPolicy())
 
     for ip in iplist[1:]:
         ssh.connect(ip, username="emane-01", pkey=key)
@@ -64,26 +70,32 @@ def message_test_gvine(iplist, message_name, file_size):
         ssh.close()
 
 
-def send_gvine_message(sender_ip, message_name, file_size_kb):
+def send_gvine_message(sender_ip, message_name, file_size_kb, send_node_num, receive_node_num):
     print("Sending message on GrapeVine from " + sender_ip)
-    key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    ssh = SSHClient()
+    ssh.set_missing_host_key_policy(AutoAddPolicy())
     ssh.connect(sender_ip, username="emane-01", pkey=key)
     
     command = "cd ~/test/emane/gvine/node/"
     command += " && dd if=/dev/urandom of=" + message_name + " bs=" + file_size_kb + "k count=1"
-    command += " && java -jar gvapp.jar file " + message_name + " 1"
+    if(not receive_node_num):
+      command += " && java -jar gvapp.jar file " + message_name + " " + send_node_num
+    else:
+      command += (" && java -jar gvapp.jar file " + message_name + " " +
+                  send_node_num + " " + receive_node_num)
     stdin, stdout, stderr = ssh.exec_command(command)
     ssh.close()
     print("Message sent.\n")
 
 
 def send_norm_message(sender_ip, message_name, file_size_kb):
+    create_dir("./tests/")
+    create_dir("./tests/norm_messages")
     print("Sending message on Norm from " + sender_ip)
-    key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    ssh = SSHClient()
+    ssh.set_missing_host_key_policy(AutoAddPolicy())
     ssh.connect(sender_ip, username="emane-01", pkey=key)
     
     command = "cd ~/norm/bin/outbox/"
@@ -91,14 +103,14 @@ def send_norm_message(sender_ip, message_name, file_size_kb):
     stdin, stdout, stderr = ssh.exec_command(command)
     ssh.close()
     print("Message sent.\n")
-    with open("./tests/norm_messages/delay.txt", 'a') as file:
-        file.write(str(time()))
+    with open("./tests/norm_messages/start.txt", 'a') as file:
+        file.write(str(time()) + "\n")
 
 
 def norm_monitor(node_ip, file_name):
-    key = paramiko.RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    ssh = SSHClient()
+    ssh.set_missing_host_key_policy(AutoAddPolicy())
     ssh.connect(node_ip, username="emane-01", pkey=key)
     exit_status = 1
 
@@ -108,8 +120,11 @@ def norm_monitor(node_ip, file_name):
         exit_status = stdout.channel.recv_exit_status()
         sleep(1)
     ssh.close()
-    with open("./tests/norm_messages/delay.txt", 'r') as file:
-        start_time = float(file.read())
-    with open("./tests/norm_messages/delay.txt", 'w') as file:
-        file.write("Delay " + file_name + ": " + str(time() - start_time) + "\n")
-    print("Message " + file_name + " received on " + node_ip)
+    with open("./tests/norm_messages/start.txt", 'r') as file:
+        start_time = file.readlines()[-1].rstrip('\n')
+        print("Start time: " + start_time)
+        start_time = float(start_time)
+    with open("./tests/norm_messages/delay.txt", 'a') as file:
+        delay = str(time() - start_time)
+        file.write("Delay " + file_name + ": " + delay + "\n")
+    print("Message " + file_name + " received on " + node_ip + " with delay " + delay)

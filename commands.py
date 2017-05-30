@@ -12,6 +12,7 @@
 # System Imports
 from time import sleep
 from os import path
+from collections import OrderedDict
 
 # Local Imports
 import functions
@@ -49,7 +50,7 @@ def update_config():
     return data
 
 
-def reset():
+def reset_topology():
     functions.set_topology(SAVE_FILE, NODE_PREFIX)
 
 
@@ -151,15 +152,23 @@ def start_console(iplist):
     functions.remote_start_console(user, terminal, jar, iplist, gvine_dir)
 
 
+def start_emane(save_file):
+    print("Starting emane")
+    script_name = 'emane_start.sh'
+    functions.remote_start_emane(save_file, IP_FILE, script_name)
+
+
 def start_gvine(iplist):
-    jar_name = input("Name of jar file(leave blank for jvine.jar): ")
+    jar_name = input("Name of jar file(leave blank for default): ")
     if(not jar_name):
-        jar_name = "jvine.jar"
+        jar_name = JAR_FILE
     functions.remote_start_gvine(iplist, jar_name)
 
 
 def start_norm(iplist, subnets, nodes):
-    functions.start_norm(iplist, subnets, nodes)
+    send_bps = 800000
+    receive_bps = 800000
+    functions.start_norm(iplist, subnets, nodes, send_bps, receive_bps)
 
 
 def stop_gvine():
@@ -182,14 +191,22 @@ def ping(subnets, nodes):
 def message(iplist):
     message_name = input("Choose message file name: ")
     file_size = input("Choose file size (kilobytes): ")
-    testsuite.send_gvine_message(iplist[0], message_name, file_size)
+    send_num = input("Node number to send from? : ")
+    testsuite.send_gvine_message(iplist[node_num - 1], message_name, file_size, send_num, "")
+
+
+def message_gvine_unicast(iplist):
+    message_name = input("Choose message file name: ")
+    file_size = input("Choose file size (kilobytes): ")
+    send_num = input("Node number to send from? : ")
+    rec_num = input("Node number to receive on? : ")
+    testsuite.send_gvine_message(iplist[node_num - 1], message_name, file_size, send_num, rec_num)
 
 
 def norm_message(iplist):
     message_name = input("Choose message file name: ")
     file_size = input("Choose file size (kilobytes): ")
     testsuite.send_norm_message(iplist[0], message_name, file_size)
-    testsuite.norm_monitor(iplist[5], message_name)
     
 
 def test_message(iplist):
@@ -273,6 +290,23 @@ def stats_parse(save_file, num_nodes, parse_term):
     statsuite.plot_values(phys, "emane")
 
 
+def norm_monitor(iplist):
+    num_nodes = len(iplist)
+    try:
+        node_num = int(input("Monitor which node? (1-" + str(num_nodes) + "): "))
+    except ValueError:
+        print("Error: Must be a numerical value")
+        return
+
+    if(node_num < 1 or node_num > num_nodes):
+        print("Error: Must be a number between 1 and " + str(num_nodes))
+        return
+
+    ip_to_monitor = iplist[node_num - 1]
+    file_to_monitor = input("Monitor which file? : ")
+    testsuite.norm_monitor(ip_to_monitor, file_to_monitor)
+
+
 def stats_delays(save_file, num_nodes):
     delays = statsuite.parse_delayfiles("./stats/delays/" + save_file, num_nodes)
     statsuite.plot_values(delays, "delay")
@@ -329,3 +363,42 @@ def usage():
     usage += "kill\t\t\t kill rackspace cloud instances\n"
     usage += "help\t\t\t show this help message"
     print(usage)
+
+def usagetest():
+    # Write the command and its description
+    usage = OrderedDict()
+    usage["topology"] = "set the topology to use"
+    usage["init"] = "create rackspace cloud instances"
+    usage["iplist"] = "update iplist and pssh-hosts"
+    usage["configure"] = "write platform files, scenario.eel, emane scripts"
+    usage["setup"] = "configure command + send to nodes on rackspace"
+    usage["start"] = "start emane and grapevine"
+    usage["start_gvine"] = "start only grapevine"
+    usage["stop_gvine"] = "stop only grapevine"
+    usage["data"] = "print data"
+    usage["ping"] = "ping nodes to test if they are conencted"
+    usage["message"] = "send a message on grapevine"
+    usage["testmessage"] = "send a message on grapvine and check if it sent correctly"
+    usage["stats"] = "save statistics"
+    usage["delays"] = "save grapevine delay statistics"
+    usage["emane_stats"] = "get emane statistics"
+    usage["parse"] = "parse emane statistics"
+    usage["stop"] = "stop emane and grapevine"
+    usage["clean"] = "remove all non .jar files from ~/test/emane/gvine/node/ on nodes"
+    usage["delete"] = "delete cloud topography folders"
+    usage["kill"] = "kill rackspace cloud instances"
+    usage["h"] = "show this help message"
+    usage["help"] = "show this help message"
+    usage["usage"] = "show this help message"
+
+    # Print the usage header
+    header = "---------- USAGE ----------\n"
+    header += "python3 racksuite.py ~OR~ ./racksuite.py\n\n"
+    header += "---------- COMMANDS ----------\n"
+    print(header)
+
+    # Print the usage for each command
+    command_len = str(len(max(usage, key=len)))
+    for command, description in usage.items():
+        string_to_format = "{:>" + command_len + "}\t{}"
+        print(string_to_format.format(command, description))

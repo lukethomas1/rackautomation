@@ -625,9 +625,9 @@ def coord_distance(lat1, lon1, lat2, lon2):
 
 ##### NORM CONFIGURATION #####
 
-def start_norm(iplist, subnets, nodes):
-    send_commands = get_norm_send_commands(iplist, subnets, nodes)
-    receive_commands = get_norm_receive_commands(iplist, subnets, nodes)
+def start_norm(iplist, subnets, nodes, send_bps, receive_bps):
+    send_commands = get_norm_send_commands(iplist, subnets, nodes, send_bps)
+    receive_commands = get_norm_receive_commands(iplist, subnets, nodes, receive_bps)
     key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
     ssh = SSHClient()
     ssh.set_missing_host_key_policy(AutoAddPolicy())
@@ -645,7 +645,7 @@ def start_norm(iplist, subnets, nodes):
         ssh.close()
 
 
-def get_norm_receive_commands(iplist, subnets, nodes):
+def get_norm_receive_commands(iplist, subnets, nodes, receive_bps):
     RECEIVE_COMMAND = "./norm addr 239.255.255.0/{0!s} interface {1} rxcachedir ./outbox &"
     commands = {}
     for index in range(0, len(nodes)):
@@ -661,13 +661,13 @@ def get_norm_receive_commands(iplist, subnets, nodes):
                     if(member_num != node['number']):
                         receive_port = 10000 + 1000 * subnet['number'] + member_num
                         interface_name = "emane" + str(num_subnets)
-                        bits_per_second = 8000 # 1000 bytes per second, 1KB per second
+                        bits_per_second = receive_bps
                         receive = RECEIVE_COMMAND.format(receive_port, interface_name)
                         commands[node_name].append(receive)
     return commands
 
 
-def get_norm_send_commands(iplist, subnets, nodes):
+def get_norm_send_commands(iplist, subnets, nodes, send_bps):
     SEND_COMMAND = "./norm addr 239.255.255.0/{0!s} interface {1} rate {2!s} sendfile ./outbox repeat -1 updatesOnly &"
     commands = {}
     for index in range(0, len(nodes)):
@@ -681,7 +681,7 @@ def get_norm_send_commands(iplist, subnets, nodes):
                 send_port = 10000 + 1000 * subnet['number'] + node['number']
                 interface_name = "emane" + str(num_subnets)
                 num_subnets += 1
-                bits_per_second = 800000 # 8 bits in a byte, 8000 is 1KB/s, 800,000 is 100KB/s
+                bits_per_second = send_bps # 8 bits in a byte, 8000 is 1KB/s, 800,000 is 100KB/s
                 send = SEND_COMMAND.format(send_port, interface_name, bits_per_second)
                 commands[node_name].append(send)
     return commands
