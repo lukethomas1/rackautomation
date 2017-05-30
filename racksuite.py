@@ -101,6 +101,6 @@ while(loop):
 
     ##### USAGE #####
     elif(arg == "h" or arg == "help" or arg == "usage"):
-        commands.usagetest()
+        commands.usage()
     else:
         exit()

@@ -337,34 +337,6 @@ def kill():
 
 
 def usage():
-    usage = ""
-    usage += "---------- USAGE ----------\n"
-    usage += "python3 racksuite.py <command>\n\n"
-    usage += "---------- COMMANDS ----------\n"
-    usage += "topology\t\t set the topology to use\n"
-    usage += "init\t\t\t create rackspace cloud instances\n"
-    usage += "iplist\t\t\t update iplist and pssh-hosts\n"
-    usage += "configure\t\t write platform files, scenario.eel, emane scripts\n"
-    usage += "setup\t\t\t configure command + send to nodes on rackspace\n"
-    usage += "start\t\t\t start emane and grapevine\n"
-    usage += "start_gvine\t\t start only grapevine\n"
-    usage += "stop_gvine\t\t stop only grapevine\n"
-    usage += "data\t\t\t print data\n"
-    usage += "ping\t\t\t ping nodes to test if they are connected\n"
-    usage += "message\t\t\t send a message on grapevine\n"
-    usage += "testmessage\t\t send a message on grapevine and check if it sent correctly\n"
-    usage += "stats\t\t\t save statistics\n"
-    usage += "delays\t\t\t save grapevine delay statistics\n"
-    usage += "emane_stats\t\t get emane statistics\n"
-    usage += "parse\t\t\t parse emane statistics\n"
-    usage += "stop\t\t\t stop emane and grapevine\n"
-    usage += "clean\t\t\t remove all non .jar files from ~/test/emane/gvine/node/ on nodes\n"
-    usage += "delete\t\t\t delete cloud topology folders\n"
-    usage += "kill\t\t\t kill rackspace cloud instances\n"
-    usage += "help\t\t\t show this help message"
-    print(usage)
-
-def usagetest():
     # Write the command and its description
     usage = OrderedDict()
     usage["topology"] = "set the topology to use"
