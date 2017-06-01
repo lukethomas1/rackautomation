@@ -14,6 +14,7 @@ from os import listdir, makedirs, path, system
 from shutil import copy
 from subprocess import call, Popen, PIPE, DEVNULL
 from time import sleep, time
+from re import compile, match, split
 
 # Third Party Imports
 from paramiko import AutoAddPolicy, RSAKey, SSHClient
@@ -28,6 +29,7 @@ def check_config(old_config):
     new_config_file.close()
 
     if(old_config != new_config):
+        print("Config.py changed")
         return True
     return False
 
@@ -36,6 +38,7 @@ def check_rack_nodes(old_rack_nodes):
     racknodes = Popen(['rack', 'servers', 'instance', 'list', '--fields',
         'name,publicipv4'], stdout=PIPE).stdout.read().decode()
     if(old_rack_nodes != racknodes):
+        print("Detected new nodes")
         return True
     return False
 
@@ -43,6 +46,7 @@ def check_rack_nodes(old_rack_nodes):
 def check_timestamp(old_timestamp):
     new_timestamp = time()
     if(new_timestamp - 86400 > old_timestamp):
+        print("Config is over a day old")
         return True
     return False
 
@@ -646,7 +650,7 @@ def start_norm(iplist, subnets, nodes, send_bps, receive_bps):
 
 
 def get_norm_receive_commands(iplist, subnets, nodes, receive_bps):
-    RECEIVE_COMMAND = "./norm addr 239.255.255.0/{0!s} interface {1} rxcachedir ./outbox &"
+    RECEIVE_COMMAND = "./norm addr 239.255.255.0/{0!s} interface {1} rxcachedir ./outbox trace on log rxlog.txt &"
     commands = {}
     for index in range(0, len(nodes)):
         node = nodes[index]
@@ -668,7 +672,7 @@ def get_norm_receive_commands(iplist, subnets, nodes, receive_bps):
 
 
 def get_norm_send_commands(iplist, subnets, nodes, send_bps):
-    SEND_COMMAND = "./norm addr 239.255.255.0/{0!s} interface {1} rate {2!s} sendfile ./outbox repeat -1 updatesOnly &"
+    SEND_COMMAND = "./norm addr 239.255.255.0/{0!s} interface {1} rate {2!s} sendfile ./outbox repeat -1 updatesOnly trace on log txlog.txt &"
     commands = {}
     for index in range(0, len(nodes)):
         node = nodes[index]
@@ -685,3 +689,48 @@ def get_norm_send_commands(iplist, subnets, nodes, send_bps):
                 send = SEND_COMMAND.format(send_port, interface_name, bits_per_second)
                 commands[node_name].append(send)
     return commands
+
+##### RACKSPACE API INTERACTION #####
+
+def get_rack_status_list():
+    racknodes = Popen(['rack', 'servers', 'instance', 'list', '--fields',
+        'name,status'], stdout=PIPE).stdout.read().decode()
+    returnArr = []
+    for line in racknodes.splitlines()[1:]:
+        splitted = line.split("\t")
+        this_node = [splitted[0], splitted[-1]]
+        returnArr.append(this_node)
+    return returnArr
+
+
+def are_nodes_ready(node_prefix, num_nodes, rack_status_list):
+    pattern = compile("^" + node_prefix + "[0-9]+$")
+    rack_list = [node for node in rack_status_list if pattern.match(node[0])]
+    rack_list = natural_sort_tuple(rack_list, 0)
+    for node_index in range(1, num_nodes + 1):
+        node_name = node_prefix + str(node_index)
+        if(not rack_list[node_index - 1][1] == "ACTIVE"):
+            print(node_name + " is not ready")
+            return False
+    return True
+
+
+# Sort strings based on the numbers inside them, look up "natural sorting"
+def natural_sort_tuple(list, sort_index):
+    convert = lambda text: int(text) if text.isdigit() else text.lower() 
+    alphanum_key = lambda key: [ convert(c) for c in split('([0-9]+)', key[sort_index]) ] 
+    return sorted(list, key = alphanum_key)
+
+
+def wait_until_nodes_ready(node_prefix, num_nodes, fail_time):
+    sleep_time = 10
+    failsafe = 0
+    ready = False
+    while(not ready and failsafe < fail_time):
+        failsafe += sleep_time
+        sleep(sleep_time)
+        status_list = get_rack_status_list()
+        ready = are_nodes_ready(node_prefix, num_nodes, status_list)
+    if(failsafe < fail_time):
+        return True
+    return False

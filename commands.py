@@ -45,9 +45,7 @@ def update_config():
         print("Updating configuration...")
         functions.set_topology(SAVE_FILE, NODE_PREFIX)
         return functions.load_data()
-
-    # Return data if config.py hasn't been changed
-    return data
+    return False
 
 
 def reset_topology():
@@ -87,8 +85,7 @@ def setup(save_file, subnets, nodes, iplist):
     else:
         print(save_file + " already configured")
 
-    print("Generating rackspace nodes ip list")
-    #iplist = functions.generate_iplist(len(nodes), NODE_PREFIX)
+    print("Editing ssh config")
     functions.edit_ssh_config()
     sleep(2)
 
@@ -200,7 +197,7 @@ def message_gvine_unicast(iplist):
     file_size = input("Choose file size (kilobytes): ")
     send_num = input("Node number to send from? : ")
     rec_num = input("Node number to receive on? : ")
-    testsuite.send_gvine_message(iplist[node_num - 1], message_name, file_size, send_num, rec_num)
+    testsuite.send_gvine_message(iplist[int(send_num) - 1], message_name, file_size, send_num, rec_num)
 
 
 def norm_message(iplist):

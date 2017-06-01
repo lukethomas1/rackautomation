@@ -12,16 +12,17 @@ import functions
 import objects
 import testsuite
 
-# Check config
-config_result = commands.update_config()
-save = config_result['save']
-json = config_result['json']
-subnets = config_result['subnets']
-nodes = config_result['nodes']
-iplist = config_result['iplist']
-
 loop = True
 while(loop):
+    # Check config
+    config_result = commands.update_config()
+    if(config_result):
+        save = config_result['save']
+        json = config_result['json']
+        subnets = config_result['subnets']
+        nodes = config_result['nodes']
+        iplist = config_result['iplist']
+
     arg = input("Command: ")
 
     ##### SETUP COMMANDS #####
@@ -99,8 +100,11 @@ while(loop):
     elif(arg == "kill"):
         commands.kill()
 
+    ##### QUIT #####
+    
+    elif(arg == "q" or arg == "quit" or arg == "exit"):
+        loop = False
+
     ##### USAGE #####
-    elif(arg == "h" or arg == "help" or arg == "usage"):
-        commands.usage()
     else:
-        exit()
+        commands.usage()
