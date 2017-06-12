@@ -428,6 +428,13 @@ def remote_create_dirs(save_folder, ip_file):
     sleep(1)
 
 
+def remote_delete_events(node_prefix):
+    ip_file = "./iplists/" + node_prefix + "hosts"
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+    'rm ~/test/emane/gvine/node/dbs/eventsql_copy.db'])
+    sleep(2)
+
+    
 # Delete specific topology from each rackspace node
 def remote_delete_topology(node_prefix, save_folder):
     ip_file = "./iplists/" + node_prefix + "hosts"
