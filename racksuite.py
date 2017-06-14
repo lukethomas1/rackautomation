@@ -16,12 +16,11 @@ loop = True
 while(loop):
     # Check config
     config_result = commands.update_config()
-    if(config_result):
-        save = config_result['save']
-        json = config_result['json']
-        subnets = config_result['subnets']
-        nodes = config_result['nodes']
-        iplist = config_result['iplist']
+    save = config_result['save']
+    json = config_result['json']
+    subnets = config_result['subnets']
+    nodes = config_result['nodes']
+    iplist = config_result['iplist']
 
     arg = input("Command: ")
 
@@ -63,6 +62,10 @@ while(loop):
         commands.norm_message(iplist)
     elif(arg == "testmessage"):
         commands.test_message(iplist)
+    elif(arg == "checkmessage"):
+        sender_node = int(input("Sender node? : "))
+        testsuite.check_network_receiving(iplist, sender_node)
+
 
     ##### DATA COMMANDS #####
 

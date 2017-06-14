@@ -22,12 +22,17 @@ def get_sql_delay_data(path_to_db):
     main_connection = connect(path_to_db)
     cursor = main_connection.cursor()
     select_stmt = "select * from loggableeventmessagereceived;"
-    cursor.execute(select_stmt)
+    try:
+        cursor.execute(select_stmt)
+    except(Exception):
+        print("There is no delay data at " + path_to_db)
     rows = cursor.fetchall()
     return rows
 
 
 def parse_sql_db(rows):
+    if(not rows):
+        return
     dict = {}
     files = {file[3] for file in rows} # Look up set comprehension
     print(str(files))
@@ -49,6 +54,8 @@ def parse_sql_db(rows):
     return dict
 
 def plot_delays(delays_dict):
+    if(not delays_dict):
+        return
     traces = []
 
     for file_name in delays_dict:

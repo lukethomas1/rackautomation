@@ -53,21 +53,31 @@ def message_test_gvine(iplist, message_name, file_size):
     sender_ip = iplist[0]
     send_gvine_message(sender_ip, message_name, file_size, "1", "")
     sleep(1)
+    check_network_receiving(iplist, 1)
 
+
+def check_network_receiving(iplist, sender_node):
     key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
     ssh = SSHClient()
     ssh.set_missing_host_key_policy(AutoAddPolicy())
+    sender_index = sender_node - 1
 
-    for ip in iplist[1:]:
-        ssh.connect(ip, username="emane-01", pkey=key)
-        command = "tail -c 10000 ~/test/emane/gvine/node/log_* | grep -F 'Beacon\":[{'"
-        stdin, stdout, stderr = ssh.exec_command(command)
-        exit_status = stdout.channel.recv_exit_status()
-        if(not exit_status):
-            print(SUCCESS + ip + " SUCCESS" + ENDCOLOR)
-        else:
-            print(FAIL + ip + " FAILED" + ENDCOLOR)
-        ssh.close()
+    for ip_index in range(len(iplist)):
+        ip = iplist[ip_index]
+        if(ip_index != sender_index):
+            check_for_message_receiving(ip, ssh, key)
+
+
+def check_for_message_receiving(ip, ssh, key):
+    ssh.connect(ip, username="emane-01", pkey=key)
+    command = "tail -c 10000 ~/test/emane/gvine/node/log_* | grep -F 'Beacon\":[{'"
+    stdin, stdout, stderr = ssh.exec_command(command)
+    exit_status = stdout.channel.recv_exit_status()
+    if(not exit_status):
+        print(SUCCESS + ip + " SUCCESS" + ENDCOLOR)
+    else:
+        print(FAIL + ip + " FAILED" + ENDCOLOR)
+    ssh.close()
 
 
 def send_gvine_message(sender_ip, message_name, file_size_kb, send_node_num, receive_node_num):
@@ -84,7 +94,9 @@ def send_gvine_message(sender_ip, message_name, file_size_kb, send_node_num, rec
     else:
       command += (" && java -jar gvapp.jar file " + message_name + " " +
                   send_node_num + " " + receive_node_num)
+    print(command)
     stdin, stdout, stderr = ssh.exec_command(command)
+    print(stdout.readlines())
     ssh.close()
     print("Message sent.\n")
 

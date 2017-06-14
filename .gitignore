@@ -5,6 +5,7 @@ stats/
 tests/
 __pycache__/
 topologies/
+autotestfiles/
 
 # Ignore Files
 pssh-hosts

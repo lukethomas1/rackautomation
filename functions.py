@@ -107,6 +107,38 @@ def assign_subnet_addresses(subnets, blacklist):
             taken_addresses.append(subaddr)
 
 
+def change_gvine_tx_rate(tx_rate, path_to_conf):
+    lines = []
+    # Read file
+    with open(path_to_conf, 'r') as file:
+        lines = file.readlines()
+    # Change tx rate
+    for index in range(len(lines)):
+        if("TargetTxRateBps" in lines[index]):
+            reg = "(?<=    \"TargetTxRateBps\": ).*?(?=,)"
+            r = compile(reg)
+            lines[index] = r.sub(str(tx_rate), lines[index])
+    # Write to file
+    with open(path_to_conf, 'w') as file:
+        file.writelines(lines)
+
+
+def change_gvine_frag_size(frag_size, path_to_conf):
+    lines = []
+    # Read file
+    with open(path_to_conf, 'r') as file:
+        lines = file.readlines()
+    # Change tx rate
+    for index in range(len(lines)):
+        if("FragmentSize" in lines[index]):
+            reg = "(?<=    \"FragmentSize\": ).*?(?=,)"
+            r = compile(reg)
+            lines[index] = r.sub(str(frag_size), lines[index])
+    # Write to file
+    with open(path_to_conf, 'w') as file:
+        file.writelines(lines)
+
+
 def clean_nodes(ip_file):
     command = "cd ~/test/emane/gvine/node/ && rm $(ls -I '*.jar' -I '*.json')"    
     print("Deleting all non .jar files from nodes")
@@ -176,7 +208,6 @@ def create_dir(folder_path):
 
 
 def delete_gvine_log_files(ip_file):
-    print("Removing log files")
     command = "cd /home/emane-01/test/emane/gvine/node/ && rm log_*"
     Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command],
         stdout=DEVNULL)
@@ -352,14 +383,23 @@ def parallel_ssh(ip_file, command):
 
 # Debugging method, prints node and subnet names
 def print_subnets_and_nodes(subnets, nodes):
-  print("Subnet Names:")
-  for subnet in subnets:
+    print("Subnet Names:")
+    for subnet in subnets:
       print(str(subnet['name']))
-  print()
-  print("Node Names:")
-  for node in nodes:
+    print()
+    print("Node Names:")
+    for node in nodes:
       print(str(node['id']))
-  print()
+    print()
+
+
+def push_gvine_conf(ip_file, path_to_conf):
+    command = (
+        "pscp -h " + ip_file + " -l emane-01 " + path_to_conf +
+        " /home/emane-01/test/emane/gvine/node/"
+    )
+    print(command)
+    system(command)
 
 
 # Copy default config to topology directory
@@ -444,7 +484,7 @@ def remote_delete_topology(node_prefix, save_folder):
 
 
 # Run file on each rackspace node in ip_file file
-def remote_start_emane(save_file, ip_file, script_file):
+def remote_emane(save_file, ip_file, script_file):
     save_path = '~/GrapeVine/topologies/' + save_file
     Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
     'cd ' + save_path + ' && sudo ./' + script_file], stdout=DEVNULL)
@@ -526,11 +566,11 @@ def setup_grapevine(save_file, ip_file):
     Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     sleep(2)
 
-    command = "cd /home/emane-01/test/emane/gvine/node/ && rm -r data"
+    #command = "cd /home/emane-01/test/emane/gvine/node/ && rm -r data"
 
-    print("\nRemoving data folder")
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
-    sleep(2)
+    #print("\nRemoving data folder")
+    #Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    #sleep(2)
 
     command = "cd /home/emane-01/test/emane/gvine/node/ && rm delay.txt"
 
@@ -732,7 +772,8 @@ def natural_sort_tuple(list, sort_index):
 def wait_until_nodes_ready(node_prefix, num_nodes, fail_time):
     sleep_time = 10
     failsafe = 0
-    ready = False
+    status_list = get_rack_status_list()
+    ready = are_nodes_ready(node_prefix, num_nodes, status_list)
     while(not ready and failsafe < fail_time):
         failsafe += sleep_time
         sleep(sleep_time)

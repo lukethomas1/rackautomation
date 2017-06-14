@@ -20,10 +20,11 @@ nodes = None
 iplist = None
 
 def auto_test(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates, msg_interval):
+    print("Running autotest on topology: " + SAVE_FILE + " and node_prefix: " + NODE_PREFIX)
     update_variables()
 
     # Start nodes on Rackspace if there aren't any with the correct prefix
-    if(functions.wait_until_nodes_ready(NODE_PREFIX, len(nodes), 1)):
+    if(not functions.wait_until_nodes_ready(NODE_PREFIX, len(nodes), 1)):
         commands.initialize(SAVE_FILE, len(nodes))
 
     # Wait until nodes are ready on rackspace, then setup EMANE and Gvine
@@ -32,16 +33,31 @@ def auto_test(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates, msg_int
         # This if statement will execute when the nodes are ready
         update_variables()
         commands.setup(SAVE_FILE, subnets, nodes, iplist)
+        functions.parallel_ssh(IP_FILE, "rm ~/test/emane/gvine/node/autotest*")
     else:
         print("Nodes with prefix " + NODE_PREFIX + " aren't ready")
         return
     sleep(10)
 
-    # Send a message on Gvine
+    # Do the tests
+    iterate(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates, msg_interval)
 
+
+def iterate(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates, msg_interval):
+    update_variables()
+
+    functions.change_gvine_tx_rate(max_tx_rate, "./autotestfiles/gvine.conf.json")
+    # Loop through file sizes
     for file_size in msg_sizes_bytes:
+        file_size_kb = str(int(int(file_size) / 1000))
+        frag_size = 100 if int(file_size_kb) <= 100 else 500
+        print("Changing fragment size to " + str(frag_size))
+        functions.change_gvine_frag_size(frag_size, "./autotestfiles/gvine.conf.json")
+        functions.push_gvine_conf(IP_FILE, "./autotestfiles/gvine.conf.json")
+        # Loop through sender nodes
         for src_node in range(len(nodes)):
             ip = iplist[src_node]
+            # Do num_iterations iterations of the same configuration
             for iteration in range(num_iterations):
                 # Start EMANE and Gvine
                 commands.start(SAVE_FILE, iplist)
@@ -49,10 +65,18 @@ def auto_test(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates, msg_int
 
                 # Send Message
                 msg_name = "autotestmsg_" + str(src_node + 1) + "_" + str(iteration + 1) + ".txt"
-                testsuite.send_gvine_message(ip, msg_name, file_size, str(src_node + 1), "")
+                print("Sending message")
+                print("Ip: " + ip)
+                print("Message name: " + msg_name)
+                print("File size(bytes): " + file_size)
+                print("Sender node: " + str(src_node + 1))
+                testsuite.send_gvine_message(ip, msg_name, file_size_kb, str(src_node + 1), "")
+                sleep(3)
+                testsuite.check_network_receiving(iplist, src_node + 1)
 
                 # Wait for message to be sent
                 wait_msg_time = 60
+                print("Waiting " + str(wait_msg_time) + " seconds")
                 sleep(wait_msg_time)
                 commands.stop(SAVE_FILE)
 
@@ -72,10 +96,10 @@ def auto_test(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates, msg_int
                 path_to_sql_db = statsuite.combine_event_dbs(input_dir, output_dir)
                 sleep(3)
 
-                rows = statsuite.get_sql_delay_data(path_to_sql_db)
-                dict = statsuite.parse_sql_db(rows)
-                statsuite.plot_delays(dict)
-
+                #rows = statsuite.get_sql_delay_data(path_to_sql_db)
+                #if(rows):
+                #    dict = statsuite.parse_sql_db(rows)
+                #    statsuite.plot_delays(dict)
 
 
 def update_variables():

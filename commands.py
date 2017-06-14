@@ -45,7 +45,7 @@ def update_config():
         print("Updating configuration...")
         functions.set_topology(SAVE_FILE, NODE_PREFIX)
         return functions.load_data()
-    return False
+    return data
 
 
 def reset_topology():
@@ -130,9 +130,10 @@ def start(save_file, iplist):
 
     print("Starting emane")
     script_name = 'emane_start.sh'
-    functions.remote_start_emane(save_file, IP_FILE, script_name)
+    functions.remote_emane(save_file, IP_FILE, script_name)
     sleep(2)
 
+    print("Deleting previous gvine log files")
     functions.delete_gvine_log_files(IP_FILE)
     sleep(2)
 
@@ -152,7 +153,7 @@ def start_console(iplist):
 def start_emane(save_file):
     print("Starting emane")
     script_name = 'emane_start.sh'
-    functions.remote_start_emane(save_file, IP_FILE, script_name)
+    functions.remote_emane(save_file, IP_FILE, script_name)
 
 
 def start_gvine(iplist):
@@ -312,7 +313,7 @@ def stats_delays(save_file, num_nodes):
 # Runs emane_stop.sh on each rackspace node in the topology
 def stop(save_file):
     script_file = 'emane_stop.sh'
-    functions.remote_start_emane(save_file, IP_FILE, script_file)
+    functions.remote_emane(save_file, IP_FILE, script_file)
     functions.parallel_ssh(IP_FILE, "sudo pkill java")
     functions.parallel_ssh(IP_FILE, "sudo pkill norm")
     sleep(2)
