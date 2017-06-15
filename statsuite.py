@@ -30,11 +30,12 @@ def get_sql_delay_data(path_to_db):
     return rows
 
 
-def parse_sql_db(rows):
+def parse_delay_rows(rows):
     if(not rows):
         return
     dict = {}
-    files = {file[3] for file in rows} # Look up set comprehension
+    # Set comprehension
+    files = {file[3] for file in rows}
     print(str(files))
     num_files = len(files)
 
@@ -49,8 +50,6 @@ def parse_sql_db(rows):
             delay = end_time - start_time
             dict[file_name][node_name] = delay
             print("Adding " + str(delay) + " to " + node_name + " in " + file_name)
-
-    print(str(dict))
     return dict
 
 def plot_delays(delays_dict):
@@ -95,34 +94,19 @@ def get_trailing_number(str):
     m = search(r'\d+$', str)
     return int(m.group()) if m else None
 
-##### Delay Statistics #####
+##### Message Node Delay #####
+# Time from first fragment received to last fragment received
 
-def retrieve_delayfiles(iplist, path_to_delay, dest_path):
-    for index in range(len(iplist)):
-        ip = iplist[index]
-        command = "scp emane-01@" + ip + ":" + path_to_delay + " "
-        command += dest_path + "/delay" + str(index + 1) + ".txt"
-        system(command)
+##### Overhead #####
+# Number of non-payload packets sent / Total packets sent
 
+##### Effective Throughput per node #####
+# Message size / Message Node Delay
 
-def parse_delayfiles(folder_path, num_nodes):
-    delays = []
-    for node_index in range(1, num_nodes + 1):
-        path = folder_path + "/delay" + str(node_index) + ".txt"
-        if(path.isfile(path)):
-            delay_file = open(path)
-            delay_text = delay_file.read()
-            delay_file.close()
-            delay_list = delay_text.split(" ")
-            curr_node_list = []
-            for delay_index in range(len(delay_list) + 1):
-                # Every 5th element is the actual value
-                if(delay_index % 5 == 4):
-                    curr_node_list.append(delay_list[delay_index])
-            print("node" + str(node_index) + " has delays: " + str(curr_node_list))
-            delays.append(curr_node_list)
-    return delays
+##### Link Load #####
+# (Total packets sent / Measurement Time Interval) / Link Rate
 
+##### Plotting #####
 
 def plot_values(values, plot_name):
     print("Plot name: " + plot_name)

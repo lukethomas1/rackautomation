@@ -18,6 +18,7 @@ from collections import OrderedDict
 import functions
 import testsuite
 import statsuite
+import autotest
 import config
 
 # Constants defined in config.py
@@ -186,6 +187,20 @@ def ping(subnets, nodes):
     print("Done.")
 
 
+def run_auto_test(need_setup):
+    max_tx_rate = 50000
+    num_iterations = 1
+    msg_sizes_bytes = ["100000", "500000", "1000000", "10000000"]
+    error_rates = [0, 10, 25, 50, 75]
+    msg_interval = 1
+    if(need_setup):
+        autotest.auto_test(max_tx_rate, num_iterations, msg_sizes_bytes,
+                error_rates, msg_interval)
+    else:
+        autotest.iterate(max_tx_rate, num_iterations, msg_sizes_bytes,
+                error_rates, msg_interval)
+
+
 def message(iplist):
     message_name = input("Choose message file name: ")
     file_size = input("Choose file size (kilobytes): ")
@@ -249,7 +264,7 @@ def stats(save_file, num_nodes, iplist):
 
     print("\nPlotting message delays at plot.ly/~sunjaun2/")
     rows = statsuite.get_sql_delay_data(path_to_sql_db)
-    dict = statsuite.parse_sql_db(rows)
+    dict = statsuite.parse_delay_rows(rows)
     statsuite.plot_delays(dict)
 
 
@@ -347,6 +362,8 @@ def usage():
     usage["stop_gvine"] = "stop only grapevine"
     usage["data"] = "print data"
     usage["ping"] = "ping nodes to test if they are conencted"
+    usage["autotest"] = "setup, then test all permutations of parameters"
+    usage["iterate"] = "autotest without setup"
     usage["message"] = "send a message on grapevine"
     usage["testmessage"] = "send a message on grapvine and check if it sent correctly"
     usage["stats"] = "save statistics"

@@ -94,9 +94,7 @@ def send_gvine_message(sender_ip, message_name, file_size_kb, send_node_num, rec
     else:
       command += (" && java -jar gvapp.jar file " + message_name + " " +
                   send_node_num + " " + receive_node_num)
-    print(command)
     stdin, stdout, stderr = ssh.exec_command(command)
-    print(stdout.readlines())
     ssh.close()
     print("Message sent.\n")
 

@@ -9,7 +9,6 @@
 # Local imports
 import commands
 import functions
-import objects
 import testsuite
 
 loop = True
@@ -56,6 +55,10 @@ while(loop):
 
     elif(arg == "ping"):
         commands.ping(subnets, nodes)
+    elif(arg == "autotest"):
+        commands.run_auto_test(need_setup=True)
+    elif(arg == "iterate"):
+        commands.run_auto_test(need_setup=False)
     elif(arg == "message"):
         commands.message(iplist)
     elif(arg == "norm_message"):

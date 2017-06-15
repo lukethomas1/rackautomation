@@ -45,18 +45,20 @@ def auto_test(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates, msg_int
 
 def iterate(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates, msg_interval):
     update_variables()
-
     functions.change_gvine_tx_rate(max_tx_rate, "./autotestfiles/gvine.conf.json")
+
     # Loop through file sizes
     for file_size in msg_sizes_bytes:
-        file_size_kb = str(int(int(file_size) / 1000))
+        file_size_kb = str(int(int(file_size) / 1024))
         frag_size = 100 if int(file_size_kb) <= 100 else 500
         print("Changing fragment size to " + str(frag_size))
         functions.change_gvine_frag_size(frag_size, "./autotestfiles/gvine.conf.json")
         functions.push_gvine_conf(IP_FILE, "./autotestfiles/gvine.conf.json")
+
         # Loop through sender nodes
         for src_node in range(len(nodes)):
             ip = iplist[src_node]
+
             # Do num_iterations iterations of the same configuration
             for iteration in range(num_iterations):
                 # Start EMANE and Gvine
@@ -68,8 +70,11 @@ def iterate(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates, msg_inter
                 print("Sending message")
                 print("Ip: " + ip)
                 print("Message name: " + msg_name)
-                print("File size(bytes): " + file_size)
+                print("-----")
+                print("Iteration: " + str(iteration))
                 print("Sender node: " + str(src_node + 1))
+                print("File size(bytes): " + file_size)
+                print("Fragment size: " + str(frag_size))
                 testsuite.send_gvine_message(ip, msg_name, file_size_kb, str(src_node + 1), "")
                 sleep(3)
                 testsuite.check_network_receiving(iplist, src_node + 1)
@@ -96,10 +101,11 @@ def iterate(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates, msg_inter
                 path_to_sql_db = statsuite.combine_event_dbs(input_dir, output_dir)
                 sleep(3)
 
-                #rows = statsuite.get_sql_delay_data(path_to_sql_db)
-                #if(rows):
-                #    dict = statsuite.parse_sql_db(rows)
-                #    statsuite.plot_delays(dict)
+                rows = statsuite.get_sql_delay_data(path_to_sql_db)
+                if(rows):
+                    print(str(rows))
+                    #dict = statsuite.parse_delay_rows(rows)
+                    #statsuite.plot_delays(dict)
 
 
 def update_variables():
