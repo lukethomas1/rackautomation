@@ -9,7 +9,7 @@ from os import path, system
 from math import ceil
 from re import search, split
 from subprocess import Popen
-from sqlite3 import connect, IntegrityError
+from sqlite3 import connect, IntegrityError, DatabaseError
 from time import gmtime, strftime, sleep
 
 # 3rd Party Imports
@@ -315,17 +315,12 @@ def gather_table_schemas(path_to_dbs, db_names):
     for db_name in db_names:
         conn = connect(db_name)
         cursor = conn.cursor()
-        derp = False
-        counter = 0
-        while(not derp):
-            try:
-                cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table';")
-                derp = True
-            except Error:
-                counter += 1
-                print("messed up: " + str(counter))
-
-                
+        try:
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        except DatabaseError:
+            print("""There was an error while querying the database, this is probably because
+                you pulled the databases down from the nodes while grapevine was still running""")
+            exit()
 
         tables = cursor.fetchall()
 

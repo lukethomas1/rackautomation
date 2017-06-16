@@ -1,7 +1,7 @@
 # Used for rackspace node naming and some other naming, will break things if changed
 NODE_PREFIX = "node-"
 
-SAVE_FILE = "twonodes"
+SAVE_FILE = "basic1"
 
 IMAGE_NAME = "Norm"
 

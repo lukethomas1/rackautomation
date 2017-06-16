@@ -138,7 +138,7 @@ def start(save_file, iplist):
     functions.delete_gvine_log_files(IP_FILE)
     sleep(2)
 
-    print("Starting GrapeVine")
+    print("Starting GrapeVine jar: " + JAR_FILE)
     functions.remote_start_gvine(iplist, JAR_FILE)
     print("Done.")
 
@@ -367,6 +367,7 @@ def usage():
     usage["message"] = "send a message on grapevine"
     usage["testmessage"] = "send a message on grapvine and check if it sent correctly"
     usage["stats"] = "save statistics"
+    usage["stats_events"] = "get events from nodes and combine into single sqlite db"
     usage["delays"] = "save grapevine delay statistics"
     usage["emane_stats"] = "get emane statistics"
     usage["parse"] = "parse emane statistics"
