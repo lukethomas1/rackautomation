@@ -131,6 +131,9 @@ def change_gvine_frag_size(frag_size, path_to_conf):
     # Change tx rate
     for index in range(len(lines)):
         if("FragmentSize" in lines[index]):
+            goal = "    \"FragmentSize\": " + str(frag_size) + ","
+            if(lines[index] == goal):
+                return True
             reg = "(?<=    \"FragmentSize\": ).*?(?=,)"
             r = compile(reg)
             lines[index] = r.sub(str(frag_size), lines[index])
@@ -142,7 +145,7 @@ def change_gvine_frag_size(frag_size, path_to_conf):
 def clean_nodes(ip_file):
     command = "cd ~/test/emane/gvine/node/ && rm $(ls -I '*.jar' -I '*.json')"    
     print("Deleting all non .jar files from nodes")
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command])
     sleep(1)
 
 
@@ -782,3 +785,48 @@ def wait_until_nodes_ready(node_prefix, num_nodes, fail_time):
     if(failsafe < fail_time):
         return True
     return False
+
+##### GRAPEVINE GVPKI CERTS #####
+
+# Use paramiko to generate the cert on each node
+def generate_certs(iplist, path_to_jar):
+    key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    ssh = SSHClient()
+    ssh.set_missing_host_key_policy(AutoAddPolicy())
+
+    for index in range(1, len(iplist) + 1):
+        ssh.connect(iplist[index - 1], username="emane-01", pkey=key)
+        command = "cd " + path_to_jar + " && java -jar gvpki.jar generate node" + str(index)
+        stdin, stdout, stderr = ssh.exec_command(command)
+        ssh.close()
+
+# Use scp to get the cert from each node
+def pull_certs(iplist):
+    create_dir("./keystore/")
+    system("cd ./keystore/ && rm *.cer")
+    for index in range(1, len(iplist) + 1):
+        ip = iplist[index - 1]
+        from_path = "emane-01@" + ip + ":~/test/emane/gvine/node/node" + str(index) + ".cer"
+        to_path = "./keystore/"
+        Popen(['scp', from_path, to_path])
+    
+
+# Use pscp to push certs in parallel
+def push_certs(ip_file, path_to_certs, path_to_push):
+    command = "pscp -h " + ip_file + " -l emane-01 " + path_to_certs + " " + path_to_push
+    system(command)
+
+# Use pscp to load certs in parallel
+def load_certs(path_to_jar, iplist):
+    key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    ssh = SSHClient()
+    ssh.set_missing_host_key_policy(AutoAddPolicy())
+
+    for index in range(1, len(iplist) + 1):
+        ssh.connect(iplist[index - 1], username="emane-01", pkey=key)
+        command = (
+            "cd {} && for((i=1; i<=7; i=i+1)); do java -jar gvpki.jar" +
+            "node node{} load node$i; done".format(path_to_jar, index)
+        )
+        stdin, stdout, stderr = ssh.exec_command(command)
+        ssh.close()

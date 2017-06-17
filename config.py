@@ -1,9 +1,9 @@
 # Used for rackspace node naming and some other naming, will break things if changed
-NODE_PREFIX = "node-"
+NODE_PREFIX = "frag-"
 
 SAVE_FILE = "basic1"
 
-IMAGE_NAME = "Norm"
+IMAGE_NAME = "Frag"
 
 JAR_FILE = "gvine-java.jar"
 

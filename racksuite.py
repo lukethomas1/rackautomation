@@ -37,6 +37,8 @@ while(loop):
         commands.setup(save, subnets, nodes, iplist)
     elif(arg == "push_scenario"):
         functions.remote_copy_scenario(save, iplist)
+    elif(arg == "gvpki"):
+        commands.gvpki(iplist)
 
     ##### START COMMANDS #####
 

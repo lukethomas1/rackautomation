@@ -124,6 +124,26 @@ def setup(save_file, subnets, nodes, iplist):
     print("Done.")
 
 
+def gvpki(iplist):
+    # Generate cert on each node
+    print("Generating certs")
+    path_to_jar = "~/test/emane/gvine/node/"
+    functions.generate_certs(iplist, path_to_jar)
+    sleep(1)
+    # Pull cert down from each node
+    print("Pulling certs")
+    functions.pull_certs(iplist)
+    sleep(2)
+    # Push all certs to each node
+    print("Pushing certs")
+    path_to_certs = "./keystore/*"
+    functions.push_certs(IP_FILE, path_to_certs, path_to_jar)
+    sleep(2)
+    # Load all certs on each node
+    print("Loading certs")
+    functions.load_certs(path_to_jar, iplist)
+
+
 # Synchronizes rackspace nodes (not sure what it does, soroush had it),
 # then runs emane_start.sh on each rackspace node in the topology
 def start(save_file, iplist):
@@ -327,10 +347,13 @@ def stats_delays(save_file, num_nodes):
 
 # Runs emane_stop.sh on each rackspace node in the topology
 def stop(save_file):
+    # Stop GrapeVine
+    functions.parallel_ssh(IP_FILE, "sudo pkill java")
+    # Stop Norm
+    functions.parallel_ssh(IP_FILE, "sudo pkill norm")
+    # Stop EMANE
     script_file = 'emane_stop.sh'
     functions.remote_emane(save_file, IP_FILE, script_file)
-    functions.parallel_ssh(IP_FILE, "sudo pkill java")
-    functions.parallel_ssh(IP_FILE, "sudo pkill norm")
     sleep(2)
     print("Done.")
     
@@ -357,6 +380,7 @@ def usage():
     usage["iplist"] = "update iplist and pssh-hosts"
     usage["configure"] = "write platform files, scenario.eel, emane scripts"
     usage["setup"] = "configure command + send to nodes on rackspace"
+    usage["gvpki"] = "reload node certifications"
     usage["start"] = "start emane and grapevine"
     usage["start_gvine"] = "start only grapevine"
     usage["stop_gvine"] = "stop only grapevine"

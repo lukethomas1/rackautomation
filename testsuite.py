@@ -70,7 +70,7 @@ def check_network_receiving(iplist, sender_node):
 
 def check_for_message_receiving(ip, ssh, key):
     ssh.connect(ip, username="emane-01", pkey=key)
-    command = "tail -c 10000 ~/test/emane/gvine/node/log_* | grep -F 'Beacon\":[{'"
+    command = "tail -c 100000 ~/test/emane/gvine/node/log_* | grep -F 'Beacon\":[{'"
     stdin, stdout, stderr = ssh.exec_command(command)
     exit_status = stdout.channel.recv_exit_status()
     if(not exit_status):
