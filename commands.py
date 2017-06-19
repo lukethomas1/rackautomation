@@ -124,12 +124,29 @@ def setup(save_file, subnets, nodes, iplist):
     print("Done.")
 
 
+def change_tx_rate():
+    tx_rate = input("New TargetTxRateBps? : ")
+    path_to_conf = "./autotestfiles/gvine.conf.json"
+    functions.change_gvine_tx_rate(tx_rate, path_to_conf)
+
+
+def change_frag_size():
+    frag_size = input("New FragmentSize? : ")
+    path_to_conf = "./autotestfiles/gvine.conf.json"
+    functions.change_gvine_frag_size(frag_size, path_to_conf)
+
+
+def push_config():
+    path_to_conf = "./autotestfiles/gvine.conf.json"
+    functions.push_gvine_conf(IP_FILE, path_to_conf)
+
+
 def gvpki(iplist):
     # Generate cert on each node
     print("Generating certs")
-    path_to_jar = "~/test/emane/gvine/node/"
+    path_to_jar = "/home/emane-01/test/emane/gvine/node/"
     functions.generate_certs(iplist, path_to_jar)
-    sleep(1)
+    sleep(3)
     # Pull cert down from each node
     print("Pulling certs")
     functions.pull_certs(iplist)
@@ -380,6 +397,8 @@ def usage():
     usage["iplist"] = "update iplist and pssh-hosts"
     usage["configure"] = "write platform files, scenario.eel, emane scripts"
     usage["setup"] = "configure command + send to nodes on rackspace"
+    usage["fragsize"] = "Change gvine.conf.json FragmentSize"
+    usage["txrate"] = "Change gvine.conf.json TargetTxRateBps"
     usage["gvpki"] = "reload node certifications"
     usage["start"] = "start emane and grapevine"
     usage["start_gvine"] = "start only grapevine"
@@ -390,6 +409,8 @@ def usage():
     usage["iterate"] = "autotest without setup"
     usage["message"] = "send a message on grapevine"
     usage["testmessage"] = "send a message on grapvine and check if it sent correctly"
+    usage["checkreceiving"] = "Check to see if the network is receiving any file"
+    usage["checkreceived"] = "Check to see if the network has received a file"
     usage["stats"] = "save statistics"
     usage["stats_events"] = "get events from nodes and combine into single sqlite db"
     usage["delays"] = "save grapevine delay statistics"

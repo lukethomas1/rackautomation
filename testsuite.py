@@ -65,19 +65,61 @@ def check_network_receiving(iplist, sender_node):
     for ip_index in range(len(iplist)):
         ip = iplist[ip_index]
         if(ip_index != sender_index):
-            check_for_message_receiving(ip, ssh, key)
+            check_message_receiving(ip, ssh, key)
 
 
-def check_for_message_receiving(ip, ssh, key):
+def check_network_received(file_name, iplist, sender_node):
+    key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    ssh = SSHClient()
+    ssh.set_missing_host_key_policy(AutoAddPolicy())
+    sender_index = sender_node - 1
+    success = True
+
+    for ip_index in range(len(iplist)):
+        ip = iplist[ip_index]
+        if(ip_index != sender_index):
+            rtnVal = check_message_received(file_name, ip, ssh, key)
+            if(not rtnVal):
+                success = False
+    return success
+
+
+def print_success_fail(success, ip):
+    if(success):
+        print(SUCCESS + ip + " SUCCESS" + ENDCOLOR)
+    else:
+        print(FAIL + ip + " FAILED" + ENDCOLOR)
+
+
+def check_message_receiving(ip, ssh, key):
     ssh.connect(ip, username="emane-01", pkey=key)
     command = "tail -c 100000 ~/test/emane/gvine/node/log_* | grep -F 'Beacon\":[{'"
     stdin, stdout, stderr = ssh.exec_command(command)
     exit_status = stdout.channel.recv_exit_status()
-    if(not exit_status):
-        print(SUCCESS + ip + " SUCCESS" + ENDCOLOR)
-    else:
-        print(FAIL + ip + " FAILED" + ENDCOLOR)
     ssh.close()
+    print_success_fail(not exit_status, ip)
+    return not exit_status
+
+
+def check_message_received(file_name, ip, ssh, key):
+    ssh.connect(ip, username="emane-01", pkey=key)
+    command = "ls ~/test/emane/gvine/node/data/" + file_name
+    stdin, stdout, stderr = ssh.exec_command(command)
+    exit_status = stdout.channel.recv_exit_status()
+    ssh.close()
+    print_success_fail(not exit_status, ip)
+    return not exit_status
+
+
+def wait_for_message_received(file_name, sender_node, iplist, wait_time):
+    sleep_time = 5
+    wait_counter = 0
+    received = check_network_received(file_name, iplist, sender_node)
+    while(not received and wait_counter < wait_time):
+        sleep(sleep_time)
+        wait_counter += 5
+        received = check_network_received(file_name, iplist, sender_node)
+    return received
 
 
 def send_gvine_message(sender_ip, message_name, file_size_kb, send_node_num, receive_node_num):

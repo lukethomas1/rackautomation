@@ -89,10 +89,11 @@ def run(need_setup):
         # Set up the parameters for this test
         iteration = param_indices[0]
         source_node = param_indices[1]
-        message_size_kb = str(int(int(msg_sizes_bytes[param_indices[2]]) / 1024))
+        message_size_kb = str(int(int(msg_sizes_bytes[param_indices[2]]) / 1000))
         error_rate = error_rates[param_indices[3]]
         source_ip = iplist[source_node]
         frag_size = 100 if int(message_size_kb) <= 100 else 500
+        frag_size = 50000
         same = functions.change_gvine_frag_size(frag_size, "./autotestfiles/gvine.conf.json")
         if(not same):
             functions.push_gvine_conf(IP_FILE, "./autotestfiles/gvine.conf.json")
@@ -102,8 +103,8 @@ def run(need_setup):
         test(source_node, source_ip, message_size_kb)
         # Wait for message to be sent
         wait_msg_time = msg_interval
-        print("Waiting " + str(wait_msg_time) + " seconds")
-        sleep(wait_msg_time)
+        file_name = "autotestmsg_" + str(source_node + 1) + "_" + str(msg_counter) + ".txt"
+        testsuite.wait_for_message_received(file_name, source_node + 1, iplist, wait_msg_time)
         stop()
         gather_data()
         cleanup()

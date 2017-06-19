@@ -37,6 +37,12 @@ while(loop):
         commands.setup(save, subnets, nodes, iplist)
     elif(arg == "push_scenario"):
         functions.remote_copy_scenario(save, iplist)
+    elif(arg == "pushconfig"):
+        commands.push_config()
+    elif(arg == "txrate"):
+        commands.change_tx_rate()
+    elif(arg == "fragsize"):
+        commands.change_frag_size()
     elif(arg == "gvpki"):
         commands.gvpki(iplist)
 
@@ -67,9 +73,13 @@ while(loop):
         commands.norm_message(iplist)
     elif(arg == "testmessage"):
         commands.test_message(iplist)
-    elif(arg == "checkmessage"):
+    elif(arg == "checkreceiving"):
         sender_node = int(input("Sender node? : "))
         testsuite.check_network_receiving(iplist, sender_node)
+    elif(arg == "checkreceived"):
+        sender_node = int(input("Sender node? : "))
+        file_name = input("File Name? : ")
+        testsuite.check_network_received(file_name, iplist, sender_node)
 
 
     ##### DATA COMMANDS #####

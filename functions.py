@@ -501,7 +501,11 @@ def remote_start_gvine(iplist, jar_name):
 
     for index in range(1, len(iplist) + 1):
         print("Starting on " + str(iplist[index - 1]))
-        ssh.connect(iplist[index - 1], username="emane-01", pkey=key)
+        try:
+            ssh.connect(iplist[index - 1], username="emane-01", pkey=key)
+        except:
+            print("Failed to connect to " + str(iplist[index - 1]))
+            continue
         command = "cd ~/test/emane/gvine/node/ && java -jar " + jar_name + " node" + str(index) + " 500 >> log_node" + str(index) + ".txt &"
         stdin, stdout, stderr = ssh.exec_command(command)
         ssh.close()
@@ -756,9 +760,12 @@ def get_rack_status_list():
 def are_nodes_ready(node_prefix, num_nodes, rack_status_list):
     pattern = compile("^" + node_prefix + "[0-9]+$")
     rack_list = [node for node in rack_status_list if pattern.match(node[0])]
+    if(len(rack_list) < num_nodes):
+        return False
     rack_list = natural_sort_tuple(rack_list, 0)
     for node_index in range(1, num_nodes + 1):
         node_name = node_prefix + str(node_index)
+        node_name = rack_list[node_index - 1][0]
         if(not rack_list[node_index - 1][1] == "ACTIVE"):
             print(node_name + " is not ready")
             return False
@@ -825,8 +832,8 @@ def load_certs(path_to_jar, iplist):
     for index in range(1, len(iplist) + 1):
         ssh.connect(iplist[index - 1], username="emane-01", pkey=key)
         command = (
-            "cd {} && for((i=1; i<=7; i=i+1)); do java -jar gvpki.jar" +
-            "node node{} load node$i; done".format(path_to_jar, index)
-        )
+            "cd {} && for((i=1; i<=7; i=i+1)); do java -jar gvpki.jar " +
+            "node node{} load node$i; done"
+        ).format(path_to_jar, index)
         stdin, stdout, stderr = ssh.exec_command(command)
         ssh.close()
