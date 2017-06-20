@@ -26,6 +26,7 @@ num_iterations = None
 msg_sizes_bytes = None
 error_rates = None
 msg_interval = None
+initial_indices = [0, 0, 0, 0]
 
 # Other global variables
 msg_counter = 0
@@ -45,17 +46,19 @@ def update_config():
     iplist = config_result['iplist']
 
 
-def initialize_parameters(max_tx, num_iter, msg_sizes, err_rates, msg_int):
+def initialize_parameters(max_tx, num_iter, msg_sizes, err_rates, msg_int, init_indices):
     global max_tx_rate
     global num_iterations
     global msg_sizes_bytes
     global error_rates
     global msg_interval
+    global initial_indices
     max_tx_rate = max_tx
     num_iterations = num_iter
     msg_sizes_bytes = msg_sizes
     error_rates = err_rates
     msg_interval = msg_int
+    initial_indices = init_indices
 
 
 def increment_parameters(current, max, length):
@@ -82,37 +85,46 @@ def run(need_setup):
     update_config()
     functions.change_gvine_tx_rate(max_tx_rate, "./autotestfiles/gvine.conf.json")
     # Parameters with indices: Iteration, Source Node, Message Size, Error Rate
-    param_indices = [0, 0, 0, 0]
+    param_indices = initial_indices
     max_indices = [num_iterations, len(nodes), len(msg_sizes_bytes), len(error_rates)]
     done = False
     while(not done):
-        # Set up the parameters for this test
-        iteration = param_indices[0]
-        source_node = param_indices[1]
-        message_size_kb = str(int(int(msg_sizes_bytes[param_indices[2]]) / 1000))
-        error_rate = error_rates[param_indices[3]]
-        source_ip = iplist[source_node]
-        frag_size = 100 if int(message_size_kb) <= 100 else 500
-        frag_size = 50000
-        same = functions.change_gvine_frag_size(frag_size, "./autotestfiles/gvine.conf.json")
-        if(not same):
-            functions.push_gvine_conf(IP_FILE, "./autotestfiles/gvine.conf.json")
+        try:
+            # Set up the parameters for this test
+            iteration = param_indices[0]
+            source_node = param_indices[1]
+            message_size_kb = str(int(int(msg_sizes_bytes[param_indices[2]]) / 1000))
+            error_rate = error_rates[param_indices[3]]
+            source_ip = iplist[source_node]
+            frag_size = 100 if int(message_size_kb) <= 100 else 500
+            frag_size = 50000
+            same = functions.change_gvine_frag_size(frag_size, "./autotestfiles/gvine.conf.json")
+            if(not same):
+                functions.push_gvine_conf(IP_FILE, "./autotestfiles/gvine.conf.json")
 
-        # Run the test
-        start()
-        test(source_node, source_ip, message_size_kb)
-        # Wait for message to be sent
-        wait_msg_time = msg_interval
-        file_name = "autotestmsg_" + str(source_node + 1) + "_" + str(msg_counter) + ".txt"
-        testsuite.wait_for_message_received(file_name, source_node + 1, iplist, wait_msg_time)
-        stop()
-        gather_data()
-        cleanup()
-        param_indices = increment_parameters(param_indices, max_indices, len(max_indices))
+            # Run the test
+            start()
+            test(source_node, source_ip, message_size_kb)
+            # Wait for message to be sent
+            wait_msg_time = msg_interval
+            file_name = "autotestmsg_" + str(source_node + 1) + "_" + str(msg_counter) + ".txt"
+            testsuite.wait_for_message_received(file_name, source_node + 1, iplist, wait_msg_time)
+            stop()
+            gather_data()
+            cleanup()
+            print(str(param_indices))
+            param_indices = increment_parameters(param_indices, max_indices, len(max_indices))
+            print(str(param_indices))
 
-        # Check if we are done with all tests
-        if(param_indices == [0] * len(param_indices)):
-            done = True
+            # Check if we are done with all tests
+            if(param_indices == [0] * len(param_indices)):
+                done = True
+        except KeyboardInterrupt:
+            exit()
+        except as err:
+            print("THERE WAS A NASTY BUG, SKIPPING THIS TEST")
+            print("Bug: " + str(err))
+            continue
 
 
 ##### TESTING METHODS #####
@@ -166,6 +178,9 @@ def setup():
     # Add all rackspace node ip addresses to this computer's known_hosts file
     functions.add_known_hosts(iplist)
 
+    # Remove all non directory or .jar files
+    functions.clean_nodes(IP_FILE)
+
     # Create topology directory on each rackspace node
     print("Creating remote directories with ipfile: " + IP_FILE)
     functions.remote_create_dirs(SAVE_FILE, IP_FILE)
@@ -191,6 +206,28 @@ def setup():
     # Move grapevine files from trunk folder to test folder on each rack instance
     print("Preparing GrapeVine test")
     functions.setup_grapevine(SAVE_FILE, IP_FILE)
+
+    node_certs(iplist)
+
+
+def node_certs(iplist):
+    # Generate cert on each node
+    print("Generating certs")
+    path_to_jar = "/home/emane-01/test/emane/gvine/node/"
+    functions.generate_certs(iplist, path_to_jar)
+    sleep(3)
+    # Pull cert down from each node
+    print("Pulling certs")
+    functions.pull_certs(iplist)
+    sleep(2)
+    # Push all certs to each node
+    print("Pushing certs")
+    path_to_certs = "./keystore/*"
+    functions.push_certs(IP_FILE, path_to_certs, path_to_jar)
+    sleep(2)
+    # Load all certs on each node
+    print("Loading certs")
+    functions.load_certs(path_to_jar, iplist)
 
 
 def start():
@@ -249,91 +286,4 @@ def gather_data():
 
 def cleanup():
     functions.parallel_ssh(IP_FILE, "rm ~/test/emane/gvine/node/autotest*")
-    functions.remote_delete_events(NODE_PREFIX)
-
-
-def initialize_test(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates, msg_interval):
-    print("Running autotest on topology: " + SAVE_FILE + " and node_prefix: " + NODE_PREFIX)
-    update_config()
-
-    # Start nodes on Rackspace if there aren't any with the correct prefix
-    if(not functions.wait_until_nodes_ready(NODE_PREFIX, len(nodes), 1)):
-        commands.initialize(SAVE_FILE, len(nodes))
-
-    # Wait until nodes are ready on rackspace, then setup EMANE and Gvine
-    fail_time = 1000
-    if(functions.wait_until_nodes_ready(NODE_PREFIX, len(nodes), fail_time)):
-        # This if statement will execute when the nodes are ready
-        update_config()
-        commands.setup(SAVE_FILE, subnets, nodes, iplist)
-        functions.parallel_ssh(IP_FILE, "rm ~/test/emane/gvine/node/autotest*")
-    else:
-        print("Nodes with prefix " + NODE_PREFIX + " aren't ready")
-        return
-    sleep(10)
-
-    # Do the tests
-    iterate(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates, msg_interval)
-
-
-def iterate(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates, msg_interval):
-    update_config()
-    functions.change_gvine_tx_rate(max_tx_rate, "./autotestfiles/gvine.conf.json")
-
-    # Loop through file sizes
-    for file_size in msg_sizes_bytes:
-        file_size_kb = str(int(int(file_size) / 1024))
-        frag_size = 100 if int(file_size_kb) <= 100 else 500
-        print("Changing fragment size to " + str(frag_size))
-        functions.change_gvine_frag_size(frag_size, "./autotestfiles/gvine.conf.json")
-        functions.push_gvine_conf(IP_FILE, "./autotestfiles/gvine.conf.json")
-
-        # Loop through sender nodes
-        for src_node in range(len(nodes)):
-            ip = iplist[src_node]
-
-            # Do num_iterations iterations of the same configuration
-            for iteration in range(num_iterations):
-                sleep(10)
-
-                # Send Message
-                msg_name = "autotestmsg_" + str(src_node + 1) + "_" + str(iteration + 1) + ".txt"
-                print("Sending message")
-                print("Ip: " + ip)
-                print("Message name: " + msg_name)
-                print("-----")
-                print("Iteration: " + str(iteration))
-                print("Sender node: " + str(src_node + 1))
-                print("File size(bytes): " + file_size)
-                print("Fragment size: " + str(frag_size))
-                testsuite.send_gvine_message(ip, msg_name, file_size_kb, str(src_node + 1), "")
-                sleep(3)
-                testsuite.check_network_receiving(iplist, src_node + 1)
-
-                # Wait for message to be sent
-                wait_msg_time = 60
-                print("Waiting " + str(wait_msg_time) + " seconds")
-                sleep(wait_msg_time)
-                commands.stop(SAVE_FILE)
-
-                # Gather data from nodes
-                statsuite.generate_event_dbs(iplist)
-                sleep(3)
-
-                path_to_db = "/home/emane-01/test/emane/gvine/node/dbs/eventsql_copy.db"
-                statsuite.copy_event_dbs(iplist, path_to_db, "./stats/events/" + SAVE_FILE + "/nodedata/")
-                sleep(3)
-
-                functions.remote_delete_events(NODE_PREFIX)
-                sleep(3)
-
-                input_dir = "./stats/events/" + SAVE_FILE + "/nodedata/"
-                output_dir = "./stats/events/" + SAVE_FILE + "/"
-                path_to_sql_db = statsuite.combine_event_dbs(input_dir, output_dir)
-                sleep(3)
-
-                rows = statsuite.get_sql_delay_data(path_to_sql_db)
-                if(rows):
-                    print(str(rows))
-                    #dict = statsuite.parse_delay_rows(rows)
-                    #statsuite.plot_delays(dict)
+    functions.remote_delete_events(IP_FILE, NODE_PREFIX)

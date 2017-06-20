@@ -401,7 +401,6 @@ def push_gvine_conf(ip_file, path_to_conf):
         "pscp -h " + ip_file + " -l emane-01 " + path_to_conf +
         " /home/emane-01/test/emane/gvine/node/"
     )
-    print(command)
     system(command)
 
 
@@ -471,8 +470,7 @@ def remote_create_dirs(save_folder, ip_file):
     sleep(1)
 
 
-def remote_delete_events(node_prefix):
-    ip_file = "./iplists/" + node_prefix + "hosts"
+def remote_delete_events(ip_file, node_prefix):
     Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
     'rm ~/test/emane/gvine/node/dbs/eventsql_copy.db'])
     sleep(2)
@@ -573,11 +571,11 @@ def setup_grapevine(save_file, ip_file):
     Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     sleep(2)
 
-    #command = "cd /home/emane-01/test/emane/gvine/node/ && rm -r data"
+    command = "cd /home/emane-01/test/emane/gvine/node/ && rm -r data"
 
-    #print("\nRemoving data folder")
-    #Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
-    #sleep(2)
+    print("\nRemoving data folder")
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    sleep(2)
 
     command = "cd /home/emane-01/test/emane/gvine/node/ && rm delay.txt"
 
