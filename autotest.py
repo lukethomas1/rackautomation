@@ -121,9 +121,9 @@ def run(need_setup):
                 done = True
         except KeyboardInterrupt:
             exit()
-        except as err:
+        except Exception as err:
             print("THERE WAS A NASTY BUG, SKIPPING THIS TEST")
-            print("Bug: " + str(err))
+            #print("Bug: " + str(err))
             continue
 
 
