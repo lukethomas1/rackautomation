@@ -64,9 +64,9 @@ while(loop):
     elif(arg == "ping"):
         commands.ping(subnets, nodes)
     elif(arg == "autotest"):
-        commands.run_auto_test(need_setup=True)
-    elif(arg == "iterate"):
-        commands.run_auto_test(need_setup=False)
+        commands.run_auto_test()
+    elif(arg == "transferdelay"):
+        commands.transfer_delay()
     elif(arg == "message"):
         commands.message(iplist)
     elif(arg == "norm_message"):

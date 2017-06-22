@@ -118,6 +118,7 @@ def wait_for_message_received(file_name, sender_node, iplist, wait_time):
     while(not received and wait_counter < wait_time):
         sleep(sleep_time)
         wait_counter += 5
+        print("\nChecking if message was received: " + str(wait_counter) + " seconds")
         received = check_network_received(file_name, iplist, sender_node)
     return received
 

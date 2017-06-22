@@ -16,20 +16,25 @@ from time import gmtime, strftime, sleep
 from paramiko import AutoAddPolicy, RSAKey, SSHClient
 import plotly
 
-##### Delays from SQL #####
+##### General SQLITE Functions #####
 
-def get_sql_delay_data(path_to_db):
+def get_sql_data(path_to_db, loggable_event):
     main_connection = connect(path_to_db)
     cursor = main_connection.cursor()
-    select_stmt = "select * from loggableeventmessagereceived;"
+    select_stmt = "select * from " + loggable_event + ";"
     try:
         cursor.execute(select_stmt)
     except(Exception):
-        print("There is no delay data at " + path_to_db)
+        print("There is no data for " + loggable_event + " at " + path_to_db)
     rows = cursor.fetchall()
     return rows
 
 
+##### Delays from SQL #####
+
+# Takes in the rows from get_sql_delay_data() and returns a dictionary of
+# dictionaries, with the outer layer being a dictionary of file names and
+# the inner layer being dictionaries of node_number and its corresponding delay
 def parse_delay_rows(rows):
     if(not rows):
         return
@@ -94,17 +99,95 @@ def get_trailing_number(str):
     m = search(r'\d+$', str)
     return int(m.group()) if m else None
 
+##### Message Transfer Delay #####
+# Time from message send to message received on each node
+def extract_transfer_delays(path_to_input, path_to_output, save_file):
+    # Get the data and make sure there is delay data
+    data_rows = get_sql_data(path_to_input, "loggableeventmessagereceived")
+    if(not data_rows):
+        return
+
+    # Create the TRANSFERDELAYS table in the output database
+    table_schema = (
+        "CREATE TABLE IF NOT EXISTS TRANSFERDELAYS (receiverNumber TEXT, " +
+        "senderNumber TEXT, delay INTEGER, messageSizeBytes INTEGER, " +
+        "saveFile TEXT, timestamp TEXT, unique(receiverNumber, timestamp));"
+    )
+    main_connection = connect(path_to_output)
+    main_connection.execute(table_schema)
+
+    # Get the delay data for each test and insert into output database
+    list_of_nodes = [node[0] for node in data_rows]
+    for row in data_rows:
+        node_name = row[0]
+        sender_name = get_missing_node(list_of_nodes)
+        delay = row[4]
+        msg_size = row[6]
+        #error_rate = input("Error rate? : ")
+        #msg_interval = input("Message Interval? : ")
+        timestamp = row[7]
+        #gvine_version = input("Gvine version? : ")
+        insert_stmt = (
+            "INSERT INTO TRANSFERDELAYS (receiverNumber, senderNumber, " +
+            "delay, messageSizeBytes, saveFile, timestamp) VALUES ('" +
+            node_name + "', '" + sender_name + "', " + str(delay) + ", " +
+            str(msg_size) + ", '" + save_file + "', '" + timestamp + "')"
+        )
+        try:
+            main_connection.execute(insert_stmt)
+        except(IntegrityError) as err:
+            print("Duplicate receiverNumber: " + node_name + ", timestamp: " + timestamp)
+
+    # Commit then close output database
+    main_connection.commit()
+    main_connection.close()
+
+
 ##### Message Node Delay #####
 # Time from first fragment received to last fragment received
+def extract_node_delays(path_to_input, path_to_output, save_file):
+    # Get the data and make sure there is fragment data
+    data_rows = get_sql_data(path_to_input, "loggableeventfragment")
+    if(not data_rows):
+        return
+
+    # Create the NODEDELAYS table in the output database
+    table_schema = (
+        "CREATE TABLE IF NOT EXISTS NODEDELAYS (nodeNumber TEXT, " +
+        "delay INTEGER, messageSizeBytes INTEGER, saveFile TEXT, " +
+        "timestamp TEXT, unique(nodeNumber, timestamp));"
+    )
+    main_connection = connect(path_to_output)
+    main_connection.execute(table_schema)
+
+    # Get the delay data for each test and insert into output database
+    # Set comprehension to get unique node values
+    nodes = {row[0] for row in data_rows}
+    for node in nodes:
+        timestamps = [row[6] for row in data_rows if row[0] == node]
+
 
 ##### Overhead #####
 # Number of non-payload packets sent / Total packets sent
+def extract_overheads():
+    return
 
 ##### Effective Throughput per node #####
 # Message size / Message Node Delay
+def extract_throughputs():
+    return
 
 ##### Link Load #####
 # (Total packets sent / Measurement Time Interval) / Link Rate
+def extract_link_loads():
+    return
+
+def get_missing_node(list_of_nodes):
+    list_of_nodes.sort()
+    for index in range(1, len(list_of_nodes) + 1):
+        if(get_trailing_number(list_of_nodes[index - 1]) != index):
+            return "node" + str(index)
+    return "node" + str(len(list_of_nodes) + 1)
 
 ##### Plotting #####
 
@@ -301,10 +384,10 @@ def combine_event_dbs(input_dir, output_dir):
     print("Inserting db data")
     insert_db_data(main_connection, db_names, table_names)
     # Save the changes made to the new database
-    print("committing main connection")
+    print("Committing main connection")
     main_connection.commit()
     # Close the database connection
-    print("closing main connection")
+    print("Closing main connection")
     main_connection.close()
     return new_db_name
 

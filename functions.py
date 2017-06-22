@@ -144,7 +144,18 @@ def change_gvine_frag_size(frag_size, path_to_conf):
 
 def clean_nodes(ip_file):
     command = "cd ~/test/emane/gvine/node/ && rm $(ls -I '*.jar' -I '*.json')"    
-    print("Deleting all non .jar files from nodes")
+    print("Deleting all non .jar, .json files from nodes")
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command])
+    sleep(1)
+
+
+def clean_node_data(ip_file):
+    command = (
+        "cd ~/test/emane/gvine/node/ && rm -rf gvine.msg* gvine.frag* " +
+        "gvine.sub* delay.txt ack.txt *.cer SeqNbr.txt send.txt received.txt " +
+        "statistic.db log* eventlogs/* dbs/* data/*"
+    )
+    print("Cleaning data on nodes")
     Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command])
     sleep(1)
 
@@ -311,6 +322,18 @@ def get_iplist(ip_file):
 
 # Get json topology under save name save_file from firebase
 def get_json_from_firebase(save_file):
+    saves = get_all_saves()
+
+    # Return the save JSON from firebase
+    returnval = ""
+    try:
+        returnval = saves[save_file]['string']
+    except:
+        print("Non-existant save file")
+    return returnval
+
+
+def get_all_saves():
     # Firebase Information, sensitive info if we care about what is on firebase
     config = {
         "apiKey": "AIzaSyBo7i1pJOOyTbMLwOvM4pabOqrGwTEzgCc",
@@ -320,17 +343,11 @@ def get_json_from_firebase(save_file):
     }
 
     # Firebase variables
-    firebase = initialize_app(config);
+    firebase = initialize_app(config)
     db = firebase.database()
     saves = db.child("saves").get().val()
+    return saves
 
-    # Return the save JSON from firebase
-    returnval = "";
-    try:
-        returnval = saves[save_file]['string']
-    except:
-        print("Non-existant save file")
-    return returnval
 
 
 # Returns a filled out nem template given the subnet, node, and device_num

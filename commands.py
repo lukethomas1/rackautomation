@@ -14,6 +14,10 @@ from time import sleep
 from os import path
 from collections import OrderedDict
 
+# Third Party Imports
+from glob import glob
+from re import sub
+
 # Local Imports
 import functions
 import testsuite
@@ -224,18 +228,41 @@ def ping(subnets, nodes):
     print("Done.")
 
 
-def run_auto_test(need_setup):
+def run_auto_test():
     max_tx_rate = 50000
     num_iterations = 1
-    msg_sizes_bytes = ["100000", "500000", "1000000", "10000000"]
+    msg_sizes_bytes = ["100000", "250000", "500000", "750000", "1000000"]
     error_rates = [0, 10, 25, 50, 75]
-    msg_interval = 1
+    error_rates = [1]
+    msg_interval = 9999
+    initial_indices = [0, 0, 0, 0]
+    autotest.initialize_parameters(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates, msg_interval, initial_indices)
+    need_setup = input("Need Setup? (Leave blank for no): ")
     if(need_setup):
-        autotest.auto_test(max_tx_rate, num_iterations, msg_sizes_bytes,
-                error_rates, msg_interval)
+        need_setup = True
     else:
-        autotest.iterate(max_tx_rate, num_iterations, msg_sizes_bytes,
-                error_rates, msg_interval)
+        need_setup = False
+    autotest.run(need_setup)
+
+
+def transfer_delay():
+    paths = glob("./stats/events/" + SAVE_FILE + "/*.db")
+    paths.sort()
+    paths.reverse()
+    num = str(len(paths) - 1)
+    path_to_output = "./stats/measurements.db"
+    try:
+        index = int(input("Index of sqlite3 db? (0 for newest, " + num + " for oldest: "))
+        path_to_input = sub(r"[\\]", '', paths[index])
+        statsuite.extract_transfer_delays(path_to_input, path_to_output, SAVE_FILE)
+    except:
+        check_again = input("Are you sure you would like to extract all databases? : ")
+        if(check_again):
+            for ind in range(len(paths)):
+                path_to_input = sub(r"[\\]", '', paths[ind])
+                print("Extracting from " + path_to_input)
+                statsuite.extract_transfer_delays(path_to_input, path_to_output, SAVE_FILE)
+
 
 
 def message(iplist):
@@ -300,7 +327,7 @@ def stats(save_file, num_nodes, iplist):
     path_to_sql_db = statsuite.combine_event_dbs(input_dir, output_dir)
 
     print("\nPlotting message delays at plot.ly/~sunjaun2/")
-    rows = statsuite.get_sql_delay_data(path_to_sql_db)
+    rows = statsuite.get_sql_data(path_to_sql_db, "loggableeventmessagereceived")
     dict = statsuite.parse_delay_rows(rows)
     statsuite.plot_delays(dict)
 
@@ -376,7 +403,11 @@ def stop(save_file):
     
 
 def clean():
-    functions.clean_nodes(IP_FILE)
+    clean_amount = input("Clean 1) Data 2) All non .jar : ")
+    if(clean_amount == "1"):
+        functions.clean_node_data(IP_FILE)
+    elif(clean_amount == "2"):
+        functions.clean_nodes(IP_FILE)
 
 
 # Deletes the topologies/<topology-name>/ folder on each rackspace node

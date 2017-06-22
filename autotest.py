@@ -112,9 +112,7 @@ def run(need_setup):
             stop()
             gather_data()
             cleanup()
-            print(str(param_indices))
             param_indices = increment_parameters(param_indices, max_indices, len(max_indices))
-            print(str(param_indices))
 
             # Check if we are done with all tests
             if(param_indices == [0] * len(param_indices)):
@@ -260,6 +258,7 @@ def test(src_node, ip, file_size_kb):
 
 
 def stop():
+    print("Stopping GrapeVine then EMANE")
     # Stop GrapeVine
     functions.parallel_ssh(IP_FILE, "sudo pkill java")
     # Stop EMANE
