@@ -19,6 +19,7 @@ json = None
 subnets = None
 nodes = None
 iplist = None
+ipdict = None
 
 # Parameter variables
 max_tx_rate = None
@@ -37,6 +38,7 @@ def update_config():
     global subnets
     global nodes
     global iplist
+    global ipdict
     functions.set_topology(SAVE_FILE, NODE_PREFIX)
     config_result = functions.load_data()
     save = config_result['save']
@@ -44,6 +46,7 @@ def update_config():
     subnets = config_result['subnets']
     nodes = config_result['nodes']
     iplist = config_result['iplist']
+    ipdict = config_result['ipdict']
 
 
 def initialize_parameters(max_tx, num_iter, msg_sizes, err_rates, msg_int, init_indices):
@@ -79,15 +82,20 @@ def increment_parameters(current, max, length):
 def run(need_setup):
     if(need_setup):
         update_config()
-        initialize(fail_time=1000)
+        initialize(fail_time=9999)
         update_config()
         setup()
     update_config()
+
+    # Stop and clean in case we did a test before this
     functions.change_gvine_tx_rate(max_tx_rate, "./autotestfiles/gvine.conf.json")
+    stop()
+    functions.clean_node_data(IP_FILE)
     # Parameters with indices: Iteration, Source Node, Message Size, Error Rate
     param_indices = initial_indices
     max_indices = [num_iterations, len(nodes), len(msg_sizes_bytes), len(error_rates)]
     done = False
+    errors_in_a_row = 0
     while(not done):
         try:
             # Set up the parameters for this test
@@ -104,11 +112,15 @@ def run(need_setup):
 
             # Run the test
             start()
+            sleep(3)
             test(source_node, source_ip, message_size_kb)
+            print("Indices for this test: " + str(param_indices))
+
             # Wait for message to be sent
             wait_msg_time = msg_interval
             file_name = "autotestmsg_" + str(source_node + 1) + "_" + str(msg_counter) + ".txt"
-            testsuite.wait_for_message_received(file_name, source_node + 1, iplist, wait_msg_time)
+            inv_ipdict = functions.invert_dict(ipdict)
+            testsuite.wait_for_message_received(file_name, source_node + 1, iplist, inv_ipdict, nodes, wait_msg_time)
             stop()
             gather_data()
             cleanup()
@@ -117,11 +129,15 @@ def run(need_setup):
             # Check if we are done with all tests
             if(param_indices == [0] * len(param_indices)):
                 done = True
+            errors_in_a_row = 0
         except KeyboardInterrupt:
+            stop()
             exit()
         except Exception as err:
-            print("THERE WAS A NASTY BUG, SKIPPING THIS TEST")
-            #print("Bug: " + str(err))
+            print("BUG: " + str(err))
+            errors_in_a_row += 1
+            if(errors_in_a_row == 5):
+                exit()
             continue
 
 
@@ -154,7 +170,7 @@ def initialize(fail_time):
 # 1) Do everything nodes need to run GrapeVine that doesn't need to be repeated
 # 2) Setup desired topology on each rackspace node
 # TODO 3) Ensure correct GrapeVine jar file is on each node
-# TODO 4) Setup GrapeVine certifications between nodes
+# 4) Setup GrapeVine certifications between nodes
 def setup():
     # Configure the topology on this computer
     topo_path = "./topologies/" + SAVE_FILE + "/"

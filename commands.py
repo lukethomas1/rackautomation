@@ -229,13 +229,31 @@ def ping(subnets, nodes):
 
 
 def run_auto_test():
-    max_tx_rate = 50000
+    # Set the test parameters and variables
+    num_indices = 4
+    max_tx_rate = 500000
     num_iterations = 1
     msg_sizes_bytes = ["100000", "250000", "500000", "750000", "1000000"]
     error_rates = [0, 10, 25, 50, 75]
     error_rates = [1]
     msg_interval = 9999
-    initial_indices = [0, 0, 0, 0]
+
+    # Prepare the initial indices for the test
+    print("Indices: [iteration, source_node, message_size, error_rate]")
+    initial_indices = input("Input 4 initial indices (ex. [0,0,0,0])(blank for default): ")[1:-1]
+    if(initial_indices):
+        initial_indices = [int(x) for x in initial_indices.split(",")]
+        try:
+            if(len(initial_indices) != num_indices):
+                print("Invalid number of indices: " + str(len(initial_indices)))
+                exit()
+        except:
+            print("Invalid indices input, syntax incorrect")
+            exit()
+    else:
+        initial_indices = [0, 0, 0, 0]
+
+    # Initialize the test and start running test
     autotest.initialize_parameters(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates, msg_interval, initial_indices)
     need_setup = input("Need Setup? (Leave blank for no): ")
     if(need_setup):
@@ -250,19 +268,49 @@ def transfer_delay():
     paths.sort()
     paths.reverse()
     num = str(len(paths) - 1)
-    path_to_output = "./stats/measurements.db"
+    functions.create_dir("./stats/measurements/")
+    functions.create_dir("./stats/measurements/" + SAVE_FILE)
+    path_to_output = "./stats/measurements/" + SAVE_FILE + "/transferdelay.db"
+    check_again = False
     try:
-        index = int(input("Index of sqlite3 db? (0 for newest, " + num + " for oldest: "))
-        path_to_input = sub(r"[\\]", '', paths[index])
-        statsuite.extract_transfer_delays(path_to_input, path_to_output, SAVE_FILE)
+        index = int(input("Index of sqlite3 db? (0 for newest, " + num + " for oldest, blank for all): "))
     except:
         check_again = input("Are you sure you would like to extract all databases? : ")
-        if(check_again):
-            for ind in range(len(paths)):
-                path_to_input = sub(r"[\\]", '', paths[ind])
-                print("Extracting from " + path_to_input)
-                statsuite.extract_transfer_delays(path_to_input, path_to_output, SAVE_FILE)
 
+    if(check_again):
+        for ind in range(len(paths)):
+            path_to_input = sub(r"[\\]", '', paths[ind])
+            print("Extracting from " + path_to_input)
+            statsuite.extract_transfer_delays(path_to_input, path_to_output, SAVE_FILE)
+    else:
+        path_to_input = sub(r"[\\]", '', paths[index])
+        statsuite.extract_transfer_delays(path_to_input, path_to_output, SAVE_FILE)
+    print("Success")
+
+
+def node_delay():
+    paths = glob("./stats/events/" + SAVE_FILE + "/*.db")
+    paths.sort()
+    paths.reverse()
+    num = str(len(paths) - 1)
+    functions.create_dir("./stats/measurements/")
+    functions.create_dir("./stats/measurements/" + SAVE_FILE)
+    path_to_output = "./stats/measurements/" + SAVE_FILE + "/nodedelay.db"
+    check_again = False
+    try:
+        index = int(input("Index of sqlite3 db? (0 for newest, " + num + " for oldest, blank for all): "))
+    except:
+        check_again = input("Are you sure you would like to extract all databases? : ")
+
+    if(check_again):
+        for ind in range(len(paths)):
+            path_to_input = sub(r"[\\]", '', paths[ind])
+            print("Extracting from " + path_to_input)
+            statsuite.extract_node_delays(path_to_input, path_to_output, SAVE_FILE)
+    else:
+        path_to_input = sub(r"[\\]", '', paths[index])
+        statsuite.extract_node_delays(path_to_input, path_to_output, SAVE_FILE)
+    print("Success")
 
 
 def message(iplist):

@@ -10,7 +10,7 @@ from time import sleep, time
 from paramiko import SSHClient, AutoAddPolicy, RSAKey
 
 # Local Imports
-from functions import create_dir
+from functions import create_dir, generate_rack_to_topo_dict
 
 SUCCESS = '\033[92m'
 FAIL = '\033[91m'
@@ -68,7 +68,7 @@ def check_network_receiving(iplist, sender_node):
             check_message_receiving(ip, ssh, key)
 
 
-def check_network_received(file_name, iplist, sender_node):
+def check_network_received(file_name, iplist, inv_ipdict, topodict, sender_node):
     key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
     ssh = SSHClient()
     ssh.set_missing_host_key_policy(AutoAddPolicy())
@@ -77,18 +77,20 @@ def check_network_received(file_name, iplist, sender_node):
 
     for ip_index in range(len(iplist)):
         ip = iplist[ip_index]
+        node_name = inv_ipdict[ip]
+        node_label = topodict[node_name]
         if(ip_index != sender_index):
-            rtnVal = check_message_received(file_name, ip, ssh, key)
+            rtnVal = check_message_received(file_name, ip, node_name, node_label, ssh, key)
             if(not rtnVal):
                 success = False
     return success
 
 
-def print_success_fail(success, ip):
+def print_success_fail(success, string):
     if(success):
-        print(SUCCESS + ip + " SUCCESS" + ENDCOLOR)
+        print(SUCCESS + string + " SUCCESS" + ENDCOLOR)
     else:
-        print(FAIL + ip + " FAILED" + ENDCOLOR)
+        print(FAIL + string + " FAILED" + ENDCOLOR)
 
 
 def check_message_receiving(ip, ssh, key):
@@ -101,25 +103,27 @@ def check_message_receiving(ip, ssh, key):
     return not exit_status
 
 
-def check_message_received(file_name, ip, ssh, key):
+def check_message_received(file_name, ip, node_name, node_label, ssh, key):
     ssh.connect(ip, username="emane-01", pkey=key)
     command = "ls ~/test/emane/gvine/node/data/" + file_name
     stdin, stdout, stderr = ssh.exec_command(command)
     exit_status = stdout.channel.recv_exit_status()
     ssh.close()
-    print_success_fail(not exit_status, ip)
+    str = node_label + " (" + node_name + " on Rackspace): "
+    print_success_fail(not exit_status, str)
     return not exit_status
 
 
-def wait_for_message_received(file_name, sender_node, iplist, wait_time):
+def wait_for_message_received(file_name, sender_node, iplist, inv_ipdict, nodes, wait_time):
     sleep_time = 5
-    wait_counter = 0
-    received = check_network_received(file_name, iplist, sender_node)
-    while(not received and wait_counter < wait_time):
+    start_time = time()
+    received = False
+    topodict = generate_rack_to_topo_dict(iplist, inv_ipdict, nodes)
+    while(not received and (time() - start_time) < wait_time):
         sleep(sleep_time)
-        wait_counter += 5
-        print("\nChecking if message was received: " + str(wait_counter) + " seconds")
-        received = check_network_received(file_name, iplist, sender_node)
+        elapsed_time = time() - start_time
+        print("\nChecking if message was received: " + str(elapsed_time) + " seconds")
+        received = check_network_received(file_name, iplist, inv_ipdict, topodict, sender_node)
     return received
 
 

@@ -20,6 +20,7 @@ while(loop):
     subnets = config_result['subnets']
     nodes = config_result['nodes']
     iplist = config_result['iplist']
+    ipdict = config_result['ipdict']
 
     arg = input("Command: ")
 
@@ -67,6 +68,8 @@ while(loop):
         commands.run_auto_test()
     elif(arg == "transferdelay"):
         commands.transfer_delay()
+    elif(arg == "nodedelay"):
+        commands.node_delay()
     elif(arg == "message"):
         commands.message(iplist)
     elif(arg == "norm_message"):
@@ -79,7 +82,9 @@ while(loop):
     elif(arg == "checkreceived"):
         sender_node = int(input("Sender node? : "))
         file_name = input("File Name? : ")
-        testsuite.check_network_received(file_name, iplist, sender_node)
+        inv_ipdict = functions.invert_dict(ipdict)
+        topodict = functions.generate_rack_to_topo_dict(iplist, inv_ipdict, nodes)
+        testsuite.check_network_received(file_name, iplist, inv_ipdict, topodict, sender_node)
 
 
     ##### DATA COMMANDS #####

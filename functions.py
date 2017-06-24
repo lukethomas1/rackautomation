@@ -10,7 +10,7 @@
 # System Imports
 from json import loads
 from math import asin, cos, sqrt
-from os import listdir, makedirs, path, system
+from os import listdir, makedirs, path
 from shutil import copy
 from subprocess import call, Popen, PIPE, DEVNULL
 from time import sleep, time
@@ -38,7 +38,7 @@ def check_rack_nodes(old_rack_nodes):
     racknodes = Popen(['rack', 'servers', 'instance', 'list', '--fields',
         'name,publicipv4'], stdout=PIPE).stdout.read().decode()
     if(old_rack_nodes != racknodes):
-        print("Detected new nodes")
+        print("Detected different nodes")
         return True
     return False
 
@@ -62,7 +62,8 @@ def set_topology(save_file, node_prefix):
     json_string = get_json_from_firebase(save_file)
     subnets, nodes = convert_json_to_object(json_string)
     iplist = generate_iplist(len(nodes), node_prefix)
-    timestamp = time();
+    ipdict = generate_ipdict()
+    timestamp = time()
     racknodes = Popen(['rack', 'servers', 'instance', 'list', '--fields',
         'name,publicipv4'], stdout=PIPE).stdout.read().decode()
 
@@ -75,6 +76,7 @@ def set_topology(save_file, node_prefix):
         'subnets': subnets,
         'nodes': nodes,
         'iplist': iplist,
+        'ipdict': ipdict,
         'config': config_contents,
         'timestamp': timestamp,
         'racknodes': racknodes
@@ -87,7 +89,11 @@ def set_topology(save_file, node_prefix):
 
 def add_known_hosts(iplist):
     for host in iplist:
-        system("ssh-keygen -f /home/joins/.ssh/known_hosts -R " + host + " > /dev/null 2>&1")
+        command = (
+            "ssh-keygen -f /home/joins/.ssh/known_hosts -R " +
+            host + " > /dev/null 2>&1"
+        )
+        call(command, shell=True, stdout=DEVNULL)
         sleep(1)
 
 
@@ -156,7 +162,7 @@ def clean_node_data(ip_file):
         "statistic.db log* eventlogs/* dbs/* data/*"
     )
     print("Cleaning data on nodes")
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command])
+    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command], stdout=DEVNULL)
     sleep(1)
 
 
@@ -283,6 +289,32 @@ def generate_iplist(num_nodes, sort_term):
 
     create_file_from_list("./iplists/" + sort_term + "hosts", desired_ips)
     return desired_ips
+
+
+def generate_ipdict():
+    ipdict = {}
+    pairlist = get_rack_pair_list()
+    for pair in pairlist:
+        splitted = pair.split("\t")
+        node_name = splitted[0]
+        ip = splitted[-1]
+        ipdict[node_name] = ip
+    return ipdict
+
+
+def generate_rack_to_topo_dict(iplist, ipdict, nodes):
+    dict = {}
+    for index in range(len(iplist)):
+        ip = iplist[index]
+        node = nodes[index]
+        rack_name = ipdict[ip]
+        dict[rack_name] = node['label']
+    return dict
+
+
+def invert_dict(curr_dict):
+    inv_dict = {ip: node_name for node_name, ip in curr_dict.items()}
+    return inv_dict
 
 
 def generate_network_ping_list(subnets, nodes, ip_file, blacklist):
@@ -418,12 +450,17 @@ def push_gvine_conf(ip_file, path_to_conf):
         "pscp -h " + ip_file + " -l emane-01 " + path_to_conf +
         " /home/emane-01/test/emane/gvine/node/"
     )
-    system(command)
+    print(command)
+    call(command, shell=True, stdout=DEVNULL)
 
 
 # Copy default config to topology directory
 def remote_copy_default_config(save_folder, ip_file):
-    system("pscp -h " + ip_file + " -l emane-01 ./default_config/* /home/emane-01/GrapeVine/topologies/" + save_folder)
+    command = (
+        "pscp -h " + ip_file + " -l emane-01 ./default_config/* " +
+        "/home/emane-01/GrapeVine/topologies/" + save_folder
+    )
+    call(command, shell=True, stdout=DEVNULL)
     print("Sleep 5 seconds")
     sleep(5)
 
@@ -489,7 +526,7 @@ def remote_create_dirs(save_folder, ip_file):
 
 def remote_delete_events(ip_file, node_prefix):
     Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
-    'rm ~/test/emane/gvine/node/dbs/eventsql_copy.db'])
+    'rm ~/test/emane/gvine/node/dbs/eventsql_copy.db'], stdout=DEVNULL)
     sleep(2)
 
     
@@ -825,7 +862,8 @@ def generate_certs(iplist, path_to_jar):
 # Use scp to get the cert from each node
 def pull_certs(iplist):
     create_dir("./keystore/")
-    system("cd ./keystore/ && rm *.cer")
+    command = "cd ./keystore/ && rm *.cer"
+    call(command, shell=True, stdout=DEVNULL)
     for index in range(1, len(iplist) + 1):
         ip = iplist[index - 1]
         from_path = "emane-01@" + ip + ":~/test/emane/gvine/node/node" + str(index) + ".cer"
@@ -836,7 +874,7 @@ def pull_certs(iplist):
 # Use pscp to push certs in parallel
 def push_certs(ip_file, path_to_certs, path_to_push):
     command = "pscp -h " + ip_file + " -l emane-01 " + path_to_certs + " " + path_to_push
-    system(command)
+    call(command, shell=True, stdout=DEVNULL)
 
 # Use pscp to load certs in parallel
 def load_certs(path_to_jar, iplist):

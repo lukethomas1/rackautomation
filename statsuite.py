@@ -111,7 +111,8 @@ def extract_transfer_delays(path_to_input, path_to_output, save_file):
     table_schema = (
         "CREATE TABLE IF NOT EXISTS TRANSFERDELAYS (receiverNumber TEXT, " +
         "senderNumber TEXT, delay INTEGER, messageSizeBytes INTEGER, " +
-        "saveFile TEXT, timestamp TEXT, unique(receiverNumber, timestamp));"
+        "saveFile TEXT, messageId TEXT, timestamp TEXT, " +
+        "unique(receiverNumber, messageId));"
     )
     main_connection = connect(path_to_output)
     main_connection.execute(table_schema)
@@ -122,21 +123,23 @@ def extract_transfer_delays(path_to_input, path_to_output, save_file):
         node_name = row[0]
         sender_name = get_missing_node(list_of_nodes)
         delay = row[4]
-        msg_size = row[6]
+        messageId = row[6]
+        msg_size = row[7]
         #error_rate = input("Error rate? : ")
         #msg_interval = input("Message Interval? : ")
-        timestamp = row[7]
+        timestamp = row[8]
         #gvine_version = input("Gvine version? : ")
         insert_stmt = (
             "INSERT INTO TRANSFERDELAYS (receiverNumber, senderNumber, " +
-            "delay, messageSizeBytes, saveFile, timestamp) VALUES ('" +
+            "delay, messageSizeBytes, saveFile, messageId, timestamp) VALUES ('" +
             node_name + "', '" + sender_name + "', " + str(delay) + ", " +
-            str(msg_size) + ", '" + save_file + "', '" + timestamp + "')"
+            str(msg_size) + ", '" + save_file + "', '" + messageId + "', '" +
+            timestamp + "')"
         )
         try:
             main_connection.execute(insert_stmt)
         except(IntegrityError) as err:
-            print("Duplicate receiverNumber: " + node_name + ", timestamp: " + timestamp)
+            print("Duplicate receiverNumber: " + node_name + ", messageId: " + messageId)
 
     # Commit then close output database
     main_connection.commit()
@@ -147,24 +150,62 @@ def extract_transfer_delays(path_to_input, path_to_output, save_file):
 # Time from first fragment received to last fragment received
 def extract_node_delays(path_to_input, path_to_output, save_file):
     # Get the data and make sure there is fragment data
-    data_rows = get_sql_data(path_to_input, "loggableeventfragment")
-    if(not data_rows):
+    frag_rows = get_sql_data(path_to_input, "loggableeventfragment")
+    if(not frag_rows):
         return
 
     # Create the NODEDELAYS table in the output database
     table_schema = (
         "CREATE TABLE IF NOT EXISTS NODEDELAYS (nodeNumber TEXT, " +
         "delay INTEGER, messageSizeBytes INTEGER, saveFile TEXT, " +
-        "timestamp TEXT, unique(nodeNumber, timestamp));"
+        "messageId TEXT, timestamp TEXT, unique(nodeNumber, messageId));"
     )
     main_connection = connect(path_to_output)
     main_connection.execute(table_schema)
 
-    # Get the delay data for each test and insert into output database
+    # Get the delay data
+    delays_dict = {}
     # Set comprehension to get unique node values
-    nodes = {row[0] for row in data_rows}
+    nodes = {row[0] for row in frag_rows}
     for node in nodes:
-        timestamps = [row[6] for row in data_rows if row[0] == node]
+        times_ms = [row[5] for row in frag_rows if row[0] == node]
+        early = min(times_ms)
+        late = max(times_ms)
+        delay = late - early
+        delays_dict[node] = delay
+
+    # Get the message size data
+    msg_sizes_dict = get_message_sizes(path_to_input)
+
+    # Get a single row for each unique nodeNumber
+    taken_nodes = []
+    unique_rows = []
+    for row in frag_rows:
+        if(row[0] not in taken_nodes):
+            taken_nodes.append(row[0])
+            unique_rows.append(row)
+
+    # Insert into database
+    for row in unique_rows:
+        nodeNumber = row[0]
+        delay = delays_dict[nodeNumber]
+        timestamp = row[7]
+        messageId = row[6]
+        messageSizeBytes = msg_sizes_dict[messageId]
+        insert_stmt = (
+            "INSERT INTO NODEDELAYS " +
+            "(nodeNumber, delay, messageSizeBytes, saveFile, messageId, timestamp) " +
+            "VALUES ('" + nodeNumber + "', " + str(delay) + ", " + str(messageSizeBytes) +
+            ", '" + save_file + "', '" + messageId + "', '" + timestamp + "')"
+        )
+        try:
+            main_connection.execute(insert_stmt)
+        except(IntegrityError) as err:
+            print("Duplicate nodeNumber: " + nodeNumber + ", messageId: " + messageId)
+
+    # Commit then close output database
+    main_connection.commit()
+    main_connection.close()
 
 
 ##### Overhead #####
@@ -172,15 +213,18 @@ def extract_node_delays(path_to_input, path_to_output, save_file):
 def extract_overheads():
     return
 
+
 ##### Effective Throughput per node #####
 # Message size / Message Node Delay
 def extract_throughputs():
     return
 
+
 ##### Link Load #####
 # (Total packets sent / Measurement Time Interval) / Link Rate
 def extract_link_loads():
     return
+
 
 def get_missing_node(list_of_nodes):
     list_of_nodes.sort()
@@ -188,6 +232,19 @@ def get_missing_node(list_of_nodes):
         if(get_trailing_number(list_of_nodes[index - 1]) != index):
             return "node" + str(index)
     return "node" + str(len(list_of_nodes) + 1)
+
+
+# Returns a dictionary of messageId:messageSize
+def get_message_sizes(input_path):
+    msg_rows = get_sql_data(input_path, "loggableeventmessagereceived")
+    sizes_dict = {}
+    messages = {row[6] for row in msg_rows}
+    for message in messages:
+        for row in msg_rows:
+            if(row[6] == message):
+                sizes_dict[message] = row[7]
+                break
+    return sizes_dict
 
 ##### Plotting #####
 
@@ -369,7 +426,7 @@ def combine_event_dbs(input_dir, output_dir):
     # Make a new database named by timestamp
     date_time = strftime("%Y-%m-%d_%H:%M:%S", gmtime())
     new_db_name = output_dir + "/" + date_time + ".db"
-    print("Opening main connection")
+    print("Opening main connection to " + new_db_name)
     main_connection = connect(new_db_name)
     # Get the database names for each separate database we want to combine
     print("Getting db names")
