@@ -227,7 +227,7 @@ def extract_link_loads():
 
 
 def get_missing_node(list_of_nodes):
-    list_of_nodes.sort()
+    list_of_nodes = natural_sort(list_of_nodes)
     for index in range(1, len(list_of_nodes) + 1):
         if(get_trailing_number(list_of_nodes[index - 1]) != index):
             return "node" + str(index)

@@ -890,3 +890,73 @@ def load_certs(path_to_jar, iplist):
         ).format(path_to_jar, index)
         stdin, stdout, stderr = ssh.exec_command(command)
         ssh.close()
+
+##### MESSAGE SEND TIME ESTIMATION #####
+
+# Returns a dictionary of dictionaries
+# hops_dict[sender_node]: [receiver_node] : num_hops
+def get_hops_between_all_subnets(subnets):
+    hops_dict = {}
+    for sender in subnets:
+        sender_hops = {}
+        hops = 1
+        done = False
+        next_hop_nodes = []
+        reached_nodes = sender['members']
+        while(not done):
+            reached_nodes = reached_nodes + next_hop_nodes
+            done = True
+            next_hop_nodes = []
+            for receiver in subnets:
+                if(receiver['name'] in sender_hops.keys()):
+                    continue
+                elif(set(reached_nodes).isdisjoint(set(receiver['members']))):
+                    done = False
+                else:
+                    sender_hops[receiver['name']] = hops
+                    newly_reached = set(receiver['members']) - set(reached_nodes) - set(next_hop_nodes)
+                    next_hop_nodes = next_hop_nodes + list(newly_reached)
+            hops += 1
+            if(hops > len(subnets)):
+                print("Subnet " + str(sender) + " is not connected to all subnets")
+                break
+        hops_dict[sender['name']] = sender_hops
+    return hops_dict
+
+
+def get_hops_between_all_nodes(subnets, nodes, subnet_hops):
+    ids = list(range(1, len(nodes) + 1))
+    hops_dict = {}
+    for sender in ids:
+        sender_hops = {}
+        for receiver in ids:
+            hops = get_hops_between_nodes(sender, receiver, subnets, subnet_hops)
+            sender_hops[receiver] = hops
+        hops_dict[sender] = sender_hops
+    return hops_dict
+
+
+def get_hops_between_nodes(sender, receiver, subnets, subnet_hops):
+    sender_subnets = [subnet['name'] for subnet in subnets if sender in subnet['memberids']]
+    receiver_subnets = [subnet['name'] for subnet in subnets if receiver in subnet['memberids']]
+    min_hops = len(subnet_hops)
+
+    # Sender and receiver share a subnet
+    if(not set(sender_subnets).isdisjoint(receiver_subnets)):
+        return 0
+    # Sender and receiver don't share a subnet
+    else:
+        for sender_subnet in sender_subnets:
+            for receiver_subnet in receiver_subnets:
+                curr_hops = subnet_hops[sender_subnet][receiver_subnet]
+                if(curr_hops < min_hops):
+                    min_hops = curr_hops
+    return min_hops
+
+
+def estimate_hop_time(txrate, msgSize, fragmentSize):
+    print(str(txrate))
+    print(str(msgSize))
+    hop_time = msgSize / txrate
+
+

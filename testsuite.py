@@ -68,6 +68,29 @@ def check_network_receiving(iplist, sender_node):
             check_message_receiving(ip, ssh, key)
 
 
+def check_message_receiving(ip, ssh, key):
+    ssh.connect(ip, username="emane-01", pkey=key)
+    command = "tail -c 100000 ~/test/emane/gvine/node/log_* | grep -F 'Beacon\":[{'"
+    stdin, stdout, stderr = ssh.exec_command(command)
+    exit_status = stdout.channel.recv_exit_status()
+    ssh.close()
+    print_success_fail(not exit_status, ip)
+    return not exit_status
+
+
+def wait_for_message_received(file_name, sender_node, iplist, inv_ipdict, nodes, wait_time):
+    sleep_time = 5
+    start_time = time()
+    received = False
+    topodict = generate_rack_to_topo_dict(iplist, inv_ipdict, nodes)
+    while(not received and (time() - start_time) < wait_time):
+        sleep(sleep_time)
+        elapsed_time = time() - start_time
+        print("\nChecking if message was received: " + str(elapsed_time) + " seconds")
+        received = check_network_received(file_name, iplist, inv_ipdict, topodict, sender_node)
+    return received
+
+
 def check_network_received(file_name, iplist, inv_ipdict, topodict, sender_node):
     key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
     ssh = SSHClient()
@@ -86,23 +109,6 @@ def check_network_received(file_name, iplist, inv_ipdict, topodict, sender_node)
     return success
 
 
-def print_success_fail(success, string):
-    if(success):
-        print(SUCCESS + string + " SUCCESS" + ENDCOLOR)
-    else:
-        print(FAIL + string + " FAILED" + ENDCOLOR)
-
-
-def check_message_receiving(ip, ssh, key):
-    ssh.connect(ip, username="emane-01", pkey=key)
-    command = "tail -c 100000 ~/test/emane/gvine/node/log_* | grep -F 'Beacon\":[{'"
-    stdin, stdout, stderr = ssh.exec_command(command)
-    exit_status = stdout.channel.recv_exit_status()
-    ssh.close()
-    print_success_fail(not exit_status, ip)
-    return not exit_status
-
-
 def check_message_received(file_name, ip, node_name, node_label, ssh, key):
     ssh.connect(ip, username="emane-01", pkey=key)
     command = "ls ~/test/emane/gvine/node/data/" + file_name
@@ -114,17 +120,11 @@ def check_message_received(file_name, ip, node_name, node_label, ssh, key):
     return not exit_status
 
 
-def wait_for_message_received(file_name, sender_node, iplist, inv_ipdict, nodes, wait_time):
-    sleep_time = 5
-    start_time = time()
-    received = False
-    topodict = generate_rack_to_topo_dict(iplist, inv_ipdict, nodes)
-    while(not received and (time() - start_time) < wait_time):
-        sleep(sleep_time)
-        elapsed_time = time() - start_time
-        print("\nChecking if message was received: " + str(elapsed_time) + " seconds")
-        received = check_network_received(file_name, iplist, inv_ipdict, topodict, sender_node)
-    return received
+def print_success_fail(success, string):
+    if(success):
+        print(SUCCESS + string + " SUCCESS" + ENDCOLOR)
+    else:
+        print(FAIL + string + " FAILED" + ENDCOLOR)
 
 
 def send_gvine_message(sender_ip, message_name, file_size_kb, send_node_num, receive_node_num):
