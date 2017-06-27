@@ -263,7 +263,7 @@ def run_auto_test():
     autotest.run(need_setup)
 
 
-def transfer_delay():
+def transfer_delay(num_nodes):
     paths = glob("./stats/events/" + SAVE_FILE + "/*.db")
     paths.sort()
     paths.reverse()
@@ -271,21 +271,43 @@ def transfer_delay():
     functions.create_dir("./stats/measurements/")
     functions.create_dir("./stats/measurements/" + SAVE_FILE)
     path_to_output = "./stats/measurements/" + SAVE_FILE + "/transferdelay.db"
-    check_again = False
-    try:
-        index = int(input("Index of sqlite3 db? (0 for newest, " + num + " for oldest, blank for all): "))
-    except:
-        check_again = input("Are you sure you would like to extract all databases? : ")
 
-    if(check_again):
+    user_input = input("Index of sqlite3 db? (0 newest, " + num + " oldest, X-X for range, "
+                                                                  "blank for all): ")
+
+    # Blank input, parse all indices
+    if(not user_input):
         for ind in range(len(paths)):
             path_to_input = sub(r"[\\]", '', paths[ind])
             print("Extracting from " + path_to_input)
-            statsuite.extract_transfer_delays(path_to_input, path_to_output, SAVE_FILE)
+            statsuite.extract_transfer_delays(path_to_input, path_to_output, SAVE_FILE, num_nodes)
+    # Input contains "-", parse indices in the range provided, inclusive
+    elif("-" in user_input):
+        indices = user_input.split("-")
+        start = int(indices[0])
+        end = int(indices[1])
+        for ind in range(start, end + 1):
+            path_to_input = sub(r"[\\]", '', paths[ind])
+            print("Extracting from " + path_to_input)
+            statsuite.extract_transfer_delays(path_to_input, path_to_output, SAVE_FILE, num_nodes)
     else:
+        index = int(user_input)
         path_to_input = sub(r"[\\]", '', paths[index])
-        statsuite.extract_transfer_delays(path_to_input, path_to_output, SAVE_FILE)
+        statsuite.extract_transfer_delays(path_to_input, path_to_output, SAVE_FILE, num_nodes)
     print("Success")
+
+
+def avg_hop_transfer_delay(iplist, ipdict, subnets, nodes):
+    path_to_input = "./stats/measurements/" + SAVE_FILE + "/transferdelay.db"
+    subnet_hops_dict = functions.get_hops_between_all_subnets(subnets)
+    node_hops_dict = functions.get_hops_between_all_nodes(subnets, nodes, subnet_hops_dict)
+    rack_to_topo_names = functions.generate_rack_to_topo_dict(iplist, functions.invert_dict(
+        ipdict), nodes)
+    avgs_dict = statsuite.calc_avg_hop_transfer_delay(path_to_input, node_hops_dict, nodes,
+                                                      rack_to_topo_names)
+    for msgSize in avgs_dict.keys():
+        print("Average Hop Delay for messageSize " + str(msgSize) + " bytes: " + str(avgs_dict[
+                                                                                        msgSize]))
 
 
 def node_delay():

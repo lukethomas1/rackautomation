@@ -16,16 +16,21 @@ from time import gmtime, strftime, sleep
 from paramiko import AutoAddPolicy, RSAKey, SSHClient
 import plotly
 
+# Local imports
+from functions import get_hops_between_nodes
+
+
 ##### General SQLITE Functions #####
 
-def get_sql_data(path_to_db, loggable_event):
+def get_sql_data(path_to_db, table_name):
     main_connection = connect(path_to_db)
     cursor = main_connection.cursor()
-    select_stmt = "select * from " + loggable_event + ";"
+    select_stmt = "select * from " + table_name + ";"
     try:
         cursor.execute(select_stmt)
     except(Exception):
-        print("There is no data for " + loggable_event + " at " + path_to_db)
+        print("There is no data for " + table_name + " at " + path_to_db)
+        exit()
     rows = cursor.fetchall()
     return rows
 
@@ -36,8 +41,6 @@ def get_sql_data(path_to_db, loggable_event):
 # dictionaries, with the outer layer being a dictionary of file names and
 # the inner layer being dictionaries of node_number and its corresponding delay
 def parse_delay_rows(rows):
-    if(not rows):
-        return
     dict = {}
     # Set comprehension
     files = {file[3] for file in rows}
@@ -100,12 +103,11 @@ def get_trailing_number(str):
     return int(m.group()) if m else None
 
 ##### Message Transfer Delay #####
+
 # Time from message send to message received on each node
-def extract_transfer_delays(path_to_input, path_to_output, save_file):
+def extract_transfer_delays(path_to_input, path_to_output, save_file, num_nodes):
     # Get the data and make sure there is delay data
     data_rows = get_sql_data(path_to_input, "loggableeventmessagereceived")
-    if(not data_rows):
-        return
 
     # Create the TRANSFERDELAYS table in the output database
     table_schema = (
@@ -119,6 +121,12 @@ def extract_transfer_delays(path_to_input, path_to_output, save_file):
 
     # Get the delay data for each test and insert into output database
     list_of_nodes = [node[0] for node in data_rows]
+
+    # ERROR CHECKING BECAUSE SOMETIMES DATA IS INVALID (something went wrong during test)
+    if(len(list_of_nodes) > num_nodes - 1):
+        print("Invalid data at " + path_to_input)
+        return
+
     for row in data_rows:
         node_name = row[0]
         sender_name = get_missing_node(list_of_nodes)
@@ -146,13 +154,44 @@ def extract_transfer_delays(path_to_input, path_to_output, save_file):
     main_connection.close()
 
 
+def calc_avg_hop_transfer_delay(path_to_input, node_hops_dict, nodes, rack_to_topo_names):
+    data_rows = get_sql_data(path_to_input, "transferdelays")
+    sum_avg_hop_delays_dict = {}
+    num_data_points_dict = {}
+
+    for row in data_rows:
+        receiver = row[0]
+        rec_ind = get_trailing_number(receiver)
+        sender = row[1]
+        send_ind = get_trailing_number(sender)
+        delay = row[2]
+        msgSizeBytes = row[3]
+        save = row[4]
+        msgId = row[5]
+        timestamp = row[6]
+
+        if(msgSizeBytes not in sum_avg_hop_delays_dict.keys()):
+            sum_avg_hop_delays_dict[msgSizeBytes] = 0
+            num_data_points_dict[msgSizeBytes] = 0
+
+        num_hops = node_hops_dict[send_ind][rec_ind]
+        avg_hop_delay = delay / (num_hops + 1)
+        sum_avg_hop_delays_dict[msgSizeBytes] += avg_hop_delay
+        num_data_points_dict[msgSizeBytes] += 1
+
+    avgs_dict = {}
+    for msgSize in sum_avg_hop_delays_dict.keys():
+        average = sum_avg_hop_delays_dict[msgSize] / num_data_points_dict[msgSize]
+        avgs_dict[msgSize] = average
+    return avgs_dict
+
+
 ##### Message Node Delay #####
+
 # Time from first fragment received to last fragment received
 def extract_node_delays(path_to_input, path_to_output, save_file):
     # Get the data and make sure there is fragment data
     frag_rows = get_sql_data(path_to_input, "loggableeventfragment")
-    if(not frag_rows):
-        return
 
     # Create the NODEDELAYS table in the output database
     table_schema = (
@@ -209,18 +248,21 @@ def extract_node_delays(path_to_input, path_to_output, save_file):
 
 
 ##### Overhead #####
+
 # Number of non-payload packets sent / Total packets sent
 def extract_overheads():
     return
 
 
 ##### Effective Throughput per node #####
+
 # Message size / Message Node Delay
 def extract_throughputs():
     return
 
 
 ##### Link Load #####
+
 # (Total packets sent / Measurement Time Interval) / Link Rate
 def extract_link_loads():
     return

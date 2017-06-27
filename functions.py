@@ -526,7 +526,7 @@ def remote_create_dirs(save_folder, ip_file):
 
 def remote_delete_events(ip_file, node_prefix):
     Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
-    'rm ~/test/emane/gvine/node/dbs/eventsql_copy.db'], stdout=DEVNULL)
+    'rm ~/test/emane/gvine/node/dbs/*'], stdout=DEVNULL)
     sleep(2)
 
     
@@ -923,7 +923,8 @@ def get_hops_between_all_subnets(subnets):
         hops_dict[sender['name']] = sender_hops
     return hops_dict
 
-
+# Returns dictionary of dictionaries
+# hops_dict[sender_index]: [receiver_index]: hops
 def get_hops_between_all_nodes(subnets, nodes, subnet_hops):
     ids = list(range(1, len(nodes) + 1))
     hops_dict = {}
@@ -954,9 +955,12 @@ def get_hops_between_nodes(sender, receiver, subnets, subnet_hops):
     return min_hops
 
 
-def estimate_hop_time(txrate, msgSize, fragmentSize):
-    print(str(txrate))
-    print(str(msgSize))
-    hop_time = msgSize / txrate
-
-
+def estimate_hop_time(txrate, msgSizeBytes, fragmentSize):
+    hop_time = 0
+    # txrate of 500000 has a .99 correlation coefficient to msgSize, with 0.61 slope
+    if(txrate > 450000 and txrate < 550000):
+        hop_time = 0.061 * msgSizeBytes
+    else:
+        print("txrate is not a value that has a proven hop time")
+    # Slope * msgSizeBytes / 1000 to get hop_time in seconds
+    return hop_time / 1000

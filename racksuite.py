@@ -67,7 +67,9 @@ while(loop):
     elif(arg == "autotest"):
         commands.run_auto_test()
     elif(arg == "transferdelay"):
-        commands.transfer_delay()
+        commands.transfer_delay(len(nodes))
+    elif(arg == "avghoptransferdelay"):
+        commands.avg_hop_transfer_delay(iplist, ipdict, subnets, nodes)
     elif(arg == "nodedelay"):
         commands.node_delay()
     elif(arg == "message"):

@@ -117,13 +117,22 @@ def run(need_setup):
             print("Indices for this test: " + str(param_indices))
 
             # Wait for message to be sent
-            wait_msg_time = msg_interval
+            estimated_hop_time = functions.estimate_hop_time(max_tx_rate, int(message_size_kb) *
+                                                             1000, frag_size)
+            wait_msg_time = estimated_hop_time * len(subnets) * 2
+            print("Estimated hop time: " + str(estimated_hop_time))
+            print("Maximum Wait Time: " + str(wait_msg_time))
             file_name = "autotestmsg_" + str(source_node + 1) + "_" + str(msg_counter) + ".txt"
             inv_ipdict = functions.invert_dict(ipdict)
             testsuite.wait_for_message_received(file_name, source_node + 1, iplist, inv_ipdict, nodes, wait_msg_time)
+
+            # Stop Gvine then EMANE
             stop()
+            # Gather event data
             gather_data()
+            # Remove test data from nodes
             cleanup()
+            # Increment parameters
             param_indices = increment_parameters(param_indices, max_indices, len(max_indices))
 
             # Check if we are done with all tests
