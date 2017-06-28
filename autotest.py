@@ -31,6 +31,8 @@ initial_indices = [0, 0, 0, 0]
 
 # Other global variables
 msg_counter = 0
+previous_error_rate = 0
+error_rate_templates = {}
 
 def update_config():
     global save
@@ -88,9 +90,15 @@ def run(need_setup):
     update_config()
 
     # Stop and clean in case we did a test before this
-    functions.change_gvine_tx_rate(max_tx_rate, "./autotestfiles/gvine.conf.json")
     stop()
     functions.clean_node_data(IP_FILE)
+
+    # Do the stuff that needs to be done before autotesting no matter what
+    necessary_setup()
+
+    # Print starting details
+    print_start_finish(starting=True)
+
     # Parameters with indices: Iteration, Source Node, Message Size, Error Rate
     param_indices = initial_indices
     max_indices = [num_iterations, len(nodes), len(msg_sizes_bytes), len(error_rates)]
@@ -106,25 +114,31 @@ def run(need_setup):
             source_ip = iplist[source_node]
             frag_size = 100 if int(message_size_kb) <= 100 else 500
             frag_size = 50000
-            same = functions.change_gvine_frag_size(frag_size, "./autotestfiles/gvine.conf.json")
-            if(not same):
-                functions.push_gvine_conf(IP_FILE, "./autotestfiles/gvine.conf.json")
+            prepare_test(iteration, source_node, message_size_kb, error_rate, source_ip,
+                         frag_size)
 
             # Run the test
             start()
             sleep(3)
-            test(source_node, source_ip, message_size_kb)
+            file_name = "autotestmsg_" + str(source_node + 1) + "_" + str(msg_counter) + ".txt"
+            test(source_node, source_ip, message_size_kb, file_name)
             print("Indices for this test: " + str(param_indices))
 
-            # Wait for message to be sent
+            # Calculate the maximum wait time for this test
             estimated_hop_time = functions.estimate_hop_time(max_tx_rate, int(message_size_kb) *
                                                              1000, frag_size)
             wait_msg_time = estimated_hop_time * len(subnets) * 2
             print("Estimated hop time: " + str(estimated_hop_time))
             print("Maximum Wait Time: " + str(wait_msg_time))
-            file_name = "autotestmsg_" + str(source_node + 1) + "_" + str(msg_counter) + ".txt"
+
+            # Wait for message to be sent
             inv_ipdict = functions.invert_dict(ipdict)
-            testsuite.wait_for_message_received(file_name, source_node + 1, iplist, inv_ipdict, nodes, wait_msg_time)
+            test_success = testsuite.wait_for_message_received(file_name, source_node + 1, iplist,
+                                                     inv_ipdict, nodes, wait_msg_time)
+
+            # Handle test failure
+            if(not test_success):
+                handle_test_failure()
 
             # Stop Gvine then EMANE
             stop()
@@ -133,21 +147,31 @@ def run(need_setup):
             # Remove test data from nodes
             cleanup()
             # Increment parameters
-            param_indices = increment_parameters(param_indices, max_indices, len(max_indices))
+            if(test_success):
+                param_indices = increment_parameters(param_indices, max_indices, len(max_indices))
+                errors_in_a_row = 0
+                # Check if we are done with all tests
+                if(param_indices == [0] * len(param_indices)):
+                    print_start_finish(starting=False)
+                    done = True
+            else:
+                print("There was a failure during this test, retesting with the same parameters")
+                errors_in_a_row += 1
 
-            # Check if we are done with all tests
-            if(param_indices == [0] * len(param_indices)):
-                done = True
-            errors_in_a_row = 0
         except KeyboardInterrupt:
             stop()
             exit()
         except Exception as err:
             print("BUG: " + str(err))
             errors_in_a_row += 1
-            if(errors_in_a_row == 5):
-                exit()
-            continue
+
+        # Re-setup the nodes if there are multiple errors in a row
+        if(errors_in_a_row == 2):
+            print("There were 2 errors in a row, re-setting up the nodes")
+            update_config()
+            setup()
+            update_config()
+            errors_in_a_row = 0
 
 
 ##### TESTING METHODS #####
@@ -233,6 +257,13 @@ def setup():
     node_certs(iplist)
 
 
+def necessary_setup():
+    functions.change_gvine_tx_rate(max_tx_rate, "./autotestfiles/gvine.conf.json")
+
+    global error_rate_templates
+    error_rate_templates = functions.generate_error_rate_commands(subnets, nodes, error_rates)
+
+
 def node_certs(iplist):
     # Generate cert on each node
     print("Generating certs")
@@ -269,17 +300,38 @@ def start():
     functions.remote_start_gvine(iplist, JAR_FILE)
 
 
-def test(src_node, ip, file_size_kb):
+def prepare_test(iteration, source_node, message_size_kb, error_rate, source_ip, frag_size):
+    # Set the fragment size in the local gvine.conf.json, push to nodes if it changed
+    same = functions.change_gvine_frag_size(frag_size, "./autotestfiles/gvine.conf.json")
+    if(not same):
+        functions.push_gvine_conf(IP_FILE, "./autotestfiles/gvine.conf.json")
+
+    # Set the error rate
+    global previous_error_rate
+    if(error_rate != previous_error_rate):
+        if(previous_error_rate != 0):
+            for index in range(len(iplist)):
+                ip = iplist[index]
+                templates = error_rate_templates[index + 1]
+                for template in templates:
+                    functions.remote_remove_error_rate(ip, previous_error_rate, template)
+        previous_error_rate = error_rate
+
+
+def test(src_index, ip, file_size_kb, msg_name):
     global msg_counter
     msg_counter += 1
-    msg_name = "autotestmsg_" + str(src_node + 1) + "_" + str(msg_counter) + ".txt"
-    testsuite.send_gvine_message(ip, msg_name, file_size_kb, str(src_node + 1), "")
+    testsuite.send_gvine_message(ip, msg_name, file_size_kb, str(src_index + 1), "")
 
     print("Sending message")
     print("Ip: " + ip)
     print("Message name: " + msg_name)
-    print("Sender node: " + str(src_node + 1))
+    print("Sender node: " + str(src_index + 1))
     print("File size(kb): " + file_size_kb)
+
+
+def handle_test_failure():
+    print("Handling test failure (currently does nothing)")
 
 
 def stop():
@@ -311,3 +363,29 @@ def gather_data():
 def cleanup():
     functions.parallel_ssh(IP_FILE, "rm ~/test/emane/gvine/node/autotest*")
     functions.remote_delete_events(IP_FILE, NODE_PREFIX)
+
+
+def print_start_finish(starting):
+    print()
+    if(starting):
+        print("Starting testing with parameters:")
+    else:
+        print("Finished testing with parameters:")
+    print("---------------------------------")
+    print_details()
+
+def print_details():
+    global save
+    global num_iterations
+    global nodes
+    global msg_sizes_bytes
+    global error_rates
+    global max_tx_rate
+    print("Topology: " + save)
+    print("Rackspace prefix: " + NODE_PREFIX)
+    print("Number of iterations: " + str(num_iterations))
+    print("Number of nodes: " + str(len(nodes)))
+    print("Message sizes: " + str(msg_sizes_bytes))
+    print("Error rates: " + str(error_rates))
+    print("Max transmission rate: " + str(max_tx_rate))
+    print()

@@ -46,6 +46,10 @@ while(loop):
         commands.change_frag_size()
     elif(arg == "gvpki"):
         commands.gvpki(iplist)
+    elif(arg == "seterrorrate"):
+        commands.set_error_rate(subnets, nodes, iplist)
+    elif(arg == "removeerrorrate"):
+        commands.remove_error_rate(subnets, nodes, iplist)
 
     ##### START COMMANDS #####
 

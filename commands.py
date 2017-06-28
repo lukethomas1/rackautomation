@@ -165,6 +165,28 @@ def gvpki(iplist):
     functions.load_certs(path_to_jar, iplist)
 
 
+def set_error_rate(subnets, nodes, iplist):
+    error_rate = input("Error rate to set? : ")
+    error_rate = float(error_rate)
+    error_commands = functions.generate_error_rate_commands(subnets, nodes, [error_rate])
+    for node_index in range(len(iplist)):
+        ip = iplist[node_index]
+        templates = error_commands[node_index + 1]
+        for template in templates:
+            functions.remote_set_error_rate(ip, error_rate, template)
+
+
+def remove_error_rate(subnets, nodes, iplist):
+    error_rate = input("Error rate to remove? : ")
+    error_rate = float(error_rate)
+    error_commands = functions.generate_error_rate_commands(subnets, nodes, [error_rate])
+    for node_index in range(len(iplist)):
+        ip = iplist[node_index]
+        templates = error_commands[node_index + 1]
+        for template in templates:
+            functions.remote_remove_error_rate(ip, error_rate, template)
+
+
 # Synchronizes rackspace nodes (not sure what it does, soroush had it),
 # then runs emane_start.sh on each rackspace node in the topology
 def start(save_file, iplist):

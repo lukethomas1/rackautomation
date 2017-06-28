@@ -113,41 +113,6 @@ def assign_subnet_addresses(subnets, blacklist):
             taken_addresses.append(subaddr)
 
 
-def change_gvine_tx_rate(tx_rate, path_to_conf):
-    lines = []
-    # Read file
-    with open(path_to_conf, 'r') as file:
-        lines = file.readlines()
-    # Change tx rate
-    for index in range(len(lines)):
-        if("TargetTxRateBps" in lines[index]):
-            reg = "(?<=    \"TargetTxRateBps\": ).*?(?=,)"
-            r = compile(reg)
-            lines[index] = r.sub(str(tx_rate), lines[index])
-    # Write to file
-    with open(path_to_conf, 'w') as file:
-        file.writelines(lines)
-
-
-def change_gvine_frag_size(frag_size, path_to_conf):
-    lines = []
-    # Read file
-    with open(path_to_conf, 'r') as file:
-        lines = file.readlines()
-    # Change tx rate
-    for index in range(len(lines)):
-        if("FragmentSize" in lines[index]):
-            goal = "    \"FragmentSize\": " + str(frag_size) + ","
-            if(lines[index] == goal):
-                return True
-            reg = "(?<=    \"FragmentSize\": ).*?(?=,)"
-            r = compile(reg)
-            lines[index] = r.sub(str(frag_size), lines[index])
-    # Write to file
-    with open(path_to_conf, 'w') as file:
-        file.writelines(lines)
-
-
 def clean_nodes(ip_file):
     command = "cd ~/test/emane/gvine/node/ && rm $(ls -I '*.jar' -I '*.json')"    
     print("Deleting all non .jar, .json files from nodes")
@@ -445,15 +410,6 @@ def print_subnets_and_nodes(subnets, nodes):
     print()
 
 
-def push_gvine_conf(ip_file, path_to_conf):
-    command = (
-        "pscp -h " + ip_file + " -l emane-01 " + path_to_conf +
-        " /home/emane-01/test/emane/gvine/node/"
-    )
-    print(command)
-    call(command, shell=True, stdout=DEVNULL)
-
-
 # Copy default config to topology directory
 def remote_copy_default_config(save_folder, ip_file):
     command = (
@@ -577,30 +533,6 @@ def setup_grapevine(save_file, ip_file):
     Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     sleep(2)
 
-    command = "if [ ! -f /home/emane-01/test/emane/gvine/node/flushrt.sh ]\n then cp /home/emane-01/gvine/trunk/gvine/flushrt.sh /home/emane-01/test/emane/gvine/node/\n fi"
-    
-    print("\nCopying flushrt.sh")
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
-    sleep(2)
-
-    command = "if [ ! -f /home/emane-01/test/emane/gvine/node/emane_data.db ]\n then cp /home/emane-01/gvine/trunk/gvine/emane_data.db /home/emane-01/test/emane/gvine/node/\n fi"
-    
-    print("\nCopying emane_data.db")
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
-    sleep(2)
-
-    command = "if [ ! -f /home/emane-01/test/emane/gvine/node/ncfilerx.sh ]\n then cp /home/emane-01/gvine/trunk/gvine/ncfilerx.sh /home/emane-01/test/emane/gvine/node/\n fi"
-    
-    print("\nCopying ncfilerx.sh")
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
-    sleep(2)
-
-    command = "if [ ! -f /home/emane-01/test/emane/gvine/node/ncfiletx.sh ]\n then cp /home/emane-01/gvine/trunk/gvine/ncfiletx.sh /home/emane-01/test/emane/gvine/node/\n fi"
-
-    print("\nCopying ncfiletx.sh")
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
-    sleep(2)
-
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/gvine.conf.json ]\n then cp /home/emane-01/gvine/trunk/source_gvine/gvine.conf.json /home/emane-01/test/emane/gvine/node/\n fi"
 
     print("\nCopying gvine.conf.json")
@@ -616,12 +548,6 @@ def setup_grapevine(save_file, ip_file):
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/gvapp.jar ]\n then cp /home/emane-01/gvine/trunk/source_gvine/gvapp.jar /home/emane-01/test/emane/gvine/node/\n fi"
 
     print("\nCopying gvapp.jar")
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
-    sleep(2)
-
-    command = "cp /home/emane-01/gvine/trunk/source_gvine/emanelog.jar /home/emane-01/test/emane/gvine/node"
-
-    print("\nCopying emanelog.jar")
     Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     sleep(2)
 
@@ -876,7 +802,7 @@ def push_certs(ip_file, path_to_certs, path_to_push):
     command = "pscp -h " + ip_file + " -l emane-01 " + path_to_certs + " " + path_to_push
     call(command, shell=True, stdout=DEVNULL)
 
-# Use pscp to load certs in parallel
+
 def load_certs(path_to_jar, iplist):
     key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
     ssh = SSHClient()
@@ -890,6 +816,97 @@ def load_certs(path_to_jar, iplist):
         ).format(path_to_jar, index)
         stdin, stdout, stderr = ssh.exec_command(command)
         ssh.close()
+
+##### PARAMETERS FOR AUTOTEST #####
+
+def push_gvine_conf(ip_file, path_to_conf):
+    command = (
+        "pscp -h " + ip_file + " -l emane-01 " + path_to_conf +
+        " /home/emane-01/test/emane/gvine/node/"
+    )
+    call(command, shell=True, stdout=DEVNULL)
+
+
+def change_gvine_tx_rate(tx_rate, path_to_conf):
+    lines = []
+    # Read file
+    with open(path_to_conf, 'r') as file:
+        lines = file.readlines()
+    # Change tx rate
+    for index in range(len(lines)):
+        if("TargetTxRateBps" in lines[index]):
+            reg = "(?<=    \"TargetTxRateBps\": ).*?(?=,)"
+            r = compile(reg)
+            lines[index] = r.sub(str(tx_rate), lines[index])
+    # Write to file
+    with open(path_to_conf, 'w') as file:
+        file.writelines(lines)
+
+
+def change_gvine_frag_size(frag_size, path_to_conf):
+    lines = []
+    # Read file
+    with open(path_to_conf, 'r') as file:
+        lines = file.readlines()
+    # Change tx rate
+    for index in range(len(lines)):
+        if("FragmentSize" in lines[index]):
+            goal = "    \"FragmentSize\": " + str(frag_size) + ","
+            if(lines[index] == goal):
+                return True
+            reg = "(?<=    \"FragmentSize\": ).*?(?=,)"
+            r = compile(reg)
+            lines[index] = r.sub(str(frag_size), lines[index])
+    # Write to file
+    with open(path_to_conf, 'w') as file:
+        file.writelines(lines)
+
+
+def generate_error_rate_commands(subnets, nodes, error_rates):
+    template = (
+        "sudo iptables {action} INPUT -i {interface} -m statistic --mode random --probability {"
+        "rate} -j DROP"
+    )
+
+    # Determine the interfaces each node uses
+    interfaces_dict = {}
+    for subnet in subnets:
+        for member in subnet['memberids']:
+            if(member not in interfaces_dict.keys()):
+                interfaces_dict[member] = []
+            interfaces = interfaces_dict[member]
+            interfaces_dict[member].append("emane" + str(len(interfaces)))
+
+    # Format the template for each interface the node is in
+    commands_dict = {}
+    for node_index in range(1, len(nodes) + 1):
+        commands_dict[node_index] = []
+        for iface in interfaces_dict[node_index]:
+            commands_dict[node_index].append(template.format(interface=iface))
+    return commands_dict
+
+
+def remote_set_error_rate(ip, error_rate, command_template):
+    command = command_template.format(action="-A", rate=str(error_rate))
+    remote_execute_command(command, ip, "emane-01", True, True)
+
+
+def remote_remove_error_rate(ip, error_rate, command_template):
+    command = command_template.format(action="-D", rate=str(error_rate))
+    remote_execute_command(command, ip, "emane-01", True, True)
+
+
+def remote_execute_command(command, ip, remote_username, print_stdout, print_stderr):
+    key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    ssh = SSHClient()
+    ssh.set_missing_host_key_policy(AutoAddPolicy())
+    ssh.connect(ip, username=remote_username, pkey=key)
+    stdin, stdout, stderr = ssh.exec_command(command)
+    if(print_stdout):
+        print(stdout.read().decode())
+    if(print_stderr):
+        print(stderr.read().decode())
+    ssh.close()
 
 ##### MESSAGE SEND TIME ESTIMATION #####
 
