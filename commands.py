@@ -255,8 +255,9 @@ def run_auto_test():
     num_indices = 4
     max_tx_rate = 500000
     num_iterations = 1
-    msg_sizes_bytes = ["100000", "250000", "500000", "750000", "1000000"]
-    error_rates = [0, 10, 25, 50, 75]
+    #msg_sizes_bytes = ["100000", "250000", "500000", "750000", "1000000"]
+    msg_sizes_bytes = ["5000", "50000", "100000", "250000"]
+    #error_rates = [0, 10, 25, 50, 75]
     error_rates = [1]
     msg_interval = 9999
 
@@ -277,12 +278,9 @@ def run_auto_test():
 
     # Initialize the test and start running test
     autotest.initialize_parameters(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates, msg_interval, initial_indices)
-    need_setup = input("Need Setup? (Leave blank for no): ")
-    if(need_setup):
-        need_setup = True
-    else:
-        need_setup = False
-    autotest.run(need_setup)
+    need_setup = bool(input("Need Setup? (Leave blank for no): "))
+    need_configure = bool(input("Need Topology Configuration? (Leave blank for no): "))
+    autotest.run(need_setup, need_configure)
 
 
 def transfer_delay(num_nodes):
@@ -327,9 +325,12 @@ def avg_hop_transfer_delay(iplist, ipdict, subnets, nodes):
         ipdict), nodes)
     avgs_dict = statsuite.calc_avg_hop_transfer_delay(path_to_input, node_hops_dict, nodes,
                                                       rack_to_topo_names)
-    for msgSize in avgs_dict.keys():
-        print("Average Hop Delay for messageSize " + str(msgSize) + " bytes: " + str(avgs_dict[
-                                                                                        msgSize]))
+    sortedMsgSizes = sorted(avgs_dict["delays"].keys(), key=int)
+    for msgSize in sortedMsgSizes:
+        print("Average Hop Delay for messageSize " + str(msgSize) + " bytes:" +
+              "{:10.2f}".format(avgs_dict["delays"][msgSize]))
+        print("Number of data points for messageSize " + str(msgSize) + " bytes:" + str(avgs_dict[
+            "counts"][msgSize]))
 
 
 def node_delay():
@@ -515,46 +516,84 @@ def kill():
 def usage():
     # Write the command and its description
     usage = OrderedDict()
-    usage["topology"] = "set the topology to use"
-    usage["init"] = "create rackspace cloud instances"
-    usage["iplist"] = "update iplist and pssh-hosts"
-    usage["configure"] = "write platform files, scenario.eel, emane scripts"
-    usage["setup"] = "configure command + send to nodes on rackspace"
-    usage["fragsize"] = "Change gvine.conf.json FragmentSize"
-    usage["txrate"] = "Change gvine.conf.json TargetTxRateBps"
-    usage["gvpki"] = "reload node certifications"
-    usage["start"] = "start emane and grapevine"
-    usage["start_gvine"] = "start only grapevine"
-    usage["stop_gvine"] = "stop only grapevine"
-    usage["data"] = "print data"
-    usage["ping"] = "ping nodes to test if they are conencted"
-    usage["autotest"] = "setup, then test all permutations of parameters"
-    usage["iterate"] = "autotest without setup"
-    usage["message"] = "send a message on grapevine"
-    usage["testmessage"] = "send a message on grapvine and check if it sent correctly"
-    usage["checkreceiving"] = "Check to see if the network is receiving any file"
-    usage["checkreceived"] = "Check to see if the network has received a file"
-    usage["stats"] = "save statistics"
-    usage["stats_events"] = "get events from nodes and combine into single sqlite db"
-    usage["delays"] = "save grapevine delay statistics"
-    usage["emane_stats"] = "get emane statistics"
-    usage["parse"] = "parse emane statistics"
-    usage["stop"] = "stop emane and grapevine"
-    usage["clean"] = "remove all non .jar files from ~/test/emane/gvine/node/ on nodes"
-    usage["delete"] = "delete cloud topography folders"
-    usage["kill"] = "kill rackspace cloud instances"
     usage["h"] = "show this help message"
     usage["help"] = "show this help message"
     usage["usage"] = "show this help message"
 
-    # Print the usage header
-    header = "---------- USAGE ----------\n"
-    header += "python3 racksuite.py ~OR~ ./racksuite.py\n\n"
-    header += "---------- COMMANDS ----------\n"
-    print(header)
+    setup = OrderedDict()
+    setup["init"] = "create rackspace cloud instances"
+    setup["iplist"] = "update iplist and pssh-hosts"
+    setup["reset"] = "reset the topology"
+    setup["configure"] = "write platform files, scenario.eel, emane scripts"
+    setup["setup"] = "configure command + send to nodes on rackspace"
+    setup["push_scenario"] = "push the scenario.eel files to the nodes"
+    setup["pushconfig"] = "push gvine.conf.json in ./autotestfiles to nodes"
+    setup["txrate"] = "Change gvine.conf.json TargetTxRateBps"
+    setup["fragsize"] = "Change gvine.conf.json FragmentSize"
+    setup["gvpki"] = "reload node certifications"
+    setup["seterrorrate"] = "set error rate for nodes"
+    setup["removeerrorrate"] = "remove error rate for nodes"
+
+    start = OrderedDict()
+    start["start"] = "start emane and grapevine"
+    start["start_console"] = "start and show output in popup terminal"
+    start["start_emane"] = "start only emane on nodes"
+    start["start_gvine"] = "start only grapevine on nodes"
+    start["start_norm"] = "start only norm on nodes"
+
+    test = OrderedDict()
+    test["ping"] = "ping nodes to test if they are conencted"
+    test["autotest"] = "setup, then test all permutations of parameters"
+    test["transferdelay"] = "calculate message transfer delays for dbs in stats/<topo_name>/"
+    test["avghoptransferdelay"] = "calculate average hop transfer delay from transferdelay.db"
+    test["nodedelay"] = "calculate node delays for dbs in stats/<topo_name>/"
+    test["message"] = "send a message on grapevine"
+    test["norm_message"] = "send a message on norm"
+    test["testmessage"] = "send a message on grapvine and check if it sent correctly"
+    test["checkreceiving"] = "Check to see if the network is receiving any file"
+    test["checkreceived"] = "Check to see if the network has received a file"
+
+    data = OrderedDict()
+    data["data"] = "print data"
+    data["stats"] = "save statistics"
+    data["stats_events"] = "get events from nodes and combine into single sqlite db"
+    data["delays"] = "save grapevine delay statistics"
+    data["emane_stats"] = "get emane statistics"
+    data["parse"] = "parse emane statistics"
+    data["norm_monitor"] = "monitor norm"
+
+    stop = OrderedDict()
+    stop["stop"] = "stop emane and grapevine"
+    stop["stop_gvine"] = "stop only grapevine"
+    stop["stop_norm"] = "stop only norm"
+
+    finished = OrderedDict()
+    finished["clean"] = "remove all non .jar files from ~/test/emane/gvine/node/ on nodes"
+    finished["delete"] = "delete cloud topography folders"
+    finished["kill"] = "kill rackspace cloud instances"
+
+    header = []
+    header.append("---------- USAGE ----------\npython3 racksuite.py ~OR~ ./racksuite.py\n")
+    header.append("---------- SETUP COMMANDS ----------")
+    header.append("---------- START COMMANDS ----------")
+    header.append("---------- TEST COMMANDS ----------")
+    header.append("---------- DATA COMMANDS ----------")
+    header.append("---------- STOP COMMANDS ----------")
+    header.append("---------- FINISHED COMMANDS ----------")
 
     # Print the usage for each command
-    command_len = str(len(max(usage, key=len)))
-    for command, description in usage.items():
-        string_to_format = "{:>" + command_len + "}\t{}"
-        print(string_to_format.format(command, description))
+    commands_list = [setup, start, test, data, stop, finished]
+    commands = []
+    for command_list in commands_list:
+        commands += [item for item in list(command_list.items())]
+    commands = [command for command, description in commands]
+    max_command_len = str(len(max(commands, key=len)))
+
+    print(header.pop(0))
+    for command_list in commands_list:
+        print()
+        print(header.pop(0))
+        print()
+        for command, description in command_list.items():
+            string_to_format = "{:>" + max_command_len + "}\t{}"
+            print(string_to_format.format(command, description))

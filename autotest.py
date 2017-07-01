@@ -81,12 +81,12 @@ def increment_parameters(current, max, length):
         return [0] * length
     return current
 
-def run(need_setup):
+def run(need_setup, need_configure):
     if(need_setup):
         update_config()
         initialize(fail_time=9999)
         update_config()
-        setup()
+        setup(need_configure)
     update_config()
 
     # Stop and clean in case we did a test before this
@@ -101,7 +101,8 @@ def run(need_setup):
 
     # Parameters with indices: Iteration, Source Node, Message Size, Error Rate
     param_indices = initial_indices
-    max_indices = [num_iterations, len(nodes), len(msg_sizes_bytes), len(error_rates)]
+    #max_indices = [num_iterations, len(nodes), len(msg_sizes_bytes), len(error_rates)]
+    max_indices = [num_iterations, 4, len(msg_sizes_bytes), len(error_rates)]
     done = False
     errors_in_a_row = 0
     while(not done):
@@ -128,6 +129,7 @@ def run(need_setup):
             estimated_hop_time = functions.estimate_hop_time(max_tx_rate, int(message_size_kb) *
                                                              1000, frag_size)
             wait_msg_time = estimated_hop_time * len(subnets) * 2
+            wait_msg_time = 200
             print("Estimated hop time: " + str(estimated_hop_time))
             print("Maximum Wait Time: " + str(wait_msg_time))
 
@@ -135,6 +137,15 @@ def run(need_setup):
             inv_ipdict = functions.invert_dict(ipdict)
             test_success = testsuite.wait_for_message_received(file_name, source_node + 1, iplist,
                                                      inv_ipdict, nodes, wait_msg_time)
+
+            sleep(50)
+
+            file_name = "autotestmsg2_" + str(source_node + 1) + "_" + str(msg_counter) + ".txt"
+            test(source_node, source_ip, message_size_kb, file_name)
+            inv_ipdict = functions.invert_dict(ipdict)
+            test_success = testsuite.wait_for_message_received(file_name, source_node + 1, iplist,
+                                                               inv_ipdict, nodes, wait_msg_time)
+
 
             # Handle test failure
             if(not test_success):
@@ -194,6 +205,15 @@ def initialize(fail_time):
     return functions.wait_until_nodes_ready(NODE_PREFIX, len(nodes), fail_time)
 
 
+# Configure the topology on this computer
+def configure():
+    topo_path = "./topologies/" + SAVE_FILE + "/"
+    functions.create_dir(topo_path)
+    functions.write_platform_xmls(subnets, nodes, topo_path, IP_BLACK_LIST)
+    functions.write_emane_start_stop_scripts(SAVE_FILE, len(nodes))
+    functions.write_scenario(subnets, nodes, topo_path)
+
+
 # Function name: setup()
 #
 # Preconditions:
@@ -204,13 +224,9 @@ def initialize(fail_time):
 # 2) Setup desired topology on each rackspace node
 # TODO 3) Ensure correct GrapeVine jar file is on each node
 # 4) Setup GrapeVine certifications between nodes
-def setup():
-    # Configure the topology on this computer
-    topo_path = "./topologies/" + SAVE_FILE + "/"
-    functions.create_dir(topo_path)
-    functions.write_platform_xmls(subnets, nodes, topo_path, IP_BLACK_LIST)
-    functions.write_emane_start_stop_scripts(SAVE_FILE, len(nodes))
-    functions.write_scenario(subnets, nodes, topo_path)
+def setup(configure):
+    if(configure):
+        configure()
 
     print("Creating stats directories")
     functions.create_dir("./stats/")
@@ -260,8 +276,8 @@ def setup():
 def necessary_setup():
     functions.change_gvine_tx_rate(max_tx_rate, "./autotestfiles/gvine.conf.json")
 
-    global error_rate_templates
-    error_rate_templates = functions.generate_error_rate_commands(subnets, nodes, error_rates)
+    #global error_rate_templates
+    #error_rate_templates = functions.generate_error_rate_commands(subnets, nodes, error_rates)
 
 
 def node_certs(iplist):

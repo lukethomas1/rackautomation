@@ -91,6 +91,14 @@ while(loop):
         inv_ipdict = functions.invert_dict(ipdict)
         topodict = functions.generate_rack_to_topo_dict(iplist, inv_ipdict, nodes)
         testsuite.check_network_received(file_name, iplist, inv_ipdict, topodict, sender_node)
+    elif(arg == "waitreceived"):
+        sender_node = int(input("Sender node? : "))
+        file_name = input("File Name? : ")
+        wait_time = int(input("Wait time? : "))
+        inv_ipdict = functions.invert_dict(ipdict)
+        topodict = functions.generate_rack_to_topo_dict(iplist, inv_ipdict, nodes)
+        testsuite.wait_for_message_received(file_name, sender_node, iplist, inv_ipdict, nodes,
+                                            wait_time)
 
 
     ##### DATA COMMANDS #####

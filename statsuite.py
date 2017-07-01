@@ -30,7 +30,6 @@ def get_sql_data(path_to_db, table_name):
         cursor.execute(select_stmt)
     except(Exception):
         print("There is no data for " + table_name + " at " + path_to_db)
-        exit()
     rows = cursor.fetchall()
     return rows
 
@@ -180,9 +179,11 @@ def calc_avg_hop_transfer_delay(path_to_input, node_hops_dict, nodes, rack_to_to
         num_data_points_dict[msgSizeBytes] += 1
 
     avgs_dict = {}
+    avgs_dict["delays"] = {}
+    avgs_dict["counts"] = num_data_points_dict
     for msgSize in sum_avg_hop_delays_dict.keys():
         average = sum_avg_hop_delays_dict[msgSize] / num_data_points_dict[msgSize]
-        avgs_dict[msgSize] = average
+        avgs_dict["delays"][msgSize] = average
     return avgs_dict
 
 
