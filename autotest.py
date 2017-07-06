@@ -3,7 +3,7 @@ import commands
 import functions
 import testsuite
 import statsuite
-from time import sleep
+from time import sleep,time
 
 # Constants defined in config.py
 NODE_PREFIX = config.NODE_PREFIX
@@ -119,6 +119,7 @@ def run(need_setup, need_configure):
                          frag_size)
 
             # Run the test
+            start_time = time()
             start()
             sleep(3)
             file_name = "autotestmsg_" + str(source_node + 1) + "_" + str(msg_counter) + ".txt"
@@ -129,7 +130,7 @@ def run(need_setup, need_configure):
             estimated_hop_time = functions.estimate_hop_time(max_tx_rate, int(message_size_kb) *
                                                              1000, frag_size)
             wait_msg_time = estimated_hop_time * len(subnets) * 2
-            wait_msg_time = 200
+            wait_msg_time = 45
             print("Estimated hop time: " + str(estimated_hop_time))
             print("Maximum Wait Time: " + str(wait_msg_time))
 
@@ -138,14 +139,17 @@ def run(need_setup, need_configure):
             test_success = testsuite.wait_for_message_received(file_name, source_node + 1, iplist,
                                                      inv_ipdict, nodes, wait_msg_time)
 
-            sleep(50)
+            first_msg_time = time()
+            elapsed_time = first_msg_time - start_time
+            print("Waiting " + str(50 - elapsed_time) + " seconds for nodes to disconnect")
+            sleep(65 - elapsed_time)
 
             file_name = "autotestmsg2_" + str(source_node + 1) + "_" + str(msg_counter) + ".txt"
             test(source_node, source_ip, message_size_kb, file_name)
             inv_ipdict = functions.invert_dict(ipdict)
+            wait_msg_time = 150
             test_success = testsuite.wait_for_message_received(file_name, source_node + 1, iplist,
                                                                inv_ipdict, nodes, wait_msg_time)
-
 
             # Handle test failure
             if(not test_success):
@@ -177,10 +181,10 @@ def run(need_setup, need_configure):
             errors_in_a_row += 1
 
         # Re-setup the nodes if there are multiple errors in a row
-        if(errors_in_a_row == 2):
-            print("There were 2 errors in a row, re-setting up the nodes")
+        if(errors_in_a_row == 5):
+            print("There were 5 errors in a row, re-setting up the nodes")
             update_config()
-            setup()
+            setup(False)
             update_config()
             errors_in_a_row = 0
 

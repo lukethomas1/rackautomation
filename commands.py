@@ -33,6 +33,13 @@ IP_FILE = config.IP_FILE
 IP_BLACK_LIST = config.IP_BLACK_LIST
 JAR_FILE = config.JAR_FILE
 
+NUM_INDICES = config.NUM_INDICES
+MAX_TX_RATE = config.MAX_TX_RATE
+NUM_ITERATIONS = config.NUM_ITERATIONS
+MSG_SIZES_BYTES = config.MSG_SIZES_BYTES
+ERROR_RATES = config.ERROR_RATES
+MSG_INTERVAL = config.MSG_INTERVAL
+
 # Functions are ordered in usage order
 
 def update_config():
@@ -125,6 +132,9 @@ def setup(save_file, subnets, nodes, iplist):
     # Move grapevine files from svn folder to test folder on each rack instance
     print("Preparing GrapeVine test")
     functions.setup_grapevine(save_file, IP_FILE)
+
+    # Do node certifications
+    gvpki(iplist)
     print("Done.")
 
 
@@ -252,14 +262,12 @@ def ping(subnets, nodes):
 
 def run_auto_test():
     # Set the test parameters and variables
-    num_indices = 4
-    max_tx_rate = 500000
-    num_iterations = 1
-    #msg_sizes_bytes = ["100000", "250000", "500000", "750000", "1000000"]
-    msg_sizes_bytes = ["5000", "50000", "100000", "250000"]
-    #error_rates = [0, 10, 25, 50, 75]
-    error_rates = [1]
-    msg_interval = 9999
+    num_indices = NUM_INDICES
+    max_tx_rate = MAX_TX_RATE
+    num_iterations = NUM_ITERATIONS
+    msg_sizes_bytes = MSG_SIZES_BYTES
+    error_rates = ERROR_RATES
+    msg_interval = MSG_INTERVAL
 
     # Prepare the initial indices for the test
     print("Indices: [iteration, source_node, message_size, error_rate]")
@@ -452,6 +460,24 @@ def stats_events(save_file, iplist):
     input_dir = "./stats/events/" + save_file + "/nodedata/"
     output_dir = "./stats/events/" + save_file + "/"
     statsuite.combine_event_dbs(input_dir, output_dir)
+
+
+def stats_packets():
+    paths = glob("./stats/events/" + SAVE_FILE + "/*.db")
+    paths.sort()
+    paths.reverse()
+    num = str(len(paths) - 1)
+
+    user_input = input("Index of sqlite3 db? (0 newest, " + num + " oldest) : ")
+    index = int(user_input)
+    path_to_input = sub(r"[\\]", '', paths[index])
+    bucket_size_seconds = int(input("Bucket size? (seconds) : "))
+    buckets_dict = statsuite.make_packet_buckets(path_to_input, bucket_size_seconds)
+
+    should_plot = input("Plot this data (yes or no)? : ")
+    if(should_plot.lower() == "yes"):
+        statsuite.plot_packet_data(buckets_dict, bucket_size_seconds)
+    print("Success")
 
 
 def stats_parse(save_file, num_nodes, parse_term):

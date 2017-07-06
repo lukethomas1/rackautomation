@@ -269,6 +269,81 @@ def extract_link_loads():
     return
 
 
+##### SENT PACKETS ANALYSIS #####
+def make_packet_buckets(path_to_input, bucket_increment_seconds):
+    packet_rows = get_sql_data(path_to_input, "loggableeventpacketsent")
+
+    earliest_packet_time = get_earliest_packet_sent_time(packet_rows, 4)
+    print("Earliest packet time: " + str(earliest_packet_time))
+
+    buckets_dict = {}
+    for row in packet_rows:
+        senderNode = row[0]
+        eventId = row[1]
+        whereInCode = row[2]
+        num_bytes = row[3]
+        timeStampMillis = row[4]
+        relative_time = int((timeStampMillis - earliest_packet_time) / 1000)
+        bucket_index = int(relative_time / bucket_increment_seconds)
+
+        if(not senderNode in buckets_dict.keys()):
+            buckets_dict[senderNode] = {}
+        if(not str(bucket_index) in buckets_dict[senderNode].keys()):
+            buckets_dict[senderNode][str(bucket_index)] = [0, 0]
+        buckets_dict[senderNode][str(bucket_index)][0] += int(num_bytes / bucket_increment_seconds)
+        buckets_dict[senderNode][str(bucket_index)][1] += 1
+
+    for node in sorted(buckets_dict.keys()):
+        for bucket_index in sorted(buckets_dict[node].keys(), key=int):
+            num_bytes = str(buckets_dict[node][bucket_index][0])
+            num_packets = str(buckets_dict[node][bucket_index][1])
+            print(node + " at " + str(int(bucket_index) * bucket_increment_seconds) + " seconds "
+                                                                                    "sent " +
+                  num_bytes + " bytes on average over " + str(bucket_increment_seconds) + " seconds from " +
+                  num_packets + " packets")
+    return buckets_dict
+
+
+def get_earliest_packet_sent_time(packet_rows, index_of_timestamp):
+    return min([row[index_of_timestamp] for row in packet_rows])
+
+
+def plot_packet_data(buckets_dict, bucket_increment_seconds):
+    traces = {}
+
+    for node in buckets_dict.keys():
+        traces[node] = None
+        x = []
+        y = []
+        for bucket_index in sorted(buckets_dict[node].keys(), key=int):
+            x.append(int(bucket_index) * bucket_increment_seconds)
+            y.append(buckets_dict[node][bucket_index][0])
+        trace = plotly.graph_objs.Scatter(
+            x = x,
+            y = y,
+            mode = "lines",
+            name = node
+        )
+        traces[node] = trace
+
+    num_columns = 2
+    num_rows = 4
+    sorted_nodes = sorted(buckets_dict.keys())
+    subplot_titles = (sorted_nodes[0], sorted_nodes[1], sorted_nodes[2], sorted_nodes[3],
+                      sorted_nodes[4], sorted_nodes[5], sorted_nodes[6], sorted_nodes[7])
+    figure = plotly.tools.make_subplots(rows=num_rows, cols=num_columns, subplot_titles=subplot_titles)
+
+    for node in sorted(buckets_dict.keys()):
+        index = int(node[-1])
+        row_num = int((index - 1)/ 2) + 1
+        col_num = 2 - index % 2
+        figure.append_trace(traces[node], row_num, col_num)
+    title = input("Title of this graph? : ")
+    figure['layout'].update(title=title)
+    file_name = input("Name of this file? : ")
+    plotly.plotly.iplot(figure, filename=file_name)
+
+
 def get_missing_node(list_of_nodes):
     list_of_nodes = natural_sort(list_of_nodes)
     for index in range(1, len(list_of_nodes) + 1):
