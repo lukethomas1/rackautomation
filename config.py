@@ -3,7 +3,7 @@ NODE_PREFIX = "node"
 
 SAVE_FILE = "8flat"
 
-IMAGE_NAME = "SentPackets"
+IMAGE_NAME = "LogConfig"
 
 JAR_FILE = "gvine-java.jar"
 

@@ -462,7 +462,7 @@ def stats_events(save_file, iplist):
     statsuite.combine_event_dbs(input_dir, output_dir)
 
 
-def stats_packets():
+def stats_sent_packets():
     paths = glob("./stats/events/" + SAVE_FILE + "/*.db")
     paths.sort()
     paths.reverse()
@@ -472,12 +472,40 @@ def stats_packets():
     index = int(user_input)
     path_to_input = sub(r"[\\]", '', paths[index])
     bucket_size_seconds = int(input("Bucket size? (seconds) : "))
-    buckets_dict = statsuite.make_packet_buckets(path_to_input, bucket_size_seconds)
+    buckets_dict = statsuite.make_packets_sent_buckets(path_to_input, bucket_size_seconds)
 
     should_plot = input("Plot this data (yes or no)? : ")
     if(should_plot.lower() == "yes"):
-        statsuite.plot_packet_data(buckets_dict, bucket_size_seconds)
+        latest_packet_time = statsuite.get_latest_of_all_packets(path_to_input)
+        earliest_packet_time = statsuite.get_earliest_of_all_packets(path_to_input)
+        last_second = int((latest_packet_time - earliest_packet_time) / 1000)
+        print("latest: " + str(latest_packet_time))
+        print("earliest: " + str(earliest_packet_time))
+        print("last_second: " + str(last_second))
+        statsuite.plot_packets_sent_data(buckets_dict, bucket_size_seconds, last_second)
     print("Success")
+
+
+def stats_received_packets():
+    paths = glob("./stats/events/" + SAVE_FILE + "/*.db")
+    paths.sort()
+    paths.reverse()
+    num = str(len(paths) - 1)
+
+    user_input = input("Index of sqlite3 db? (0 newest, " + num + " oldest) : ")
+    index = int(user_input)
+    path_to_input = sub(r"[\\]", '', paths[index])
+    bucket_size_seconds = int(input("Bucket size? (seconds) : "))
+    buckets_dict = statsuite.make_packets_sent_buckets(path_to_input, bucket_size_seconds)
+
+    should_plot = input("Plot this data (yes or no)? : ")
+    if(should_plot.lower() == "yes"):
+        latest_packet_time = statsuite.get_latest_of_all_packets(path_to_input)
+        earliest_packet_time = statsuite.get_earliest_of_all_packets(path_to_input)
+        last_second = int((latest_packet_time - earliest_packet_time) / 1000)
+        statsuite.plot_packets_received_data(buckets_dict, bucket_size_seconds, last_second)
+    print("Success")
+
 
 
 def stats_parse(save_file, num_nodes, parse_term):
@@ -584,6 +612,9 @@ def usage():
     data["stats"] = "save statistics"
     data["stats_events"] = "get events from nodes and combine into single sqlite db"
     data["delays"] = "save grapevine delay statistics"
+    data["txpackets"] = "graph sent packets"
+    data["rxpackets"] = "graph received packets"
+    data["rxrank"] = "graph received rank"
     data["emane_stats"] = "get emane statistics"
     data["parse"] = "parse emane statistics"
     data["norm_monitor"] = "monitor norm"

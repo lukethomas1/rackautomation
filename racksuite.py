@@ -109,8 +109,12 @@ while(loop):
         commands.stats(save, len(nodes), iplist)
     elif(arg == "stats_events"):
         commands.stats_events(save, iplist)
-    elif(arg == "packets"):
-        commands.stats_packets()
+    elif(arg == "txpackets"):
+        commands.stats_sent_packets()
+    elif(arg == "rxpackets"):
+        commands.stats_received_packets()
+    elif(arg == "rxrank"):
+        commands.stats_received_rank()
     elif(arg == "delays"):
         commands.stats_delays(save, len(nodes))
     elif(arg == "emane_stats"):
