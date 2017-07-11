@@ -32,6 +32,7 @@ IMAGE_NAME = config.IMAGE_NAME
 IP_FILE = config.IP_FILE
 IP_BLACK_LIST = config.IP_BLACK_LIST
 JAR_FILE = config.JAR_FILE
+RACK_KEY = config.RACK_KEY
 
 NUM_INDICES = config.NUM_INDICES
 MAX_TX_RATE = config.MAX_TX_RATE
@@ -67,7 +68,7 @@ def reset_topology():
 
 # Creates # of nodes necessary for desired topology on rackspace
 def initialize(save_file, num_nodes):
-    functions.create_rackspace_instances(num_nodes, IMAGE_NAME, save_file, NODE_PREFIX)
+    functions.create_rackspace_instances(num_nodes, IMAGE_NAME, RACK_KEY, save_file, NODE_PREFIX)
     print("Done.")
 
 

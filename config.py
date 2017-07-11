@@ -5,6 +5,8 @@ SAVE_FILE = "twonodes"
 
 IMAGE_NAME = "doubleReader"
 
+RACK_KEY = "luke-home"
+
 JAR_FILE = "gvine-java.jar"
 
 # Where to find the ip file for all the rackspace nodes

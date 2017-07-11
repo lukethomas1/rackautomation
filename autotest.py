@@ -228,8 +228,8 @@ def configure():
 # 2) Setup desired topology on each rackspace node
 # TODO 3) Ensure correct GrapeVine jar file is on each node
 # 4) Setup GrapeVine certifications between nodes
-def setup(configure):
-    if(configure):
+def setup(need_configure):
+    if(need_configure):
         configure()
 
     print("Creating stats directories")
