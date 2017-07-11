@@ -1,9 +1,9 @@
 # Used for rackspace node naming and some other naming, will break things if changed
 NODE_PREFIX = "node"
 
-SAVE_FILE = "8flat"
+SAVE_FILE = "twonodes"
 
-IMAGE_NAME = "LogConfig"
+IMAGE_NAME = "doubleReader"
 
 JAR_FILE = "gvine-java.jar"
 
@@ -22,7 +22,7 @@ IP_BLACK_LIST = [
 
 NUM_INDICES = 4
 MAX_TX_RATE = 50000
-NUM_ITERATIONS = 1
-MSG_SIZES_BYTES = ["5000", "20000", "50000", "100000"]
+NUM_ITERATIONS = 5
+MSG_SIZES_BYTES = ["50000", "100000", "250000"]
 ERROR_RATES = [1]
 MSG_INTERVAL = 9999

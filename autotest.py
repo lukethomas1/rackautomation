@@ -102,11 +102,12 @@ def run(need_setup, need_configure):
     # Parameters with indices: Iteration, Source Node, Message Size, Error Rate
     param_indices = initial_indices
     #max_indices = [num_iterations, len(nodes), len(msg_sizes_bytes), len(error_rates)]
-    max_indices = [num_iterations, 4, len(msg_sizes_bytes), len(error_rates)]
+    max_indices = [num_iterations, len(nodes), len(msg_sizes_bytes), len(error_rates)]
     done = False
     errors_in_a_row = 0
     while(not done):
         try:
+            print("Indices for this test: " + str(param_indices))
             # Set up the parameters for this test
             iteration = param_indices[0]
             source_node = param_indices[1]
@@ -124,13 +125,12 @@ def run(need_setup, need_configure):
             sleep(3)
             file_name = "autotestmsg_" + str(source_node + 1) + "_" + str(msg_counter) + ".txt"
             test(source_node, source_ip, message_size_kb, file_name)
-            print("Indices for this test: " + str(param_indices))
 
             # Calculate the maximum wait time for this test
             estimated_hop_time = functions.estimate_hop_time(max_tx_rate, int(message_size_kb) *
                                                              1000, frag_size)
             wait_msg_time = estimated_hop_time * len(subnets) * 2
-            wait_msg_time = 45
+            wait_msg_time = max([wait_msg_time, 25])
             print("Estimated hop time: " + str(estimated_hop_time))
             print("Maximum Wait Time: " + str(wait_msg_time))
 
@@ -139,17 +139,17 @@ def run(need_setup, need_configure):
             test_success = testsuite.wait_for_message_received(file_name, source_node + 1, iplist,
                                                      inv_ipdict, nodes, wait_msg_time)
 
-            first_msg_time = time()
-            elapsed_time = first_msg_time - start_time
-            print("Waiting " + str(50 - elapsed_time) + " seconds for nodes to disconnect")
-            sleep(65 - elapsed_time)
-
-            file_name = "autotestmsg2_" + str(source_node + 1) + "_" + str(msg_counter) + ".txt"
-            test(source_node, source_ip, message_size_kb, file_name)
-            inv_ipdict = functions.invert_dict(ipdict)
-            wait_msg_time = 150
-            test_success = testsuite.wait_for_message_received(file_name, source_node + 1, iplist,
-                                                               inv_ipdict, nodes, wait_msg_time)
+            # first_msg_time = time()
+            # elapsed_time = first_msg_time - start_time
+            # print("Waiting " + str(50 - elapsed_time) + " seconds for nodes to disconnect")
+            # sleep(65 - elapsed_time)
+            #
+            # file_name = "autotestmsg2_" + str(source_node + 1) + "_" + str(msg_counter) + ".txt"
+            # test(source_node, source_ip, message_size_kb, file_name)
+            # inv_ipdict = functions.invert_dict(ipdict)
+            # wait_msg_time = 150
+            # test_success = testsuite.wait_for_message_received(file_name, source_node + 1, iplist,
+            #                                                    inv_ipdict, nodes, wait_msg_time)
 
             # Handle test failure
             if(not test_success):

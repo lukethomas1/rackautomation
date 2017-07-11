@@ -354,9 +354,9 @@ def plot_packets_sent_data(buckets_dict, bucket_increment_seconds, last_second):
                 )
             traces[packet_type][node] = trace
 
-    num_columns = 2
-    num_rows = 4
     sorted_nodes = sorted(buckets_dict["handshake"].keys())
+    num_columns = 2
+    num_rows = int(len(sorted_nodes) / 2)
     subplot_titles = []
     for node in sorted_nodes:
         subplot_titles.append(node)
@@ -393,7 +393,7 @@ def make_packets_received_buckets(path_to_input, bucket_size_seconds):
         timeStampMillis = row[5]
         relative_time = int((timeStampMillis - earliest_packet_time) / 1000)
         bucket_index = int(relative_time / bucket_size_seconds)
-        packet_type = None
+        packet_type = "Unknown"
         if("Beacon" in whereInCode):
             packet_type = "beacon"
         elif("Handshake" in whereInCode):
@@ -402,8 +402,6 @@ def make_packets_received_buckets(path_to_input, bucket_size_seconds):
             packet_type = "babel"
         elif("UdpRx" in whereInCode):
             packet_type = "udprx"
-        else:
-            packet_type = "Unknown"
 
         if(not packet_type in buckets_dict.keys()):
             print("New packet type: " + packet_type)
@@ -417,9 +415,9 @@ def make_packets_received_buckets(path_to_input, bucket_size_seconds):
             buckets_dict[packet_type][receiverNode][senderNode][str(bucket_index)]['bytes'] = 0
             buckets_dict[packet_type][receiverNode][senderNode][str(bucket_index)]['packets'] = 0
 
-        buckets_dict[packet_type][senderNode][str(bucket_index)]['bytes'] += int(num_bytes /
+        buckets_dict[packet_type][receiverNode][senderNode][str(bucket_index)]['bytes'] += int(num_bytes /
                                                                            bucket_size_seconds)
-        buckets_dict[packet_type][senderNode][str(bucket_index)]['packets'] += 1
+        buckets_dict[packet_type][receiverNode][senderNode][str(bucket_index)]['packets'] += 1
     return buckets_dict
 
 
@@ -431,6 +429,7 @@ def plot_packets_received_data(buckets_dict, bucket_size_seconds, last_second):
         colors_dict[packet_type] = colors.pop(0)
 
     for packet_type in buckets_dict.keys():
+        already_named = False
         traces[packet_type] = {}
         for receiverNode in buckets_dict[packet_type].keys():
             traces[packet_type][receiverNode] = None
@@ -443,32 +442,46 @@ def plot_packets_received_data(buckets_dict, bucket_size_seconds, last_second):
                     bucket_key = str(int(bucket_index) * bucket_size_seconds)
                     if(bucket_key not in sums_dict.keys()):
                         sums_dict[bucket_key] = 0
-                    sums_dict[bucket_key] += buckets_dict[packet_type][receiverNode][bucket_index]['bytes']
+                    sums_dict[bucket_key] += buckets_dict[packet_type][receiverNode][senderNode][
+                        bucket_index]['bytes']
             for second in range(last_second):
                 x.append(second)
                 if(str(second) in sums_dict.keys()):
                     y.append(sums_dict[str(second)])
                 else:
                     y.append(0)
-
-            trace = plotly.graph_objs.Scatter(
-                x = x,
-                y = y,
-                mode = "lines",
-                name = packet_type,
-                line = dict(
-                    color = colors_dict[packet_type],
-                    width = 2
+            if(not already_named):
+                already_named = True
+                trace = plotly.graph_objs.Scatter(
+                    x = x,
+                    y = y,
+                    mode = "lines",
+                    name = packet_type,
+                    line = dict(
+                        color = colors_dict[packet_type],
+                        width = 2
+                    )
                 )
-            )
+            else:
+                trace = plotly.graph_objs.Scatter(
+                    x = x,
+                    y = y,
+                    mode = "lines",
+                    name = packet_type,
+                    showlegend = False,
+                    line = dict(
+                        color = colors_dict[packet_type],
+                        width = 2
+                    )
+                )
             traces[packet_type][receiverNode] = trace
 
-    num_columns = 2
-    num_rows = 4
     sorted_nodes = sorted(buckets_dict["handshake"].keys())
-    subplot_titles = (sorted_nodes[0], sorted_nodes[1], sorted_nodes[2], sorted_nodes[3],
-                      sorted_nodes[4], sorted_nodes[5], sorted_nodes[6], sorted_nodes[7])
-
+    num_columns = 2
+    num_rows = int(len(sorted_nodes) / 2)
+    subplot_titles = []
+    for node in sorted_nodes:
+        subplot_titles.append(node)
     figure = plotly.tools.make_subplots(rows=num_rows, cols=num_columns, subplot_titles=subplot_titles)
 
     for packet_type in buckets_dict.keys():

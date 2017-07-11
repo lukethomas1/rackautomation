@@ -52,8 +52,6 @@ def ping_network():
 def message_test_gvine(iplist, message_name, file_size):
     sender_ip = iplist[0]
     send_gvine_message(sender_ip, message_name, file_size, "1", "")
-    sleep(1)
-    check_network_receiving(iplist, 1)
 
 
 def check_network_receiving(iplist, sender_node):

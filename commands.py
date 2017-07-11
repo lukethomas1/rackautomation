@@ -62,6 +62,7 @@ def update_config():
 
 def reset_topology():
     functions.set_topology(SAVE_FILE, NODE_PREFIX)
+    print("Topology reset, config updated")
 
 
 # Creates # of nodes necessary for desired topology on rackspace
@@ -287,7 +288,9 @@ def run_auto_test():
     # Initialize the test and start running test
     autotest.initialize_parameters(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates, msg_interval, initial_indices)
     need_setup = bool(input("Need Setup? (Leave blank for no): "))
-    need_configure = bool(input("Need Topology Configuration? (Leave blank for no): "))
+    need_configure = False
+    if(need_setup):
+        need_configure = bool(input("Need Topology Configuration? (Leave blank for no): "))
     autotest.run(need_setup, need_configure)
 
 
@@ -496,7 +499,7 @@ def stats_received_packets():
     index = int(user_input)
     path_to_input = sub(r"[\\]", '', paths[index])
     bucket_size_seconds = int(input("Bucket size? (seconds) : "))
-    buckets_dict = statsuite.make_packets_sent_buckets(path_to_input, bucket_size_seconds)
+    buckets_dict = statsuite.make_packets_received_buckets(path_to_input, bucket_size_seconds)
 
     should_plot = input("Plot this data (yes or no)? : ")
     if(should_plot.lower() == "yes"):
