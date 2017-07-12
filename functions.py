@@ -116,7 +116,7 @@ def assign_subnet_addresses(subnets, blacklist):
 def clean_nodes(ip_file):
     command = "cd ~/test/emane/gvine/node/ && rm $(ls -I '*.jar' -I '*.json')"    
     print("Deleting all non .jar, .json files from nodes")
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command])
+    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command])
     sleep(1)
 
 
@@ -127,7 +127,7 @@ def clean_node_data(ip_file):
         "statistic.db log* eventlogs/* dbs/* data/*"
     )
     print("Cleaning data on nodes")
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command], stdout=DEVNULL)
+    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command], stdout=DEVNULL)
     sleep(1)
 
 
@@ -172,9 +172,9 @@ def create_file_from_list(file_path, contents):
 
 
 # Call rackspace API to create num_instances nodes with image_name image
-def create_rackspace_instances(num_instances, image_name, save_file, node_prefix):
+def create_rackspace_instances(num_instances, image_name, ssh_key, save_file, node_prefix):
     print("Creating " + str(num_instances) + " Rackspace nodes with image '"
-        + image_name + "' and save file '" + save_file + "'")
+        + image_name + "', ssh_key '" + ssh_key + "', and save file '" + save_file + "'")
     for index in range(1, num_instances + 1):
         node_name = node_prefix + str(index)
         print("Creating " + node_name);
@@ -182,7 +182,7 @@ def create_rackspace_instances(num_instances, image_name, save_file, node_prefix
         Popen(['rack', 'servers', 'instance',
             'create', '--name', node_name, '--image-name',
             image_name, '--flavor-name', '4 GB General Purpose v1',
-            '--region', 'DFW', '--keypair', 'mykey', '--networks',
+            '--region', 'DFW', '--keypair', ssh_key, '--networks',
             '00000000-0000-0000-0000-000000000000,3a95350a-676c-4280-9f08-aeea40ffb32b'],
             stdout=PIPE)
 
@@ -194,14 +194,15 @@ def create_dir(folder_path):
 
 def delete_gvine_log_files(ip_file):
     command = "cd /home/emane-01/test/emane/gvine/node/ && rm log_*"
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command],
+    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command],
         stdout=DEVNULL)
 
 
 # Edit this computer's ~/.ssh/config file for each sshing to rackspace nodes
 def edit_ssh_config():
-    fmt = 'Host {nodename}\nHostName {nodeaddress}\nUser emane-01\nIdentityFile ~/.ssh/id_rsa\n\n'
-    file = open("/home/joins/.ssh/config", 'w')
+    fmt = 'Host {nodename}\n\tHostName {nodeaddress}\n\tUser emane-01\n\tStrictHostKeyChecking no\n\tIdentityFile ~/.ssh/id_rsa\n\n'
+    local_config = path.expanduser("~/.ssh/config")
+    file = open(local_config, 'w')
 
     # Get pairs of node names with ip addresses from rackspace
     process = Popen(['rack', 'servers', 'instance', 'list', '--fields',
@@ -395,7 +396,7 @@ def kill_all_instances():
 
 
 def parallel_ssh(ip_file, command):
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command], stdout=DEVNULL)
+    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command], stdout=DEVNULL)
 
 
 # Debugging method, prints node and subnet names
@@ -460,28 +461,28 @@ def remote_copy_scenario(save_folder, iplist):
 # Create topologies directory and topologies/save_name/ on each rackspace node
 def remote_create_dirs(save_folder, ip_file):
     # Make GrapeVine directory
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
     'cd ~ && mkdir GrapeVine'], stdout=DEVNULL)
     sleep(1)
 
     # Make topologies directory
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
     'cd ~/GrapeVine && mkdir topologies'], stdout=DEVNULL)
     sleep(1)
 
     # Make specific topology directory
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
     'cd ~/GrapeVine/topologies && mkdir ' + save_folder]) 
     sleep(1)
 
     # Make norm output/input "outbox" directory
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
     'cd ~/norm/bin/ && mkdir outbox'], stdout=DEVNULL)
     sleep(1)
 
 
 def remote_delete_events(ip_file, node_prefix):
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
     'rm ~/test/emane/gvine/node/dbs/*'], stdout=DEVNULL)
     sleep(2)
 
@@ -489,7 +490,7 @@ def remote_delete_events(ip_file, node_prefix):
 # Delete specific topology from each rackspace node
 def remote_delete_topology(node_prefix, save_folder):
     ip_file = "./iplists/" + node_prefix + "hosts"
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
     'rm -r ~/GrapeVine/topologies/' + save_folder])
     sleep(2)
 
@@ -497,7 +498,7 @@ def remote_delete_topology(node_prefix, save_folder):
 # Run file on each rackspace node in ip_file file
 def remote_emane(save_file, ip_file, script_file):
     save_path = '~/GrapeVine/topologies/' + save_file
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
     'cd ' + save_path + ' && sudo ./' + script_file], stdout=DEVNULL)
 
 
@@ -530,37 +531,37 @@ def setup_grapevine(save_file, ip_file):
     command = "if [ ! -d /home/emane-01/test/emane/gvine/node/ ]\n then mkdir -p  /home/emane-01/test/emane/gvine/node\n fi"
     
     print("\nMaking /home/emane-01/test/emane/gvine/node/ directory")
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     sleep(2)
 
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/gvine.conf.json ]\n then cp /home/emane-01/gvine/trunk/source_gvine/gvine.conf.json /home/emane-01/test/emane/gvine/node/\n fi"
 
     print("\nCopying gvine.conf.json")
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     sleep(2)
 
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/jvine.jar ]\n then cp /home/emane-01/gvine/trunk/source_gvine/jvine.jar /home/emane-01/test/emane/gvine/node/\n fi"
 
     print("\nCopying jvine.jar")
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     sleep(2)
 
     command = "if [ ! -f /home/emane-01/test/emane/gvine/node/gvapp.jar ]\n then cp /home/emane-01/gvine/trunk/source_gvine/gvapp.jar /home/emane-01/test/emane/gvine/node/\n fi"
 
     print("\nCopying gvapp.jar")
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     sleep(2)
 
     command = "cd /home/emane-01/test/emane/gvine/node/ && rm -r data"
 
     print("\nRemoving data folder")
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     sleep(2)
 
     command = "cd /home/emane-01/test/emane/gvine/node/ && rm delay.txt"
 
     print("\nRemoving delay.txt")
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
+    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
     sleep(2)
 
 
@@ -577,13 +578,13 @@ def sort_iplist(iplist, sort_term):
 
 # Synchronize rackspace nodes, necessary for accurate stats gathering
 def synchronize(ip_file):
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
         'sudo service ntp stop'], stdout=DEVNULL)
     sleep(1)
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
         'sudo ntpd -gq'], stdout=DEVNULL)
     sleep(1)
-    Popen(['pssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
         'sudo service ntp start'], stdout=DEVNULL)
 
 
