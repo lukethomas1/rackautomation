@@ -979,6 +979,6 @@ def estimate_hop_time(txrate, msgSizeBytes, fragmentSize):
         hop_time = 0.061 * msgSizeBytes
     else:
         print("txrate is not a value that has a proven hop time")
-        hop_time = 0.061 * msgSizeBytes
+        hop_time = (30500 / txrate) * msgSizeBytes
     # Slope * msgSizeBytes / 1000 to get hop_time in seconds
     return hop_time / 1000
