@@ -12,6 +12,7 @@ IMAGE_NAME = config.IMAGE_NAME
 IP_FILE = config.IP_FILE
 IP_BLACK_LIST = config.IP_BLACK_LIST
 JAR_FILE = config.JAR_FILE
+RACK_KEY = config.RACK_KEY
 
 # Configuration variables
 save = None
@@ -202,7 +203,8 @@ def run(need_setup, need_configure):
 def initialize(fail_time):
     # Start nodes on Rackspace if there aren't any with the correct prefix
     if(not functions.wait_until_nodes_ready(NODE_PREFIX, len(nodes), 1)):
-        functions.create_rackspace_instances(len(nodes), IMAGE_NAME, SAVE_FILE, NODE_PREFIX)
+        functions.create_rackspace_instances(len(nodes), IMAGE_NAME, RACK_KEY, SAVE_FILE,
+                                             NODE_PREFIX)
 
     # Wait until nodes are ready on rackspace, then return True. If the nodes
     # aren't ready after fail_time seconds, return False
