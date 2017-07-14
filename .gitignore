@@ -5,7 +5,6 @@ stats/
 tests/
 __pycache__/
 topologies/
-autotestfiles/
 keystore/
 logfiles/
 

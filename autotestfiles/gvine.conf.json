@@ -1,0 +1,37 @@
+{
+    "GvineEncryption": "no", 
+    "BabelInvalidatePeriod": 12, 
+    "GvineDataBroadcasts": "yes", 
+    "GvineMulticastGw": "no", 
+    "TargetTxRateBps": 50000, 
+    "GvineRoutingPubKey": "no", 
+    "GvineDataMulticasts": "no", 
+    "HandshakePeriod": 3000, 
+    "PrintLogs": "yes", 
+    "ServerCloudMode": "no", 
+    "BabelDeletePeriod": 24, 
+    "GvineUnicastGW": "no", 
+    "EmulatePacketDrops": "no", 
+    "BabelDeleteRoutes": "no", 
+    "GvineAcknowledgments": "yes", 
+    "GvineMulticastGwIpListen": [
+        "224.1.0.2"
+    ], 
+    "FragmentSize": 50000, 
+    "GvineUnicastIP": "10.0.1.2", 
+    "DestFileFolder": "/home/emane-01/test/emane/gvine/node/data/", 
+    "BeaconPeriod": 1000, 
+    "ExcludeInterfaces": [
+        "lo", 
+        "eth0", 
+	"eth1",
+        "lxcbr0"
+    ], 
+    "BabelPeriod": 5000, 
+    "GvineMulticastGwIp": "224.1.0.1",
+    "logMessageReceived": true,
+    "logPacketSent": true,
+    "logPacketReceived": true,
+    "logRankDecode": true,
+    "logRankRx": true
+}
