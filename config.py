@@ -3,9 +3,9 @@ NODE_PREFIX = "node"
 
 SAVE_FILE = "twonodes"
 
-IMAGE_NAME = "doubleReader"
+IMAGE_NAME = "authorized"
 
-RACK_KEY = "luke-home"
+RACK_KEY = "luke-laptop"
 
 JAR_FILE = "gvine-java.jar"
 

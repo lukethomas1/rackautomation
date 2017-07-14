@@ -627,7 +627,8 @@ def sub_plot(node_data):
 
 
 def generate_emane_stats(node_prefix, save_folder, num_nodes, iplist):
-    key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    loc = path.expanduser("~/.ssh/id_rsa")
+    key = RSAKey.from_private_key_file(loc)
     ssh = SSHClient()
     ssh.set_missing_host_key_policy(AutoAddPolicy())
 
@@ -712,7 +713,8 @@ def parse_emane_stats(save_folder, num_nodes, parse_term):
 
 
 def generate_event_dbs(iplist):
-    key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    loc = path.expanduser("~/.ssh/id_rsa")
+    key = RSAKey.from_private_key_file(loc)
     ssh = SSHClient()
     ssh.set_missing_host_key_policy(AutoAddPolicy())
 

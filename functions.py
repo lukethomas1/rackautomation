@@ -89,11 +89,11 @@ def set_topology(save_file, node_prefix):
 
 def add_known_hosts(iplist):
     for host in iplist:
-        command = (
-            "ssh-keygen -f /home/joins/.ssh/known_hosts -R " +
-            host + " > /dev/null 2>&1"
-        )
-        call(command, shell=True, stdout=DEVNULL)
+        loc = path.expanduser("~/.ssh/known_hosts")
+        command = "ssh-keygen -R " + host
+        call(command, shell=True, stdout=PIPE)
+        command = "ssh-keyscan -H " + host + " >> " + loc
+        call(command, shell=True, stdout=PIPE)
         sleep(1)
 
 
@@ -504,7 +504,8 @@ def remote_emane(save_file, ip_file, script_file):
 
 # Start gvine on each rackspace node
 def remote_start_gvine(iplist, jar_name):
-    key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    loc = path.expanduser("~/.ssh/id_rsa")
+    key = RSAKey.from_private_key_file(loc)
     ssh = SSHClient()
     ssh.set_missing_host_key_policy(AutoAddPolicy())
 
@@ -665,7 +666,8 @@ def coord_distance(lat1, lon1, lat2, lon2):
 def start_norm(iplist, subnets, nodes, send_bps, receive_bps):
     send_commands = get_norm_send_commands(iplist, subnets, nodes, send_bps)
     receive_commands = get_norm_receive_commands(iplist, subnets, nodes, receive_bps)
-    key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    loc = path.expanduser("~/.ssh/id_rsa")
+    key = RSAKey.from_private_key_file(loc)
     ssh = SSHClient()
     ssh.set_missing_host_key_policy(AutoAddPolicy())
 
@@ -776,7 +778,8 @@ def wait_until_nodes_ready(node_prefix, num_nodes, fail_time):
 
 # Use paramiko to generate the cert on each node
 def generate_certs(iplist, path_to_jar):
-    key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    loc = path.expanduser("~/.ssh/id_rsa")
+    key = RSAKey.from_private_key_file(loc)
     ssh = SSHClient()
     ssh.set_missing_host_key_policy(AutoAddPolicy())
 
@@ -805,7 +808,8 @@ def push_certs(ip_file, path_to_certs, path_to_push):
 
 
 def load_certs(path_to_jar, iplist):
-    key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    loc = path.expanduser("~/.ssh/id_rsa")
+    key = RSAKey.from_private_key_file(loc)
     ssh = SSHClient()
     ssh.set_missing_host_key_policy(AutoAddPolicy())
 
@@ -898,7 +902,8 @@ def remote_remove_error_rate(ip, error_rate, command_template):
 
 
 def remote_execute_command(command, ip, remote_username, print_stdout, print_stderr):
-    key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    loc = path.expanduser("~/.ssh/id_rsa")
+    key = RSAKey.from_private_key_file(loc)
     ssh = SSHClient()
     ssh.set_missing_host_key_policy(AutoAddPolicy())
     ssh.connect(ip, username=remote_username, pkey=key)

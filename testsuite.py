@@ -5,6 +5,7 @@
 
 # System Imports
 from time import sleep, time
+from os import path
 
 # 3rd Party Imports
 from paramiko import SSHClient, AutoAddPolicy, RSAKey
@@ -31,7 +32,8 @@ def ping_network():
         # Nodes to ping to from the sshed node
         ping_ips = derp[1:]
 
-        key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+        loc = path.expanduser("~/.ssh/id_rsa")
+        key = RSAKey.from_private_key_file(loc)
         ssh = SSHClient()
         ssh.set_missing_host_key_policy(AutoAddPolicy())
         ssh.connect(node_ip, username="emane-01", pkey=key)
@@ -55,7 +57,8 @@ def message_test_gvine(iplist, message_name, file_size):
 
 
 def check_network_receiving(iplist, sender_node):
-    key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    loc = path.expanduser("~/.ssh/id_rsa")
+    key = RSAKey.from_private_key_file(loc)
     ssh = SSHClient()
     ssh.set_missing_host_key_policy(AutoAddPolicy())
     sender_index = sender_node - 1
@@ -90,7 +93,8 @@ def wait_for_message_received(file_name, sender_node, iplist, inv_ipdict, nodes,
 
 
 def check_network_received(file_name, iplist, inv_ipdict, topodict, sender_node):
-    key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    loc = path.expanduser("~/.ssh/id_rsa")
+    key = RSAKey.from_private_key_file(loc)
     ssh = SSHClient()
     ssh.set_missing_host_key_policy(AutoAddPolicy())
     sender_index = sender_node - 1
@@ -127,7 +131,8 @@ def print_success_fail(success, string):
 
 def send_gvine_message(sender_ip, message_name, file_size_kb, send_node_num, receive_node_num):
     print("Sending message on GrapeVine from " + sender_ip)
-    key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    loc = path.expanduser("~/.ssh/id_rsa")
+    key = RSAKey.from_private_key_file(loc)
     ssh = SSHClient()
     ssh.set_missing_host_key_policy(AutoAddPolicy())
     ssh.connect(sender_ip, username="emane-01", pkey=key)
@@ -148,7 +153,8 @@ def send_norm_message(sender_ip, message_name, file_size_kb):
     create_dir("./tests/")
     create_dir("./tests/norm_messages")
     print("Sending message on Norm from " + sender_ip)
-    key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    loc = path.expanduser("~/.ssh/id_rsa")
+    key = RSAKey.from_private_key_file(loc)
     ssh = SSHClient()
     ssh.set_missing_host_key_policy(AutoAddPolicy())
     ssh.connect(sender_ip, username="emane-01", pkey=key)
@@ -163,7 +169,8 @@ def send_norm_message(sender_ip, message_name, file_size_kb):
 
 
 def norm_monitor(node_ip, file_name):
-    key = RSAKey.from_private_key_file("/home/joins/.ssh/id_rsa")
+    loc = path.expanduser("~/.ssh/id_rsa")
+    key = RSAKey.from_private_key_file(loc)
     ssh = SSHClient()
     ssh.set_missing_host_key_policy(AutoAddPolicy())
     ssh.connect(node_ip, username="emane-01", pkey=key)

@@ -72,9 +72,10 @@ def initialize(save_file, num_nodes):
     print("Done.")
 
 
-def make_iplist(num_nodes):
+def make_iplist(num_nodes, iplist):
     functions.generate_iplist(num_nodes, NODE_PREFIX)
     functions.edit_ssh_config()
+    functions.add_known_hosts(iplist)
 
 
 # Creates the configuration files for the desired topology on THIS COMPUTER

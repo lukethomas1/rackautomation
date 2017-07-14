@@ -29,7 +29,7 @@ while(loop):
     if(arg == "init"):
         commands.initialize(save, len(nodes))
     elif(arg == "iplist"):
-        commands.make_iplist(len(nodes))
+        commands.make_iplist(len(nodes), iplist)
     elif(arg == "reset"):
         commands.reset_topology()
     elif(arg == "configure"):
