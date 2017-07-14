@@ -141,7 +141,7 @@ def extract_transfer_delays(path_to_input, path_to_output, save_file, num_nodes)
             "delay, messageSizeBytes, saveFile, messageId, timestamp) VALUES ('" +
             node_name + "', '" + sender_name + "', " + str(delay) + ", " +
             str(msg_size) + ", '" + save_file + "', '" + messageId + "', '" +
-            timestamp + "')"
+            str(timestamp) + "')"
         )
         try:
             main_connection.execute(insert_stmt)
