@@ -24,25 +24,38 @@ START STEPS:
 
 4. Success! You should now be able to send messages between nodes.
 
+START STEPS:
+
+1. Create cloud instances on rackspace
+- Command: "python3 racksuite.py init"
+- Will create # of rackspace nodes according to save file in config.py
+- Will take some time (~5 minutes)
+
+2. Setup topography configuration
+- Command: "python3 racksuite.py setup"
+- Will automatically generate the topography and distribute to rackspace nodes
+- Will take about a minute
+
+3. Start Emane and GrapeVine on each cloud instance on rackspace
+- Command: "python3 racksuite.py start"
+- Will automatically start emane on each rackspace node
+- May take up to 30 seconds before nodes can ping eachother
+
+4. Send a message from node 1
+- Command: "python3 racksuite.py message"
+- Will prompt for message name and message size
+
+5. Success! You should now be able to send messages between nodes.
 
 STOP STEPS:
 
-1. To collect EMANE statistics and GrapeVine delay statistics after sending
- messages with GrapeVine use "./racksuite.py stats"
+1. Stop GrapeVine and Emane
+- Command: "python3 racksuite.py stop"
 
-2. To collect delay statistics, use "./racksuite.py delay"
+2. Gather event data from nodes
+- Command: "python3 racksuite.py stats_events"
+- This will merge all of the events from each node into a single sqlite3 database located at
+./stats/<save_file>/<timestamp>
 
-3. To import EMANE statistics to GvineStatisticDatabase and copy emane statistic
-table to the common folder: (./integrated  logfilecopy   “number of nodes”
-imports the drop packet time to sql db), imports the emane stats to common
-directory
-
-4. To download all statistics and log files to your local machine : (./integrated
-get  “complete path to the destination folder”. 
-
-5. To stop EMANE (./integrated  emane_stop  “EMANE folder number”)
-
-6. To delete files and wipe out the system to start new run: ( ./integrated
-delete  “EMANE folder number”)
-
-7. TO PLOT run query.py -> merge.py
+3. Get transfer delays from sqlite3 databases
+- Command: "python3 racksuite.py transferdelay"
