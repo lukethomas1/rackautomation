@@ -91,9 +91,9 @@ def add_known_hosts(iplist):
     for host in iplist:
         loc = path.expanduser("~/.ssh/known_hosts")
         command = "ssh-keygen -R " + host
-        call(command, shell=True, stdout=PIPE)
+        call(command, shell=True, stdout=DEVNULL)
         command = "ssh-keyscan -H " + host + " >> " + loc
-        call(command, shell=True, stdout=PIPE)
+        call(command, shell=True, stdout=DEVNULL)
         sleep(1)
 
 
