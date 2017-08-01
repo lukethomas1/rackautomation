@@ -82,6 +82,7 @@ def increment_parameters(current, max, length):
         return [0] * length
     return current
 
+
 def run(need_setup, need_configure):
     if(need_setup):
         update_config()
@@ -159,7 +160,8 @@ def run(need_setup, need_configure):
             # Stop Gvine then EMANE
             stop()
             # Gather event data
-            gather_data()
+            if(test_success):
+                gather_data()
             # Remove test data from nodes
             cleanup()
             # Increment parameters
@@ -228,8 +230,7 @@ def configure():
 # Goals:
 # 1) Do everything nodes need to run GrapeVine that doesn't need to be repeated
 # 2) Setup desired topology on each rackspace node
-# TODO 3) Ensure correct GrapeVine jar file is on each node
-# 4) Setup GrapeVine certifications between nodes
+# 3) Setup GrapeVine certifications between nodes
 def setup(need_configure):
     if(need_configure):
         configure()

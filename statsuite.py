@@ -59,6 +59,7 @@ def parse_delay_rows(rows):
             print("Adding " + str(delay) + " to " + node_name + " in " + file_name)
     return dict
 
+
 def plot_delays(delays_dict):
     if(not delays_dict):
         return
@@ -130,7 +131,7 @@ def extract_transfer_delays(path_to_input, path_to_output, save_file, num_nodes)
         node_name = row[0]
         sender_name = get_missing_node(list_of_nodes)
         delay = row[4]
-        messageId = row[6]
+        message_id = row[6]
         msg_size = row[7]
         #error_rate = input("Error rate? : ")
         #msg_interval = input("Message Interval? : ")
@@ -140,13 +141,13 @@ def extract_transfer_delays(path_to_input, path_to_output, save_file, num_nodes)
             "INSERT INTO TRANSFERDELAYS (receiverNumber, senderNumber, " +
             "delay, messageSizeBytes, saveFile, messageId, timestamp) VALUES ('" +
             node_name + "', '" + sender_name + "', " + str(delay) + ", " +
-            str(msg_size) + ", '" + save_file + "', '" + messageId + "', '" +
+            str(msg_size) + ", '" + save_file + "', '" + message_id + "', '" +
             str(timestamp) + "')"
         )
         try:
             main_connection.execute(insert_stmt)
         except(IntegrityError) as err:
-            print("Duplicate receiverNumber: " + node_name + ", messageId: " + messageId)
+            print("Duplicate receiverNumber: " + node_name + ", messageId: " + message_id)
 
     # Commit then close output database
     main_connection.commit()
@@ -164,19 +165,19 @@ def calc_avg_hop_transfer_delay(path_to_input, node_hops_dict, nodes, rack_to_to
         sender = row[1]
         send_ind = get_trailing_number(sender)
         delay = row[2]
-        msgSizeBytes = row[3]
+        msg_size_bytes = row[3]
         save = row[4]
-        msgId = row[5]
+        msg_id = row[5]
         timestamp = row[6]
 
-        if(msgSizeBytes not in sum_avg_hop_delays_dict.keys()):
-            sum_avg_hop_delays_dict[msgSizeBytes] = 0
-            num_data_points_dict[msgSizeBytes] = 0
+        if(msg_size_bytes not in sum_avg_hop_delays_dict.keys()):
+            sum_avg_hop_delays_dict[msg_size_bytes] = 0
+            num_data_points_dict[msg_size_bytes] = 0
 
         num_hops = node_hops_dict[send_ind][rec_ind]
         avg_hop_delay = delay / (num_hops + 1)
-        sum_avg_hop_delays_dict[msgSizeBytes] += avg_hop_delay
-        num_data_points_dict[msgSizeBytes] += 1
+        sum_avg_hop_delays_dict[msg_size_bytes] += avg_hop_delay
+        num_data_points_dict[msg_size_bytes] += 1
 
     avgs_dict = {}
     avgs_dict["delays"] = {}
@@ -227,21 +228,21 @@ def extract_node_delays(path_to_input, path_to_output, save_file):
 
     # Insert into database
     for row in unique_rows:
-        nodeNumber = row[0]
-        delay = delays_dict[nodeNumber]
+        node_number = row[0]
+        delay = delays_dict[node_number]
         timestamp = row[7]
-        messageId = row[6]
-        messageSizeBytes = msg_sizes_dict[messageId]
+        message_id = row[6]
+        message_size_bytes = msg_sizes_dict[message_id]
         insert_stmt = (
             "INSERT INTO NODEDELAYS " +
             "(nodeNumber, delay, messageSizeBytes, saveFile, messageId, timestamp) " +
-            "VALUES ('" + nodeNumber + "', " + str(delay) + ", " + str(messageSizeBytes) +
-            ", '" + save_file + "', '" + messageId + "', '" + timestamp + "')"
+            "VALUES ('" + node_number + "', " + str(delay) + ", " + str(message_size_bytes) +
+            ", '" + save_file + "', '" + message_id + "', '" + timestamp + "')"
         )
         try:
             main_connection.execute(insert_stmt)
         except(IntegrityError) as err:
-            print("Duplicate nodeNumber: " + nodeNumber + ", messageId: " + messageId)
+            print("Duplicate nodeNumber: " + node_number + ", messageId: " + message_id)
 
     # Commit then close output database
     main_connection.commit()
@@ -274,36 +275,36 @@ def make_packets_sent_buckets(path_to_input, bucket_increment_seconds):
 
     buckets_dict = {}
     for row in packet_rows:
-        senderNode = row[0]
-        eventId = row[1]
-        whereInCode = row[2]
+        sender_node = row[0]
+        event_id = row[1]
+        where_in_code = row[2]
         num_bytes = row[3]
-        timeStampMillis = row[4]
-        relative_time = int((timeStampMillis - earliest_packet_time) / 1000)
+        time_stamp_millis = row[4]
+        relative_time = int((time_stamp_millis - earliest_packet_time) / 1000)
         bucket_index = int(relative_time / bucket_increment_seconds)
         packet_type = "Unknown"
-        if("Beacon" in whereInCode):
+        if("Beacon" in where_in_code):
             packet_type = "beacon"
-        elif("Handshake" in whereInCode):
+        elif("Handshake" in where_in_code):
             packet_type = "handshake"
-        elif("Babel" in whereInCode):
+        elif("Babel" in where_in_code):
             packet_type = "babel"
-        elif("Obligation" in whereInCode):
+        elif("Obligation" in where_in_code):
             packet_type = "obligation"
 
         if(not packet_type in buckets_dict.keys()):
             print("New packet type: " + packet_type)
             buckets_dict[packet_type] = {}
-        if(not senderNode in buckets_dict[packet_type].keys()):
-            buckets_dict[packet_type][senderNode] = {}
-        if(not str(bucket_index) in buckets_dict[packet_type][senderNode].keys()):
-            buckets_dict[packet_type][senderNode][str(bucket_index)] = {}
-            buckets_dict[packet_type][senderNode][str(bucket_index)]['bytes'] = 0
-            buckets_dict[packet_type][senderNode][str(bucket_index)]['packets'] = 0
+        if(not sender_node in buckets_dict[packet_type].keys()):
+            buckets_dict[packet_type][sender_node] = {}
+        if(not str(bucket_index) in buckets_dict[packet_type][sender_node].keys()):
+            buckets_dict[packet_type][sender_node][str(bucket_index)] = {}
+            buckets_dict[packet_type][sender_node][str(bucket_index)]['bytes'] = 0
+            buckets_dict[packet_type][sender_node][str(bucket_index)]['packets'] = 0
 
-        buckets_dict[packet_type][senderNode][str(bucket_index)]['bytes'] += int(num_bytes /
+        buckets_dict[packet_type][sender_node][str(bucket_index)]['bytes'] += int(num_bytes /
                                                                 bucket_increment_seconds)
-        buckets_dict[packet_type][senderNode][str(bucket_index)]['packets'] += 1
+        buckets_dict[packet_type][sender_node][str(bucket_index)]['packets'] += 1
     return buckets_dict
 
 
@@ -385,39 +386,39 @@ def make_packets_received_buckets(path_to_input, bucket_size_seconds):
 
     buckets_dict = {}
     for row in packet_rows:
-        receiverNode = row[0]
-        eventId = row[1]
-        senderNode = row[2]
-        whereInCode = row[3]
+        receiver_node = row[0]
+        event_id = row[1]
+        sender_node = row[2]
+        where_in_code = row[3]
         num_bytes = row[4]
-        timeStampMillis = row[5]
-        relative_time = int((timeStampMillis - earliest_packet_time) / 1000)
+        time_stamp_millis = row[5]
+        relative_time = int((time_stamp_millis - earliest_packet_time) / 1000)
         bucket_index = int(relative_time / bucket_size_seconds)
         packet_type = "Unknown"
-        if("Beacon" in whereInCode):
+        if("Beacon" in where_in_code):
             packet_type = "beacon"
-        elif("Handshake" in whereInCode):
+        elif("Handshake" in where_in_code):
             packet_type = "handshake"
-        elif("Babel" in whereInCode):
+        elif("Babel" in where_in_code):
             packet_type = "babel"
-        elif("UdpRx" in whereInCode):
+        elif("UdpRx" in where_in_code):
             packet_type = "udprx"
 
         if(not packet_type in buckets_dict.keys()):
             print("New packet type: " + packet_type)
             buckets_dict[packet_type] = {}
-        if(not receiverNode in buckets_dict[packet_type].keys()):
-            buckets_dict[packet_type][receiverNode] = {}
-        if(not senderNode in buckets_dict[packet_type][receiverNode].keys()):
-            buckets_dict[packet_type][receiverNode][senderNode] = {}
-        if(not str(bucket_index) in buckets_dict[packet_type][receiverNode][senderNode].keys()):
-            buckets_dict[packet_type][receiverNode][senderNode][str(bucket_index)] = {}
-            buckets_dict[packet_type][receiverNode][senderNode][str(bucket_index)]['bytes'] = 0
-            buckets_dict[packet_type][receiverNode][senderNode][str(bucket_index)]['packets'] = 0
+        if(not receiver_node in buckets_dict[packet_type].keys()):
+            buckets_dict[packet_type][receiver_node] = {}
+        if(not sender_node in buckets_dict[packet_type][receiver_node].keys()):
+            buckets_dict[packet_type][receiver_node][sender_node] = {}
+        if(not str(bucket_index) in buckets_dict[packet_type][receiver_node][sender_node].keys()):
+            buckets_dict[packet_type][receiver_node][sender_node][str(bucket_index)] = {}
+            buckets_dict[packet_type][receiver_node][sender_node][str(bucket_index)]['bytes'] = 0
+            buckets_dict[packet_type][receiver_node][sender_node][str(bucket_index)]['packets'] = 0
 
-        buckets_dict[packet_type][receiverNode][senderNode][str(bucket_index)]['bytes'] += int(num_bytes /
+        buckets_dict[packet_type][receiver_node][sender_node][str(bucket_index)]['bytes'] += int(num_bytes /
                                                                            bucket_size_seconds)
-        buckets_dict[packet_type][receiverNode][senderNode][str(bucket_index)]['packets'] += 1
+        buckets_dict[packet_type][receiver_node][sender_node][str(bucket_index)]['packets'] += 1
     return buckets_dict
 
 
@@ -453,25 +454,25 @@ def plot_packets_received_data(buckets_dict, bucket_size_seconds, last_second):
             if(not already_named):
                 already_named = True
                 trace = plotly.graph_objs.Scatter(
-                    x = x,
-                    y = y,
-                    mode = "lines",
-                    name = packet_type,
-                    line = dict(
-                        color = colors_dict[packet_type],
-                        width = 2
+                    x=x,
+                    y=y,
+                    mode="lines",
+                    name=packet_type,
+                    line=dict(
+                        color=colors_dict[packet_type],
+                        width=2
                     )
                 )
             else:
                 trace = plotly.graph_objs.Scatter(
-                    x = x,
-                    y = y,
-                    mode = "lines",
-                    name = packet_type,
-                    showlegend = False,
-                    line = dict(
-                        color = colors_dict[packet_type],
-                        width = 2
+                    x=x,
+                    y=y,
+                    mode="lines",
+                    name=packet_type,
+                    showlegend=False,
+                    line=dict(
+                        color=colors_dict[packet_type],
+                        width=2
                     )
                 )
             traces[packet_type][receiverNode] = trace
@@ -479,10 +480,10 @@ def plot_packets_received_data(buckets_dict, bucket_size_seconds, last_second):
     sorted_nodes = sorted(buckets_dict["handshake"].keys())
     num_columns = 2
     num_rows = int(len(sorted_nodes) / 2)
-    subplot_titles = []
+    sub_titles = []
     for node in sorted_nodes:
-        subplot_titles.append(node)
-    figure = plotly.tools.make_subplots(rows=num_rows, cols=num_columns, subplot_titles=subplot_titles)
+        sub_titles.append(node)
+    figure = plotly.tools.make_subplots(rows=num_rows, cols=num_columns, subplot_titles=sub_titles)
 
     for packet_type in buckets_dict.keys():
         for node in sorted(buckets_dict[packet_type].keys()):
@@ -496,10 +497,88 @@ def plot_packets_received_data(buckets_dict, bucket_size_seconds, last_second):
     file_name = input("Name of this file? : ")
     plotly.plotly.iplot(figure, filename=file_name)
 
+##### Rank Progress Graph #####
+
+def make_rank_buckets(path_to_input, bucket_size_seconds):
+        earliest_packet_time = get_earliest_of_all_packets(path_to_input)
+        rank_rows = get_sql_data(path_to_input, "loggableeventrankrx")
+        print("Earliest packet time: " + str(earliest_packet_time))
+
+        buckets_dict = {}
+        for row in rank_rows:
+            receiver_node = row[0]
+            event_id = row[1]
+            current_rank = row[2]
+            frag_index = row[3]
+            message_id = row[4]
+            max_rank = row[6]
+            time_stamp_millis = row[7]
+            relative_time = int((time_stamp_millis - earliest_packet_time) / 1000)
+            bucket_index = int(relative_time / bucket_size_seconds)
+
+            if(receiver_node not in buckets_dict.keys()):
+                buckets_dict[receiver_node] = {}
+            if(str(bucket_index) not in buckets_dict[receiver_node].keys()):
+                buckets_dict[receiver_node][str(bucket_index)] = current_rank
+            else:
+                same_bucket = buckets_dict[receiver_node][str(bucket_index)]
+                buckets_dict[receiver_node][str(bucket_index)] = max(same_bucket, current_rank)
+        return buckets_dict
+
+
+def plot_rank_buckets(buckets_dict, bucket_size_seconds, last_second):
+        traces = {}
+        seconds_dict = {}
+        for receiverNode in buckets_dict.keys():
+            traces[receiverNode] = None
+            x = []
+            y = []
+            for bucket_index in sorted(buckets_dict[receiverNode].keys(), key=int):
+                bucket_key = str(int(bucket_index) * bucket_size_seconds)
+                seconds_dict[bucket_key] = buckets_dict[receiverNode][str(bucket_index)]
+            for second in range(last_second):
+                x.append(second)
+                if(str(second) in seconds_dict[receiverNode].keys()):
+                    y.append(sums_dict[str(second)])
+                else:
+                    y.append(0)
+            trace = plotly.graph_objs.Scatter(
+                x=x,
+                y=y,
+                mode="lines",
+                name=packet_type,
+                showlegend=False,
+                line=dict(
+                    color=colors_dict[packet_type],
+                    width=2
+                )
+            )
+            traces[packet_type][receiverNode] = trace
+
+        sorted_nodes = sorted(buckets_dict["handshake"].keys())
+        num_columns = 2
+        num_rows = int(len(sorted_nodes) / 2)
+        sub_titles = []
+        for node in sorted_nodes:
+            sub_titles.append(node)
+        figure = plotly.tools.make_subplots(rows=num_rows, cols=num_columns, subplot_titles=sub_titles)
+
+        for packet_type in buckets_dict.keys():
+            for node in sorted(buckets_dict[packet_type].keys()):
+                index = int(node[-1])
+                index = get_trailing_number(node)
+                row_num = int((index - 1)/ 2) + 1
+                col_num = 2 - index % 2
+                figure.append_trace(traces[packet_type][node], row_num, col_num)
+        title = input("Title of this graph? : ")
+        figure['layout'].update(title=title)
+        file_name = input("Name of this file? : ")
+        plotly.plotly.iplot(figure, filename=file_name)
 
 def get_earliest_packet_time(packet_rows, index_of_timestamp):
     if(packet_rows):
         return min([row[index_of_timestamp] for row in packet_rows])
+
 
 def get_earliest_of_all_packets(path_to_input):
     sent_packet_rows = get_sql_data(path_to_input, "loggableeventpacketsent")
@@ -510,8 +589,8 @@ def get_earliest_of_all_packets(path_to_input):
         if(earliest_sent < earliest_received):
             print("Earliest packet was a sent packet at " + str(earliest_sent) + " milliseconds")
         else:
-            print("Earliest packet was a received packet at " + str(earliest_received) + " "
-                                                                                         "milliseconds")
+            print("Earliest packet was a received packet at " + str(earliest_received) +
+                  " milliseconds")
     compare_arr = []
     if(earliest_sent):
         compare_arr.append(earliest_sent)
@@ -536,8 +615,8 @@ def get_latest_of_all_packets(path_to_input):
         if(latest_sent < latest_received):
             print("Earliest packet was a sent packet at " + str(latest_sent) + " milliseconds")
         else:
-            print("Earliest packet was a received packet at " + str(latest_received) + " "
-                                                                                         "milliseconds")
+            print("Earliest packet was a received packet at " + str(latest_received) +
+                  " milliseconds")
     compare_arr = []
     if(latest_sent):
         compare_arr.append(latest_sent)
@@ -568,7 +647,9 @@ def get_message_sizes(input_path):
                 break
     return sizes_dict
 
+
 ##### Plotting #####
+
 
 def plot_values(values, plot_name):
     print("Plot name: " + plot_name)
@@ -591,10 +672,10 @@ def get_plot_trace(values):
                 else:
                     y.append(0)
             trace = plotly.graph_objs.Scatter(
-                x = x,
-                y = y,
-                mode = 'lines',
-                name = 'delay' + str(j)
+                x=x,
+                y=y,
+                mode='lines',
+                name='delay' + str(j)
             )
             traces.append(trace)
 
@@ -603,9 +684,9 @@ def get_plot_trace(values):
             x.append(i)
             y.append(values[i - 1])
         trace = plotly.graph_objs.Scatter(
-                x = x,
-                y = y,
-                mode = 'markers'
+                x=x,
+                y=y,
+                mode='markers'
             )
         return [trace]
     return traces
@@ -793,7 +874,8 @@ def gather_table_schemas(path_to_dbs, db_names):
             table = table[0]
             if table not in table_names:
                 table_names.append(table)
-            schema = conn.execute("SELECT sql FROM sqlite_master where type='table' and name='" + table + "'").fetchall()[0][0]
+            schema = conn.execute("SELECT sql FROM sqlite_master where type='table' and name='" +
+                                  table + "'").fetchall()[0][0]
             if schema not in schemas:
                 schemas.append(schema)
         conn.close()
@@ -835,11 +917,12 @@ def insert_db_data(main_connection, db_names, table_names):
                     pass
         conn.close()
 
+
 # Sort strings based on the numbers inside them, look up "natural sorting"
 def natural_sort(l): 
     convert = lambda text: int(text) if text.isdigit() else text.lower() 
-    alphanum_key = lambda key: [ convert(c) for c in split('([0-9]+)', key) ] 
-    return sorted(l, key = alphanum_key)
+    alphanum_key = lambda key: [convert(c) for c in split('([0-9]+)', key)]
+    return sorted(l, key=alphanum_key)
 
 
 def create_insert_stmt(table_name, column_names, node_index, row_data):
@@ -859,6 +942,7 @@ def create_insert_stmt(table_name, column_names, node_index, row_data):
 
 ##### TESTING FUNCTIONS #####
 
+
 def check_packet_sent_timestamps(path_to_input):
     packet_rows = get_sql_data(path_to_input, "loggableeventpacketsent")
 
@@ -873,4 +957,3 @@ def check_packet_sent_timestamps(path_to_input):
 
     for sender_node in nodes_dict.keys():
         print("Earliest time for " + sender_node + ": " + str(nodes_dict[sender_node]))
-

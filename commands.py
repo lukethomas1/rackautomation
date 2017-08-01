@@ -43,6 +43,7 @@ MSG_INTERVAL = config.MSG_INTERVAL
 
 # Functions are ordered in usage order
 
+
 def update_config():
     # There is no saved data, possibly first time user
     if(not path.isfile(".data.pickle")):
@@ -288,7 +289,8 @@ def run_auto_test():
         initial_indices = [0, 0, 0, 0]
 
     # Initialize the test and start running test
-    autotest.initialize_parameters(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates, msg_interval, initial_indices)
+    autotest.initialize_parameters(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates,
+                                   msg_interval, initial_indices)
     need_setup = bool(input("Need Setup? (Leave blank for no): "))
     need_configure = False
     if(need_setup):
@@ -356,9 +358,11 @@ def node_delay():
     path_to_output = "./stats/measurements/" + SAVE_FILE + "/nodedelay.db"
     check_again = False
     try:
-        index = int(input("Index of sqlite3 db? (0 for newest, " + num + " for oldest, blank for all): "))
+        index = int(input("Index of sqlite3 db? (0 for newest, " + num +
+                          " for oldest, blank for all): "))
     except:
-        check_again = input("Are you sure you would like to extract all databases? : ")
+        print("Extracting all databases")
+        check_again = True
 
     if(check_again):
         for ind in range(len(paths)):
@@ -510,7 +514,6 @@ def stats_received_packets():
         last_second = int((latest_packet_time - earliest_packet_time) / 1000)
         statsuite.plot_packets_received_data(buckets_dict, bucket_size_seconds, last_second)
     print("Success")
-
 
 
 def stats_parse(save_file, num_nodes, parse_term):

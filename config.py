@@ -1,11 +1,11 @@
 # Used for rackspace node naming and some other naming, will break things if changed
 NODE_PREFIX = "node-"
 
-SAVE_FILE = "twonodes"
+SAVE_FILE = "threenodes"
 
-IMAGE_NAME = "authorized"
+IMAGE_NAME = "nullreader"
 
-RACK_KEY = "luke-laptop"
+RACK_KEY = "mykey"
 
 JAR_FILE = "gvine-java.jar"
 
