@@ -518,44 +518,51 @@ def make_rank_buckets(path_to_input, bucket_size_seconds):
 
             if(receiver_node not in buckets_dict.keys()):
                 buckets_dict[receiver_node] = {}
-            if(str(bucket_index) not in buckets_dict[receiver_node].keys()):
-                buckets_dict[receiver_node][str(bucket_index)] = current_rank
+            if(str(frag_index) not in buckets_dict[receiver_node].keys()):
+                buckets_dict[receiver_node][str(frag_index)] = {}
+            if(str(bucket_index) not in buckets_dict[receiver_node][str(frag_index)].keys()):
+                buckets_dict[receiver_node][str(frag_index)][str(bucket_index)] = current_rank
             else:
-                same_bucket = buckets_dict[receiver_node][str(bucket_index)]
-                buckets_dict[receiver_node][str(bucket_index)] = max(same_bucket, current_rank)
+                same_bucket = buckets_dict[receiver_node][str(frag_index)][str(bucket_index)]
+                buckets_dict[receiver_node][str(frag_index)][str(bucket_index)] = max(same_bucket,
+                                                                           current_rank)
         return buckets_dict
 
 
-def plot_rank_buckets(buckets_dict, bucket_size_seconds, last_second):
+def plot_rank_data(buckets_dict, bucket_size_seconds, last_second):
+        print(str(buckets_dict.keys()))
         traces = {}
         seconds_dict = {}
         for receiverNode in buckets_dict.keys():
-            traces[receiverNode] = None
-            x = []
-            y = []
-            for bucket_index in sorted(buckets_dict[receiverNode].keys(), key=int):
-                bucket_key = str(int(bucket_index) * bucket_size_seconds)
-                seconds_dict[bucket_key] = buckets_dict[receiverNode][str(bucket_index)]
-            for second in range(last_second):
-                x.append(second)
-                if(str(second) in seconds_dict[receiverNode].keys()):
-                    y.append(sums_dict[str(second)])
-                else:
-                    y.append(0)
-            trace = plotly.graph_objs.Scatter(
-                x=x,
-                y=y,
-                mode="lines",
-                name=packet_type,
-                showlegend=False,
-                line=dict(
-                    color=colors_dict[packet_type],
-                    width=2
+            traces[receiverNode] = {}
+            seconds_dict[receiverNode] = {}
+            for frag_index in buckets_dict[receiverNode].keys():
+                seconds_dict[receiverNode][frag_index] = {}
+                x = []
+                y = []
+                for bucket_index in sorted(buckets_dict[receiverNode][frag_index].keys(), key=int):
+                    bucket_key = str(int(bucket_index) * bucket_size_seconds)
+                    seconds_dict[receiverNode][frag_index][bucket_key] = buckets_dict[
+                        receiverNode][frag_index][str(bucket_index)]
+                for second in range(last_second):
+                    x.append(second)
+                    if(str(second) in seconds_dict[receiverNode][frag_index].keys()):
+                        y.append(seconds_dict[receiverNode][frag_index][str(second)])
+                    else:
+                        y.append(0)
+                trace = plotly.graph_objs.Scatter(
+                    x=x,
+                    y=y,
+                    mode="lines",
+                    name=receiverNode,
+                    showlegend=True,
+                    line=dict(
+                        width=2
+                    )
                 )
-            )
-            traces[packet_type][receiverNode] = trace
+                traces[receiverNode][frag_index] = trace
 
-        sorted_nodes = sorted(buckets_dict["handshake"].keys())
+        sorted_nodes = sorted(buckets_dict.keys(), key=lambda n: get_trailing_number(n))
         num_columns = 2
         num_rows = int(len(sorted_nodes) / 2)
         sub_titles = []
@@ -563,13 +570,15 @@ def plot_rank_buckets(buckets_dict, bucket_size_seconds, last_second):
             sub_titles.append(node)
         figure = plotly.tools.make_subplots(rows=num_rows, cols=num_columns, subplot_titles=sub_titles)
 
-        for packet_type in buckets_dict.keys():
-            for node in sorted(buckets_dict[packet_type].keys()):
-                index = int(node[-1])
-                index = get_trailing_number(node)
-                row_num = int((index - 1)/ 2) + 1
-                col_num = 2 - index % 2
-                figure.append_trace(traces[packet_type][node], row_num, col_num)
+        start_index = get_trailing_number(sorted_nodes[0])
+        for node in sorted_nodes:
+            index = get_trailing_number(node) - start_index + 1
+            row_num = int((index - 1) / 2) + 1
+            col_num = 2 - index % 2
+            print("row: " + str(row_num))
+            print("col: " + str(col_num))
+            for frag_index in traces[node].keys():
+                figure.append_trace(traces[node][frag_index], row_num, col_num)
         title = input("Title of this graph? : ")
         figure['layout'].update(title=title)
         file_name = input("Name of this file? : ")

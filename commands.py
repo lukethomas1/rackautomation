@@ -516,6 +516,27 @@ def stats_received_packets():
     print("Success")
 
 
+def stats_received_rank():
+    paths = glob("./stats/events/" + SAVE_FILE + "/*.db")
+    paths.sort()
+    paths.reverse()
+    num = str(len(paths) - 1)
+
+    user_input = input("Index of sqlite3 db? (0 newest, " + num + " oldest) : ")
+    index = int(user_input)
+    path_to_input = sub(r"[\\]", '', paths[index])
+    bucket_size_seconds = int(input("Bucket size? (seconds) : "))
+    buckets_dict = statsuite.make_rank_buckets(path_to_input, bucket_size_seconds)
+
+    should_plot = input("Plot this data (yes or no)? : ")
+    if(should_plot.lower() == "yes"):
+        latest_packet_time = statsuite.get_latest_of_all_packets(path_to_input)
+        earliest_packet_time = statsuite.get_earliest_of_all_packets(path_to_input)
+        last_second = int((latest_packet_time - earliest_packet_time) / 1000)
+        statsuite.plot_rank_data(buckets_dict, bucket_size_seconds, last_second)
+    print("Success")
+
+
 def stats_parse(save_file, num_nodes, parse_term):
     phys = statsuite.parse_emane_stats(save_file, num_nodes, parse_term)
     statsuite.sub_plot(phys)

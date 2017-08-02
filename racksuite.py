@@ -100,7 +100,6 @@ while(loop):
         testsuite.wait_for_message_received(file_name, sender_node, iplist, inv_ipdict, nodes,
                                             wait_time)
 
-
     ##### DATA COMMANDS #####
 
     elif(arg == "data"):
