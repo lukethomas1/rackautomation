@@ -20,7 +20,7 @@ json = None
 subnets = None
 nodes = None
 iplist = None
-ipdict = None
+nodeipdict = None
 
 # Parameter variables
 max_tx_rate = None
@@ -41,7 +41,7 @@ def update_config():
     global subnets
     global nodes
     global iplist
-    global ipdict
+    global nodeipdict
     functions.set_topology(SAVE_FILE, NODE_PREFIX)
     config_result = functions.load_data()
     save = config_result['save']
@@ -49,7 +49,7 @@ def update_config():
     subnets = config_result['subnets']
     nodes = config_result['nodes']
     iplist = config_result['iplist']
-    ipdict = config_result['ipdict']
+    nodeipdict = config_result['nodeipdict']
 
 
 def initialize_parameters(max_tx, num_iter, msg_sizes, err_rates, msg_int, init_indices):
@@ -88,6 +88,8 @@ def run(need_setup, need_configure):
         update_config()
         initialize(fail_time=9999)
         update_config()
+        stop()
+        functions.clean_nodes(IP_FILE)
         setup(need_configure)
     update_config()
 
@@ -120,11 +122,12 @@ def run(need_setup, need_configure):
             frag_size = 50000
             prepare_test(iteration, source_node, message_size_kb, error_rate, source_ip,
                          frag_size)
+            sleep(2)
 
             # Run the test
             start_time = time()
             start()
-            sleep(3)
+            sleep(5)
             file_name = "autotestmsg_" + str(source_node + 1) + "_" + str(msg_counter) + ".txt"
             test(source_node, source_ip, message_size_kb, file_name)
 
@@ -137,7 +140,7 @@ def run(need_setup, need_configure):
             print("Maximum Wait Time: " + str(wait_msg_time))
 
             # Wait for message to be sent
-            inv_ipdict = functions.invert_dict(ipdict)
+            inv_ipdict = functions.invert_dict(nodeipdict)
             test_success = testsuite.wait_for_message_received(file_name, source_node + 1, iplist,
                                                      inv_ipdict, nodes, wait_msg_time)
 
@@ -148,7 +151,7 @@ def run(need_setup, need_configure):
             #
             # file_name = "autotestmsg2_" + str(source_node + 1) + "_" + str(msg_counter) + ".txt"
             # test(source_node, source_ip, message_size_kb, file_name)
-            # inv_ipdict = functions.invert_dict(ipdict)
+            # inv_ipdict = functions.invert_dict(nodeipdict)
             # wait_msg_time = 150
             # test_success = testsuite.wait_for_message_received(file_name, source_node + 1, iplist,
             #                                                    inv_ipdict, nodes, wait_msg_time)
@@ -164,6 +167,7 @@ def run(need_setup, need_configure):
                 gather_data()
             # Remove test data from nodes
             cleanup()
+            sleep(3)
             # Increment parameters
             if(test_success):
                 param_indices = increment_parameters(param_indices, max_indices, len(max_indices))

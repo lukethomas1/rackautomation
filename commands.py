@@ -257,6 +257,15 @@ def stop_norm():
     functions.parallel_ssh(IP_FILE, "sudo pkill norm")
 
 
+def start_basic_tcpdump(nodes, subnets, nodeipdict):
+    print("Logging subnet traffic with tcpdump")
+    functions.subnet_tcpdump(nodes, subnets, NODE_PREFIX, nodeipdict)
+
+
+def stop_all_tcpdump():
+    functions.stop_tcpdump(IP_FILE)
+
+
 def ping(subnets, nodes):
     print("Setting up")
     functions.generate_network_ping_list(subnets, nodes, IP_FILE, IP_BLACK_LIST)
@@ -471,6 +480,13 @@ def stats_events(save_file, iplist):
     statsuite.combine_event_dbs(input_dir, output_dir)
 
 
+def stats_tcpdump(iplist):
+    functions.create_dir("./stats/")
+    functions.create_dir("./stats/dumps/")
+    functions.create_dir("./stats/dumps/" + SAVE_FILE)
+    statsuite.copy_dump_files(iplist, "./stats/dumps/" + SAVE_FILE + "/")
+
+
 def stats_sent_packets():
     paths = glob("./stats/events/" + SAVE_FILE + "/*.db")
     paths.sort()
@@ -579,10 +595,12 @@ def stop(save_file):
     
 
 def clean():
-    clean_amount = input("Clean 1) Data 2) All non .jar : ")
+    clean_amount = input("Clean 1) Data 2) Non certs 3) All non .jar : ")
     if(clean_amount == "1"):
         functions.clean_node_data(IP_FILE)
     elif(clean_amount == "2"):
+        functions.clean_more(IP_FILE)
+    elif(clean_amount == "3"):
         functions.clean_nodes(IP_FILE)
 
 

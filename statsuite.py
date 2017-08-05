@@ -17,7 +17,7 @@ from paramiko import AutoAddPolicy, RSAKey, SSHClient
 import plotly
 
 # Local imports
-from functions import get_hops_between_nodes
+from functions import create_dir
 
 
 ##### General SQLITE Functions #####
@@ -942,7 +942,10 @@ def create_insert_stmt(table_name, column_names, node_index, row_data):
     for data_value in row_data:
         # Insert it as a string or integer
         try:
-            insert_stmt += ", '" + data_value + "'"
+            if(data_value is None):
+                insert_stmt += ", NULL"
+            else:
+                insert_stmt += ", '" + data_value + "'"
         except TypeError:
             insert_stmt += ", " + str(data_value)
     insert_stmt += ")"
@@ -966,3 +969,16 @@ def check_packet_sent_timestamps(path_to_input):
 
     for sender_node in nodes_dict.keys():
         print("Earliest time for " + sender_node + ": " + str(nodes_dict[sender_node]))
+
+
+def copy_dump_files(iplist, output_dir):
+    date_time = strftime("%Y-%m-%d_%H:%M:%S", gmtime())
+    folder_name = output_dir + "/" + date_time
+    create_dir(folder_name)
+
+    for index in range(len(iplist)):
+        copy_dir = folder_name + "/node" + str(index + 1)
+        create_dir(copy_dir)
+        ip = iplist[index]
+        command = "scp emane-01@" + ip + ":" + "~/test/emane/gvine/node/*.pcap " + copy_dir
+        system(command)

@@ -1,0 +1,25 @@
+Author: Luke Thomas
+Date: August 4, 2017
+
+Documentation for racksuite
+---------------------------
+
+Objects:
+--------
+
+class Node:
+Fields:
+    node['id']
+    node['label']
+    node['type']
+    node['ip']
+    node['mac']
+    node['group']
+    node['number'] - this is added when the webapp exports, not part of the class definition
+
+class Subnet:
+Fields:
+    subnet['name']
+    subnet['ssid']
+    subnet['addr']
+    subnet['members']

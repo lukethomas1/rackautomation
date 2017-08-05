@@ -76,7 +76,7 @@ def set_topology(save_file, node_prefix):
         'subnets': subnets,
         'nodes': nodes,
         'iplist': iplist,
-        'ipdict': ipdict,
+        'nodeipdict': ipdict,
         'config': config_contents,
         'timestamp': timestamp,
         'racknodes': racknodes
@@ -113,13 +113,6 @@ def assign_subnet_addresses(subnets, blacklist):
             taken_addresses.append(subaddr)
 
 
-def clean_nodes(ip_file):
-    command = "cd ~/test/emane/gvine/node/ && rm $(ls -I '*.jar' -I '*.json')"    
-    print("Deleting all non .jar, .json files from nodes")
-    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command])
-    sleep(1)
-
-
 def clean_node_data(ip_file):
     command = (
         "cd ~/test/emane/gvine/node/ && rm -rf gvine.msg* gvine.frag* " +
@@ -128,6 +121,22 @@ def clean_node_data(ip_file):
     )
     print("Cleaning data on nodes")
     Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command], stdout=DEVNULL)
+    sleep(1)
+
+
+def clean_more(ip_file):
+    command = (
+        "cd ~/test/emane/gvine/node/ && rm -rf $(ls -I '*.jar' -I '*.json' -I '*.cer' -I '*pki.db*')"
+    )
+    print("Deleting all non .jar, .json files from nodes")
+    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command])
+    sleep(1)
+
+
+def clean_nodes(ip_file):
+    command = "cd ~/test/emane/gvine/node/ && rm -rf $(ls -I '*.jar' -I '*.json')"
+    print("Deleting all non .jar, .json files from nodes")
+    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command])
     sleep(1)
 
 
@@ -914,6 +923,23 @@ def remote_execute_command(command, ip, remote_username, print_stdout, print_std
         print(stderr.read().decode())
     ssh.close()
 
+
+def remote_execute_commands(commands, ip, remote_username, print_stdout, print_stderr, print_exit):
+    loc = path.expanduser("~/.ssh/id_rsa")
+    key = RSAKey.from_private_key_file(loc)
+    ssh = SSHClient()
+    ssh.set_missing_host_key_policy(AutoAddPolicy())
+    ssh.connect(ip, username=remote_username, pkey=key)
+    for command in commands:
+        stdin, stdout, stderr = ssh.exec_command(command)
+        if(print_stdout):
+            print(stdout.read().decode())
+        if(print_stderr):
+            print(stderr.read().decode())
+        if(print_exit):
+            print(stdout.channel.recv_exit_status())
+    ssh.close()
+
 ##### MESSAGE SEND TIME ESTIMATION #####
 
 # Returns a dictionary of dictionaries
@@ -978,13 +1004,42 @@ def get_hops_between_nodes(sender, receiver, subnets, subnet_hops):
     return min_hops
 
 
-def estimate_hop_time(txrate, msgSizeBytes, fragmentSize):
+def estimate_hop_time(txrate, msg_size_bytes, fragment_size):
     hop_time = 0
     # txrate of 500000 has a .99 correlation coefficient to msgSize, with 0.61 slope
     if(txrate > 450000 and txrate < 550000):
-        hop_time = 0.061 * msgSizeBytes
+        hop_time = 0.061 * msg_size_bytes
     else:
         print("txrate is not a value that has a proven hop time")
-        hop_time = (30500 / txrate) * msgSizeBytes
-    # Slope * msgSizeBytes / 1000 to get hop_time in seconds
+        hop_time = (30500 / txrate) * msg_size_bytes
+    # Slope * msg_size_bytes / 1000 to get hop_time in seconds
     return hop_time / 1000
+
+
+def member_subnets(memberid, subnets):
+    return [subnet['name'] for subnet in subnets if memberid in subnet['memberids']]
+
+
+##### TCPDUMP #####
+
+
+def subnet_tcpdump(nodes, subnets, node_prefix, node_to_ip_dict):
+    for node_index in range(0, len(nodes)):
+        node = nodes[node_index]
+        node_name = node_prefix + str(node_index + 1)
+        node_commands = []
+        node_subnets = member_subnets(node['number'], subnets)
+        for index in range(len(node_subnets)):
+            interface = "emane" + str(index)
+            command = "sudo nohup tcpdump -i " + interface + " -w ~/test/emane/gvine/node/" + \
+                      interface + ".pcap &>/dev/null &"
+            node_commands.append(command)
+        remote_execute_commands(node_commands, node_to_ip_dict[node_name], "emane-01", False,
+                                False, False)
+
+
+def stop_tcpdump(ip_file):
+    command = "sudo pkill tcpdump"
+    print("Killing all tcpdump processes")
+    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command])
+    sleep(1.5)

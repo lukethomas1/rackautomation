@@ -20,7 +20,7 @@ while(loop):
     subnets = config_result['subnets']
     nodes = config_result['nodes']
     iplist = config_result['iplist']
-    ipdict = config_result['ipdict']
+    nodeipdict = config_result['nodeipdict']
 
     arg = input("Command: ")
 
@@ -63,6 +63,8 @@ while(loop):
         commands.start_gvine(iplist)
     elif(arg == "start_norm"):
         commands.start_norm(iplist, subnets, nodes)
+    elif(arg == "startlogpackets"):
+        commands.start_basic_tcpdump(nodes, subnets, nodeipdict)
 
     ##### TEST COMMANDS #####
 
@@ -73,7 +75,7 @@ while(loop):
     elif(arg == "transferdelay"):
         commands.transfer_delay(len(nodes))
     elif(arg == "avghoptransferdelay"):
-        commands.avg_hop_transfer_delay(iplist, ipdict, subnets, nodes)
+        commands.avg_hop_transfer_delay(iplist, nodeipdict, subnets, nodes)
     elif(arg == "nodedelay"):
         commands.node_delay()
     elif(arg == "message"):
@@ -88,14 +90,14 @@ while(loop):
     elif(arg == "checkreceived"):
         sender_node = int(input("Sender node? : "))
         file_name = input("File Name? : ")
-        inv_ipdict = functions.invert_dict(ipdict)
+        inv_ipdict = functions.invert_dict(nodeipdict)
         topodict = functions.generate_rack_to_topo_dict(iplist, inv_ipdict, nodes)
         testsuite.check_network_received(file_name, iplist, inv_ipdict, topodict, sender_node)
     elif(arg == "waitreceived"):
         sender_node = int(input("Sender node? : "))
         file_name = input("File Name? : ")
         wait_time = int(input("Wait time? : "))
-        inv_ipdict = functions.invert_dict(ipdict)
+        inv_ipdict = functions.invert_dict(nodeipdict)
         topodict = functions.generate_rack_to_topo_dict(iplist, inv_ipdict, nodes)
         testsuite.wait_for_message_received(file_name, sender_node, iplist, inv_ipdict, nodes,
                                             wait_time)
@@ -108,6 +110,8 @@ while(loop):
         commands.stats(save, len(nodes), iplist)
     elif(arg == "stats_events"):
         commands.stats_events(save, iplist)
+    elif(arg == "stats_tcpdump"):
+        commands.stats_tcpdump(iplist)
     elif(arg == "txpackets"):
         commands.stats_sent_packets()
     elif(arg == "rxpackets"):
@@ -132,6 +136,8 @@ while(loop):
         commands.stop_gvine()
     elif(arg == "stop_norm"):
         commands.stop_norm()
+    elif(arg == "stoplogpackets"):
+        commands.stop_all_tcpdump()
 
     ##### EXTRA COMMANDS #####
 
