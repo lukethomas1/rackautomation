@@ -17,6 +17,7 @@ from collections import OrderedDict
 # Third Party Imports
 from glob import glob
 from re import sub
+from plotly.offline import init_notebook_mode
 
 # Local Imports
 import functions
@@ -159,6 +160,20 @@ def push_config():
     functions.push_gvine_conf(IP_FILE, path_to_conf)
 
 
+def push_file():
+    src_path = input("Input source file path: ")
+    dest_path = input("Input destination file path (1: default gvine 2: default emane): ")
+    file_name = input("Input file name (blank for unchanged): ")
+    if(dest_path == "1"):
+        dest_path = "/home/emane-01/test/emane/gvine/node/" + file_name
+    elif(dest_path == "2"):
+        dest_path = "/home/emane-01/GrapeVine/topologies/" + SAVE_FILE + "/" + file_name
+    else:
+        dest_path = path.expanduser(dest_path)
+    src_path = path.expanduser(src_path)
+    functions.push_file(IP_FILE, src_path, dest_path)
+
+
 def gvpki(iplist):
     # Generate cert on each node
     print("Generating certs")
@@ -220,6 +235,27 @@ def start(save_file, iplist):
     print("Done.")
 
 
+def start_debug(save_file, iplist):
+    functions.synchronize(IP_FILE)
+
+    print("Starting emane")
+    script_name = 'emane_start.sh'
+    functions.remote_emane(save_file, IP_FILE, script_name)
+    sleep(2)
+
+    print("Logging subnet traffic with tcpdump")
+    functions.subnet_tcpdump(nodes, subnets, NODE_PREFIX, nodeipdict)
+
+    print("Deleting previous gvine log files")
+    functions.delete_gvine_log_files(IP_FILE)
+    sleep(2)
+
+    print("Starting GrapeVine jar: " + JAR_FILE)
+    functions.remote_start_gvine(iplist, JAR_FILE)
+    print("Done.")
+
+
+
 def start_console(iplist):
     user = "emane-01"
     terminal = ['gnome-terminal']
@@ -247,6 +283,21 @@ def start_norm(iplist, subnets, nodes):
     functions.start_norm(iplist, subnets, nodes, send_bps, receive_bps)
 
 
+# Runs emane_stop.sh on each rackspace node in the topology
+def stop(save_file):
+    # Stop GrapeVine
+    functions.parallel_ssh(IP_FILE, "sudo pkill java")
+    # Stop Norm
+    functions.parallel_ssh(IP_FILE, "sudo pkill norm")
+    # Stop tcpdump
+    functions.parallel_ssh(IP_FILE, "sudo pkill tcpdump")
+    # Stop EMANE
+    script_file = 'emane_stop.sh'
+    functions.remote_emane(save_file, IP_FILE, script_file)
+    sleep(2)
+    print("Done.")
+
+
 def stop_gvine():
     print("Stopping gvine")
     functions.parallel_ssh(IP_FILE, "sudo pkill java")
@@ -263,7 +314,7 @@ def start_basic_tcpdump(nodes, subnets, nodeipdict):
 
 
 def stop_all_tcpdump():
-    functions.stop_tcpdump(IP_FILE)
+    functions.parallel_ssh(IP_FILE, "sudo pkill tcpdump")
 
 
 def ping(subnets, nodes):
@@ -487,6 +538,44 @@ def stats_tcpdump(iplist):
     statsuite.copy_dump_files(iplist, "./stats/dumps/" + SAVE_FILE + "/")
 
 
+def jupyter_graphs():
+    init_notebook_mode(connected=True)
+    paths = glob("./stats/events/" + SAVE_FILE + "/*.db")
+    paths.sort()
+    for index in range(len(paths)):
+        print("Filename: " + paths[index].split("/")[-1])
+        path_to_input = sub(r"[\\]", '', paths[index])
+        bucket_size_seconds = 1
+        latest_packet_time = statsuite.get_latest_of_all_packets(path_to_input)
+        earliest_packet_time = statsuite.get_earliest_of_all_packets(path_to_input)
+        last_second = int((latest_packet_time - earliest_packet_time) / 1000)
+
+        file_name = "SentPackets" + str(index + 1)
+        buckets_dict = statsuite.make_packets_sent_buckets(path_to_input, bucket_size_seconds)
+        figure = statsuite.plot_packets_sent_data(buckets_dict, bucket_size_seconds, last_second)
+        figure['layout'].update(title=file_name)
+        statsuite.plot_figure(figure, file_name, offline=True)
+        print("Sent packet data:")
+        type_data = statsuite.get_packet_type_data(path_to_input, "loggableeventpacketsent", 3)
+        statsuite.print_type_data(type_data, 4)
+
+        file_name = "ReceivedPackets" + str(index + 1)
+        buckets_dict = statsuite.make_packets_received_buckets(path_to_input, bucket_size_seconds)
+        figure = statsuite.plot_packets_received_data(buckets_dict, bucket_size_seconds, last_second)
+        figure['layout'].update(title=file_name)
+        statsuite.plot_figure(figure, file_name, offline=True)
+        print("Received packet data:")
+        type_data = statsuite.get_packet_type_data(path_to_input, "loggableeventpacketreceived", 4)
+        statsuite.print_type_data(type_data, 5)
+
+        file_name = "RankRx" + str(index + 1)
+        buckets_dict = statsuite.make_rank_buckets(path_to_input, bucket_size_seconds)
+        figure = statsuite.plot_rank_data(buckets_dict, bucket_size_seconds, last_second)
+        figure['layout'].update(title=file_name)
+        statsuite.plot_figure(figure, file_name, offline=True)
+
+
+
 def stats_sent_packets():
     paths = glob("./stats/events/" + SAVE_FILE + "/*.db")
     paths.sort()
@@ -504,9 +593,6 @@ def stats_sent_packets():
         latest_packet_time = statsuite.get_latest_of_all_packets(path_to_input)
         earliest_packet_time = statsuite.get_earliest_of_all_packets(path_to_input)
         last_second = int((latest_packet_time - earliest_packet_time) / 1000)
-        print("latest: " + str(latest_packet_time))
-        print("earliest: " + str(earliest_packet_time))
-        print("last_second: " + str(last_second))
         statsuite.plot_packets_sent_data(buckets_dict, bucket_size_seconds, last_second)
     print("Success")
 
@@ -549,6 +635,9 @@ def stats_received_rank():
         latest_packet_time = statsuite.get_latest_of_all_packets(path_to_input)
         earliest_packet_time = statsuite.get_earliest_of_all_packets(path_to_input)
         last_second = int((latest_packet_time - earliest_packet_time) / 1000)
+        print("latest: " + str(latest_packet_time))
+        print("earliest: " + str(earliest_packet_time))
+        print("last_second: " + str(last_second))
         statsuite.plot_rank_data(buckets_dict, bucket_size_seconds, last_second)
     print("Success")
 
@@ -580,19 +669,6 @@ def stats_delays(save_file, num_nodes):
     delays = statsuite.parse_delayfiles("./stats/delays/" + save_file, num_nodes)
     statsuite.plot_values(delays, "delay")
 
-
-# Runs emane_stop.sh on each rackspace node in the topology
-def stop(save_file):
-    # Stop GrapeVine
-    functions.parallel_ssh(IP_FILE, "sudo pkill java")
-    # Stop Norm
-    functions.parallel_ssh(IP_FILE, "sudo pkill norm")
-    # Stop EMANE
-    script_file = 'emane_stop.sh'
-    functions.remote_emane(save_file, IP_FILE, script_file)
-    sleep(2)
-    print("Done.")
-    
 
 def clean():
     clean_amount = input("Clean 1) Data 2) Non certs 3) All non .jar : ")

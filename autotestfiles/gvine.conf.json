@@ -1,6 +1,6 @@
 {
-   "ExcludeInterfaces" : [ "lo", "eth0", "lxcbr0" ],
-   "InterfaceModes" : { "eth1":"Broadcast", "eth2":"Broadcast" }, 
+   "ExcludeInterfaces" : [ "lo", "eth0", "lxcbr0", "eth1" ],
+   "InterfaceModes" : { "emane0":"Broadcast", "emane1":"Broadcast", "emane2":"Broadcast" }, 
    "FragmentSize" : 50000,
    "TargetTxRateBps" : 50000,
    "PrintLogs" : "yes",
@@ -15,7 +15,7 @@
    "BabelDeletePeriod" : 24,
    "HandshakeReactivePeriod" : 10000,
    "HandshakePeriod" : 3000,
-   "BeaconPeriod" : 1000,
+   "BeaconPeriod" : 3000,
    "GvineChecksums" : "no",
    "GvineEncryption" : "no",
    "GvineRoutingPubKey" : "no",

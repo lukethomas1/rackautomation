@@ -408,6 +408,14 @@ def parallel_ssh(ip_file, command):
     Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command], stdout=DEVNULL)
 
 
+def push_file(ip_file, src_path, dest_path):
+    print("Pushing file " + src_path + " to " + dest_path)
+    command = (
+        "pscp -h " + ip_file + " -l emane-01 " + src_path + " " + dest_path
+    )
+    call(command, shell=True, stdout=DEVNULL)
+
+
 # Debugging method, prints node and subnet names
 def print_subnets_and_nodes(subnets, nodes):
     print("Subnet Names:")
@@ -657,7 +665,7 @@ def write_scenario(subnets, nodes, topo_path):
                 for y in range(num_members):
                     if(x != y):
                         to_nemid = str(subnet['number'] * 100 + subnet['memberids'][y])
-                        pathloss_value = 89
+                        pathloss_value = 0
                         scenario_file.write(" nem:" + str(to_nemid) + "," + str(pathloss_value))
                 scenario_file.write("\n")
     scenario_file.close()
@@ -1036,10 +1044,3 @@ def subnet_tcpdump(nodes, subnets, node_prefix, node_to_ip_dict):
             node_commands.append(command)
         remote_execute_commands(node_commands, node_to_ip_dict[node_name], "emane-01", False,
                                 False, False)
-
-
-def stop_tcpdump(ip_file):
-    command = "sudo pkill tcpdump"
-    print("Killing all tcpdump processes")
-    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command])
-    sleep(1.5)

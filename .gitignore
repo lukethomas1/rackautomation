@@ -20,6 +20,7 @@ data.pickle
 
 # Ignore all compiled python
 *.pyc
+*.ipynb
 
 # But dont ignore these
 !.gitignore

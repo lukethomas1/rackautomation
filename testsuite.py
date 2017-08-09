@@ -136,9 +136,22 @@ def send_gvine_message(sender_ip, message_name, file_size_kb, send_node_num, rec
     ssh = SSHClient()
     ssh.set_missing_host_key_policy(AutoAddPolicy())
     ssh.connect(sender_ip, username="emane-01", pkey=key)
-    
+
+    # Make the text file to be sent
     command = "cd ~/test/emane/gvine/node/"
     command += " && dd if=/dev/urandom of=" + message_name + " bs=" + file_size_kb + "k count=1"
+    stdin, stdout, stderr = ssh.exec_command(command)
+
+    exit_status = 1
+    while(exit_status == 1):
+        print("Sleeping 5 seconds to wait for " + message_name + " to be created")
+        sleep(5)
+        check_exists_command = "ls ~/test/emane/gvine/node/" + message_name
+        stdin, stdout, stderr = ssh.exec_command(check_exists_command)
+        exit_status = stdout.channel.recv_exit_status()
+
+    # Send the text file
+    command = "cd ~/test/emane/gvine/node/"
     if(not receive_node_num):
       command += " && java -jar gvapp.jar file " + message_name + " " + send_node_num
     else:

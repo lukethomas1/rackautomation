@@ -1,13 +1,13 @@
 # Used for rackspace node naming and some other naming, will break things if changed
 NODE_PREFIX = "node-"
 
-SAVE_FILE = "threenodes"
+SAVE_FILE = "8flat"
 
-IMAGE_NAME = "v400"
+IMAGE_NAME = "v402"
 
 RACK_KEY = "mykey"
 
-JAR_FILE = "gvine-java.jar"
+JAR_FILE = "gvine-fast.jar"
 
 # Where to find the ip file for all the rackspace nodes
 IP_FILE = "./iplists/" + NODE_PREFIX + "hosts"
@@ -25,6 +25,6 @@ IP_BLACK_LIST = [
 NUM_INDICES = 4
 MAX_TX_RATE = 50000
 NUM_ITERATIONS = 1
-MSG_SIZES_BYTES = ["50000", "100000", "250000"]
+MSG_SIZES_BYTES = ["800000"]
 ERROR_RATES = [1]
 MSG_INTERVAL = 9999
