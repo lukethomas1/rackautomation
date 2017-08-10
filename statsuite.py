@@ -619,6 +619,21 @@ def print_type_data(type_dict, byte_index):
         print("Average packet size: {:<10.2f}".format(average_size))
 
 
+def print_delay_data(path_to_input):
+    delay_rows = get_sql_data(path_to_input, "loggableeventmessagereceived")
+    files_dict = {}
+    for row in delay_rows:
+        if(row[3] not in files_dict.keys()):
+            files_dict[row[3]] = []
+        files_dict[row[3]].append(row)
+    for key in files_dict.keys():
+        print()
+        for row in files_dict[key]:
+            print(row[0] + " received " + key + " (" + str(row[7]) + " bytes) in " + str(row[
+                                                                                             4]/1000)
+                  + " seconds")
+
+
 def get_earliest_packet_time(packet_rows, index_of_timestamp):
     if(packet_rows):
         return min([row[index_of_timestamp] for row in packet_rows])

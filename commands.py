@@ -549,6 +549,7 @@ def jupyter_graphs():
         latest_packet_time = statsuite.get_latest_of_all_packets(path_to_input)
         earliest_packet_time = statsuite.get_earliest_of_all_packets(path_to_input)
         last_second = int((latest_packet_time - earliest_packet_time) / 1000)
+        statsuite.print_delay_data(path_to_input)
 
         file_name = "SentPackets" + str(index + 1)
         buckets_dict = statsuite.make_packets_sent_buckets(path_to_input, bucket_size_seconds)
