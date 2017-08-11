@@ -148,7 +148,7 @@ def run(need_setup, need_configure):
             # Delay tolerant testing
             first_msg_time = time()
             print("Elapsed time: " + str(first_msg_time - start_time))
-            sleep_time = 280 - (first_msg_time - start_time)
+            sleep_time = 165 - (first_msg_time - start_time)
             print("Waiting " + str(sleep_time) + " seconds for nodes to disconnect")
             if(sleep_time > 0):
                 sleep(sleep_time)

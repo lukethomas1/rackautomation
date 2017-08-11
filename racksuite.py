@@ -58,7 +58,7 @@ while(loop):
     elif(arg == "start"):
         commands.start(save, iplist)
     elif(arg == "startdebug"):
-        commands.start_debug(save, iplist)
+        commands.start_debug(save, iplist, nodes, subnets, nodeipdict)
     elif(arg == "start_console"):
         commands.start_console(iplist)
     elif(arg == "start_emane"):

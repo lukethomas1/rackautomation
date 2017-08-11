@@ -29,6 +29,7 @@ import config
 # Constants defined in config.py
 NODE_PREFIX = config.NODE_PREFIX
 SAVE_FILE = config.SAVE_FILE
+JUPYTER_SAVE_FILE = config.JUPYTER_SAVE_FILE
 IMAGE_NAME = config.IMAGE_NAME
 IP_FILE = config.IP_FILE
 IP_BLACK_LIST = config.IP_BLACK_LIST
@@ -235,7 +236,7 @@ def start(save_file, iplist):
     print("Done.")
 
 
-def start_debug(save_file, iplist):
+def start_debug(save_file, iplist, nodes, subnets, nodeipdict):
     functions.synchronize(IP_FILE)
 
     print("Starting emane")
@@ -540,7 +541,7 @@ def stats_tcpdump(iplist):
 
 def jupyter_graphs():
     init_notebook_mode(connected=True)
-    paths = glob("./stats/events/" + SAVE_FILE + "/*.db")
+    paths = glob("./stats/events/" + JUPYTER_SAVE_FILE + "/*.db")
     paths.sort()
     for index in range(len(paths)):
         print("Filename: " + paths[index].split("/")[-1])
