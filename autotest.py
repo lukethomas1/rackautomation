@@ -106,7 +106,7 @@ def run(need_setup, need_configure):
     # Parameters with indices: Iteration, Source Node, Message Size, Error Rate
     param_indices = initial_indices
     max_indices = [num_iterations, len(nodes), len(msg_sizes_bytes), len(error_rates)]
-    max_indices = [num_iterations, 2, len(msg_sizes_bytes), len(error_rates)]
+    # max_indices = [num_iterations, 2, len(msg_sizes_bytes), len(error_rates)]
     done = False
     errors_in_a_row = 0
     while(not done):
@@ -126,7 +126,7 @@ def run(need_setup, need_configure):
 
             # Run the test
             start_time = time()
-            start()
+            start(tcpdump=True)
             print("Sleeping 15 seconds for GrapeVine to initialize on nodes")
             sleep(15)
             file_name = "autotestmsg_" + str(source_node + 1) + "_" + str(msg_counter) + ".txt"
@@ -145,6 +145,7 @@ def run(need_setup, need_configure):
             test_success = testsuite.wait_for_message_received(file_name, source_node + 1, iplist,
                                                      inv_ipdict, nodes, wait_msg_time)
 
+            '''
             # Delay tolerant testing
             first_msg_time = time()
             print("Elapsed time: " + str(first_msg_time - start_time))
@@ -159,6 +160,7 @@ def run(need_setup, need_configure):
             wait_msg_time = 500
             test_success = testsuite.wait_for_message_received(file_name, source_node + 1, iplist,
                                                                inv_ipdict, nodes, wait_msg_time)
+            '''
 
             # Handle test failure
             if(not test_success):
@@ -315,13 +317,17 @@ def node_certs(iplist):
     functions.load_certs(path_to_jar, iplist)
 
 
-def start():
+def start(tcpdump):
     functions.synchronize(IP_FILE)
 
     print("Starting emane")
     script_name = 'emane_start.sh'
     functions.remote_emane(SAVE_FILE, IP_FILE, script_name)
     sleep(2)
+
+    if(tcpdump):
+        print("Logging subnet traffic with tcpdump")
+        functions.subnet_tcpdump(nodes, subnets, NODE_PREFIX, nodeipdict)
 
     print("Deleting previous gvine log files")
     functions.delete_gvine_log_files(IP_FILE)
@@ -389,6 +395,8 @@ def gather_data():
     input_dir = "./stats/events/" + SAVE_FILE + "/nodedata/"
     output_dir = "./stats/events/" + SAVE_FILE + "/"
     path_to_sql_db = statsuite.combine_event_dbs(input_dir, output_dir)
+
+    commands.stats_tcpdump(iplist)
 
 
 def cleanup():

@@ -14,7 +14,7 @@ from os import listdir, makedirs, path
 from shutil import copy
 from subprocess import call, Popen, PIPE, DEVNULL
 from time import sleep, time
-from re import compile, match, split
+from re import compile, match, split, sub
 
 # Third Party Imports
 from paramiko import AutoAddPolicy, RSAKey, SSHClient
@@ -113,6 +113,18 @@ def assign_subnet_addresses(subnets, blacklist):
             taken_addresses.append(subaddr)
 
 
+def choose_timestamp_path(paths, index=-1):
+    paths.sort()
+    paths.reverse()
+    num = str(len(paths) - 1)
+
+    if(index < 0):
+        user_input = input("Choose path (0 newest, " + num + " oldest) : ")
+        index = int(user_input)
+    chosen_path = sub(r"[\\]", '', paths[index])
+    return chosen_path
+
+
 def clean_node_data(ip_file):
     command = (
         "cd ~/test/emane/gvine/node/ && rm -rf gvine.msg* gvine.frag* " +
@@ -186,7 +198,7 @@ def create_rackspace_instances(num_instances, image_name, ssh_key, save_file, no
         + image_name + "', ssh_key '" + ssh_key + "', and save file '" + save_file + "'")
     for index in range(1, num_instances + 1):
         node_name = node_prefix + str(index)
-        print("Creating " + node_name);
+        print("Creating " + node_name)
         # Long command, just a bunch of arguments, see 'rack -h' for more info
         Popen(['rack', 'servers', 'instance',
             'create', '--name', node_name, '--image-name',
@@ -1039,8 +1051,8 @@ def subnet_tcpdump(nodes, subnets, node_prefix, node_to_ip_dict):
         node_subnets = member_subnets(node['number'], subnets)
         for index in range(len(node_subnets)):
             interface = "emane" + str(index)
-            command = "sudo nohup tcpdump -i " + interface + " -w ~/test/emane/gvine/node/" + \
-                      interface + ".pcap &>/dev/null &"
+            command = "sudo nohup tcpdump -i " + interface + " -n udp -w " \
+                      "~/test/emane/gvine/node/" + interface + ".pcap &>/dev/null &"
             node_commands.append(command)
         remote_execute_commands(node_commands, node_to_ip_dict[node_name], "emane-01", False,
                                 False, False)

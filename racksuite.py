@@ -10,6 +10,7 @@
 import commands
 import functions
 import testsuite
+import packetsuite
 
 loop = True
 while(loop):
@@ -105,6 +106,11 @@ while(loop):
         topodict = functions.generate_rack_to_topo_dict(iplist, inv_ipdict, nodes)
         testsuite.wait_for_message_received(file_name, sender_node, iplist, inv_ipdict, nodes,
                                             wait_time)
+    elif(arg == "scapytest"):
+        dump_dirs = packetsuite.get_dump_timestamp_dirs()
+        node_dict = packetsuite.get_pcap_node_dict(dump_dirs[0], len(nodes))
+        pkt = node_dict["node1"]["sent"]["gvine"][10]
+        packetsuite.useful_functions(pkt)
 
     ##### DATA COMMANDS #####
 
@@ -122,6 +128,8 @@ while(loop):
         commands.stats_received_packets()
     elif(arg == "rxrank"):
         commands.stats_received_rank()
+    elif(arg == "counts"):
+        packetsuite.compare_all_sql_tcpdump(len(nodes))
     elif(arg == "delays"):
         commands.stats_delays(save, len(nodes))
     elif(arg == "emane_stats"):

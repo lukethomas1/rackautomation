@@ -40,6 +40,17 @@ def get_sql_data(path_to_db, table_name):
     return rows
 
 
+def queary_sql_db(path_to_db, query):
+    main_connection = connect(path_to_db)
+    cursor = main_connection.cursor()
+    try:
+        cursor.execute(query)
+    except(Exception):
+        print("There is no data for " + query + " at " + path_to_db)
+    data = cursor.fetchall()
+    return data
+
+
 ##### Delays from SQL #####
 
 # Takes in the rows from get_sql_delay_data() and returns a dictionary of
@@ -585,13 +596,13 @@ def plot_figure(figure, file_name, offline):
 
 
 def get_packet_type_data(path_to_input, table_name, type_index):
-    received_packet_rows = get_sql_data(path_to_input, table_name)
+    packet_rows = get_sql_data(path_to_input, table_name)
     type_dict = {}
     type_dict["beacon"] = []
     type_dict["gvine"] = []
     type_dict["babel"] = []
     type_dict["handshake"] = []
-    for row in received_packet_rows:
+    for row in packet_rows:
         if(row[type_index] == PACKET_BEACON):
             type_dict["beacon"].append(row)
         elif(row[type_index] == PACKET_GVINE):
@@ -1014,8 +1025,7 @@ def copy_dump_files(iplist, output_dir):
     create_dir(folder_name)
 
     for index in range(len(iplist)):
-        copy_dir = folder_name + "/node" + str(index + 1)
-        create_dir(copy_dir)
         ip = iplist[index]
-        command = "scp emane-01@" + ip + ":" + "~/test/emane/gvine/node/*.pcap " + copy_dir
+        command = "scp emane-01@" + ip + ":" + "~/test/emane/gvine/node/*.pcap " + folder_name + \
+                  "/node" + str(index + 1) + ".cap"
         system(command)
