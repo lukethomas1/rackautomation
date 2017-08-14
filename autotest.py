@@ -388,6 +388,7 @@ def gather_data():
     sleep(3)
 
     print("Copying Sqlite3 Event databases to this computer")
+    statsuite.clear_node_event_data(SAVE_FILE)
     path_to_db = "/home/emane-01/test/emane/gvine/node/dbs/eventsql_copy.db"
     statsuite.copy_event_dbs(iplist, path_to_db, "./stats/events/" + SAVE_FILE + "/nodedata/")
     sleep(3)

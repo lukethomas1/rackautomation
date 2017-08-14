@@ -528,6 +528,7 @@ def stats_events(save_file, iplist):
     sleep(2)
 
     print("\nCopying Event data")
+    stats.clear_node_event_data(save_file)
     path_to_db = "/home/emane-01/test/emane/gvine/node/dbs/eventsql_copy.db"
     statsuite.copy_event_dbs(iplist, path_to_db, "./stats/events/" + save_file + "/nodedata/")
 

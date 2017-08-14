@@ -874,6 +874,11 @@ def generate_event_dbs(iplist):
         ssh.close()
 
 
+def clear_node_event_data(save_file):
+    command = "rm -f ./stats/events/" + save_file + "/*"
+    system(command)
+
+
 def copy_event_dbs(iplist, path_to_db, dest_path):
     for index in range(len(iplist)):
         ip = iplist[index]
