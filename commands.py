@@ -463,16 +463,21 @@ def test_message(iplist):
     testsuite.message_test_gvine(iplist, message_name, file_size)
 
 
-def stats(save_file, num_nodes, iplist):
+def stats_directories(save_file):
     print("Creating stats directories")
     functions.create_dir("./stats/")
     functions.create_dir("./stats/delays")
+    functions.create_dir("./stats/dumps")
     functions.create_dir("./stats/emane")
     functions.create_dir("./stats/events")
     functions.create_dir("./stats/delays/" + save_file)
+    functions.create_dir("./stats/dumps/" + save_file)
     functions.create_dir("./stats/emane/" + save_file)
     functions.create_dir("./stats/events/" + save_file)
     functions.create_dir("./stats/events/" + save_file + "/nodedata/")
+
+def stats(save_file, num_nodes, iplist):
+    stats_directories(save_file)
 
     #print("\nRetrieving delay files")
     #path_to_delay = "/home/emane-01/test/emane/gvine/node/delay.txt"

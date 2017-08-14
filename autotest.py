@@ -92,6 +92,7 @@ def run(need_setup, need_configure):
         functions.clean_nodes(IP_FILE)
         setup(need_configure)
     update_config()
+    commands.stats_directories(SAVE_FILE)
 
     # Stop and clean in case we did a test before this
     stop()
