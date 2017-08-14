@@ -423,7 +423,7 @@ def parallel_ssh(ip_file, command):
 def push_file(ip_file, src_path, dest_path):
     print("Pushing file " + src_path + " to " + dest_path)
     command = (
-        "pscp -h " + ip_file + " -l emane-01 " + src_path + " " + dest_path
+        "parallel-scp -h " + ip_file + " -l emane-01 " + src_path + " " + dest_path
     )
     call(command, shell=True, stdout=DEVNULL)
 
@@ -443,7 +443,7 @@ def print_subnets_and_nodes(subnets, nodes):
 # Copy default config to topology directory
 def remote_copy_default_config(save_folder, ip_file):
     command = (
-        "pscp -h " + ip_file + " -l emane-01 ./default_config/* " +
+        "parallel-scp -h " + ip_file + " -l emane-01 ./default_config/* " +
         "/home/emane-01/GrapeVine/topologies/" + save_folder
     )
     call(command, shell=True, stdout=DEVNULL)
@@ -458,7 +458,7 @@ def remote_copy_emane_scripts(save_folder, iplist):
         node_ip = iplist[node_index]
         start_dir = './topologies/' + save_folder + '/emane_start.sh'
         stop_dir = './topologies/' + save_folder + '/emane_stop.sh'
-        to_dir = 'root@' + node_ip + ':/home/emane-01/GrapeVine/topologies/' + save_folder
+        to_dir = 'emane-01@' + node_ip + ':/home/emane-01/GrapeVine/topologies/' + save_folder
         Popen(['scp', start_dir, to_dir])
         Popen(['scp', stop_dir, to_dir])
         sleep(1)
@@ -471,7 +471,7 @@ def remote_copy_platform_xmls(save_folder, iplist):
         file_name = 'platform' + str(node_index + 1) + '.xml'
         node_ip = iplist[node_index]
         from_dir = './topologies/' + save_folder + '/' + file_name
-        to_dir = 'root@' + node_ip + ':/home/emane-01/GrapeVine/topologies/' + save_folder + "/platform.xml"
+        to_dir = 'emane-01@' + node_ip + ':/home/emane-01/GrapeVine/topologies/' + save_folder + "/platform.xml"
         Popen(['scp', from_dir, to_dir])
         sleep(1)
 
@@ -482,7 +482,7 @@ def remote_copy_scenario(save_folder, iplist):
     for node_index in range(0, num_instances):
         node_ip = iplist[node_index]
         from_dir = './topologies/' + save_folder + '/scenario.eel'
-        to_dir = 'root@' + node_ip + ':/home/emane-01/GrapeVine/topologies/' + save_folder + "/scenario.eel"
+        to_dir = 'emane-01@' + node_ip + ':/home/emane-01/GrapeVine/topologies/' + save_folder + "/scenario.eel"
         Popen(['scp', from_dir, to_dir])
         sleep(1)
 
@@ -830,10 +830,11 @@ def pull_certs(iplist):
         Popen(['scp', from_path, to_path])
     
 
-# Use pscp to push certs in parallel
+# Use parallel-scp to push certs in parallel
 def push_certs(ip_file, path_to_certs, path_to_push):
-    command = "pscp -h " + ip_file + " -l emane-01 " + path_to_certs + " " + path_to_push
-    call(command, shell=True, stdout=DEVNULL)
+    command = "parallel-scp -h " + ip_file + " -l emane-01 " + path_to_certs + " " + path_to_push
+    #call(command, shell=True, stdout=DEVNULL)
+    call(command, shell=True)
 
 
 def load_certs(path_to_jar, iplist):
@@ -855,7 +856,7 @@ def load_certs(path_to_jar, iplist):
 
 def push_gvine_conf(ip_file, path_to_conf):
     command = (
-        "pscp -h " + ip_file + " -l emane-01 " + path_to_conf +
+        "parallel-scp -h " + ip_file + " -l emane-01 " + path_to_conf +
         " /home/emane-01/test/emane/gvine/node/"
     )
     call(command, shell=True, stdout=DEVNULL)

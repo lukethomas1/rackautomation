@@ -1,11 +1,11 @@
 # Used for rackspace node naming and some other naming, will break things if changed
-NODE_PREFIX = "node-"
+NODE_PREFIX = "node"
 
 SAVE_FILE = "threenodes"
 JUPYTER_SAVE_FILE = "8flat"
 PCAP_SAVE_FILE = "threenodes"
 
-IMAGE_NAME = "v403"
+IMAGE_NAME = "laptop"
 
 RACK_KEY = "mykey"
 
