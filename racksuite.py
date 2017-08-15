@@ -58,7 +58,7 @@ while(loop):
 
     elif(arg == "start"):
         commands.start(save, iplist)
-    elif(arg == "startdebug"):
+    elif(arg == "start_debug"):
         commands.start_debug(save, iplist, nodes, subnets, nodeipdict)
     elif(arg == "start_console"):
         commands.start_console(iplist)
@@ -128,6 +128,8 @@ while(loop):
         commands.stats_received_packets()
     elif(arg == "rxrank"):
         commands.stats_received_rank()
+    elif(arg == "basic_packets_graph"):
+        commands.stats_basic_packets()
     elif(arg == "counts"):
         packetsuite.compare_all_sql_tcpdump(len(nodes))
     elif(arg == "delays"):
@@ -155,6 +157,8 @@ while(loop):
 
     elif(arg == "clean"):
         commands.clean()
+    elif(arg == "clean_norm"):
+        functions.clean_norm(iplist)
     elif(arg == "delete"):
         commands.delete(save)
     elif(arg == "kill"):

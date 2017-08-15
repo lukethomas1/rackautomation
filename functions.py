@@ -693,6 +693,7 @@ def coord_distance(lat1, lon1, lat2, lon2):
 ##### NORM CONFIGURATION #####
 
 def start_norm(iplist, subnets, nodes, send_bps, receive_bps):
+    print("Only sending on: " + str(nodes[0]))
     send_commands = get_norm_send_commands(iplist, subnets, nodes, send_bps)
     receive_commands = get_norm_receive_commands(iplist, subnets, nodes, receive_bps)
     loc = path.expanduser("~/.ssh/id_rsa")
@@ -704,9 +705,11 @@ def start_norm(iplist, subnets, nodes, send_bps, receive_bps):
         node_name = "node" + str(index)
         print("Starting norm protocol on " + node_name)
         ssh.connect(iplist[index - 1], username="emane-01", pkey=key)
-        for send_command in send_commands[node_name]:
-            command = "cd ~/norm/bin/ && " + send_command
-            stdin, stdout, stderr = ssh.exec_command(command)
+        if(node_name in send_commands.keys()):
+            for send_command in send_commands[node_name]:
+                command = "cd ~/norm/bin/ && " + send_command
+                print("Executing on " + node_name + ": " + command)
+                stdin, stdout, stderr = ssh.exec_command(command)
         for receive_command in receive_commands[node_name]:
             command = "cd ~/norm/bin/ && " + str(receive_command)
             stdin, stdout, stderr = ssh.exec_command(command)
@@ -738,7 +741,8 @@ def get_norm_receive_commands(iplist, subnets, nodes, receive_bps):
 def get_norm_send_commands(iplist, subnets, nodes, send_bps):
     SEND_COMMAND = "./norm addr 239.255.255.0/{0!s} interface {1} rate {2!s} sendfile ./outbox repeat -1 updatesOnly trace on log txlog.txt &"
     commands = {}
-    for index in range(0, len(nodes)):
+    #for index in range(0, len(nodes)):
+    for index in range(0, 1):
         node = nodes[index]
         node_name = 'node' + str(node['number'])
         commands[node_name] = []
@@ -753,6 +757,21 @@ def get_norm_send_commands(iplist, subnets, nodes, send_bps):
                 send = SEND_COMMAND.format(send_port, interface_name, bits_per_second)
                 commands[node_name].append(send)
     return commands
+
+
+def clean_norm(iplist):
+    loc = path.expanduser("~/.ssh/id_rsa")
+    key = RSAKey.from_private_key_file(loc)
+    ssh = SSHClient()
+    ssh.set_missing_host_key_policy(AutoAddPolicy())
+
+    for ip in iplist:
+        ssh.connect(ip, username="emane-01", pkey=key)
+        clean_outbox = "cd ~/norm/bin/outbox && rm *"
+        ssh.exec_command(clean_outbox)
+        clean_logs = "cd ~/norm/bin && rm *log*"
+        ssh.exec_command(clean_logs)
+        ssh.close()
 
 ##### RACKSPACE API INTERACTION #####
 
@@ -1052,6 +1071,7 @@ def subnet_tcpdump(nodes, subnets, node_prefix, node_to_ip_dict):
         node_subnets = member_subnets(node['number'], subnets)
         for index in range(len(node_subnets)):
             interface = "emane" + str(index)
+            print("Starting tcpdump on " + node_name + " and interface " + interface)
             command = "sudo nohup tcpdump -i " + interface + " -n udp -w " \
                       "~/test/emane/gvine/node/" + interface + ".pcap &>/dev/null &"
             node_commands.append(command)

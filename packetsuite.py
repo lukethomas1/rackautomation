@@ -15,6 +15,7 @@ from re import sub
 # Local Imports
 import config
 import statsuite
+import graphsuite
 from functions import choose_timestamp_path
 
 # This suppresses warning messages produced by scapy on module load
@@ -192,6 +193,45 @@ def compare_num_packets_dicts(sql_dict, dump_dict):
         else:
             print(category + " DOESNT MATCH, sql: " + str(num_sql) + " dump: "
                   + str(num_dump))
+
+
+def make_basic_packets_dict():
+    dump_dirs = get_dump_timestamp_dirs()
+    chosen_dir = choose_timestamp_path(dump_dirs)
+    pcap_files = glob(chosen_dir + "/*")
+    packets_dict = {}
+    earliest_time = 99999999999999
+    latest_time = -1
+    for pcap_path in pcap_files:
+        node_name = pcap_path.split("/")[-1].split(".")[0]
+        packets_dict[node_name] = rdpcap(pcap_path)
+        earliest_time = min(earliest_time, int(packets_dict[node_name][0].time))
+        latest_time = max(latest_time, int(packets_dict[node_name][-1].time))
+    seconds_dict = {}
+    for node_name in packets_dict.keys():
+        seconds_dict[node_name] = {}
+        seconds_dict[node_name]["sent"] = {}
+        seconds_dict[node_name]["received"] = {}
+        for second in range(latest_time - earliest_time + 1):
+            seconds_dict[node_name]["sent"][str(int(second))] = 0
+            seconds_dict[node_name]["received"][str(int(second))] = 0
+        for packet in packets_dict[node_name]:
+            second = int(packet.time - earliest_time)
+            if(is_packet_sender(packet, statsuite.get_trailing_number(node_name))):
+                seconds_dict[node_name]["sent"][str(second)] += len(packet)
+            else:
+                seconds_dict[node_name]["received"][str(second)] += len(packet)
+
+    graphsuite.plot_basic_direction(seconds_dict, "sent", "testsent")
+    graphsuite.plot_basic_direction(seconds_dict, "received", "testreceived")
+    return seconds_dict
+
+
+def is_packet_sender(packet, node_index):
+    if(str(packet[IP].src.split(".")[-1]) == str(node_index)):
+        return True
+    return False
+
 
 if __name__ == "__main__":
     print("main")

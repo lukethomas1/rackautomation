@@ -24,6 +24,7 @@ import functions
 import testsuite
 import statsuite
 import autotest
+import packetsuite
 import config
 
 # Constants defined in config.py
@@ -582,6 +583,10 @@ def jupyter_graphs():
         figure['layout'].update(title=file_name)
         statsuite.plot_figure(figure, file_name, offline=True)
 
+
+def stats_basic_packets():
+    init_notebook_mode(connected=True)
+    packetsuite.make_basic_packets_dict()
 
 
 def stats_sent_packets():

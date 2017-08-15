@@ -20,6 +20,7 @@ import plotly
 from functions import create_dir
 
 # Global Constants
+PACKETS_LIST = ["beacon", "gvine", "handshake", "babel"]
 PACKET_BEACON = 1
 PACKET_GVINE = 2
 PACKET_HANDSHAKE = 3
@@ -292,22 +293,12 @@ def make_packets_sent_buckets(path_to_input, bucket_increment_seconds):
     buckets_dict = {}
     for row in packet_rows:
         sender_node = row[0]
-        event_id = row[1]
-        where_in_code = row[2]
         packet_id = row[3]
         num_bytes = row[4]
         time_stamp_millis = row[5]
         relative_time = int((time_stamp_millis - earliest_packet_time) / 1000)
         bucket_index = int(relative_time / bucket_increment_seconds)
-        packet_type = "Unknown"
-        if(packet_id == PACKET_BEACON):
-            packet_type = "beacon"
-        elif(packet_id == PACKET_HANDSHAKE):
-            packet_type = "handshake"
-        elif(packet_id == PACKET_BABEL):
-            packet_type = "babel"
-        elif(packet_id == PACKET_GVINE):
-            packet_type = "obligation"
+        packet_type = get_packet_type(packet_id)
 
         if(packet_type not in buckets_dict.keys()):
             buckets_dict[packet_type] = {}
@@ -398,23 +389,13 @@ def make_packets_received_buckets(path_to_input, bucket_size_seconds):
     buckets_dict = {}
     for row in packet_rows:
         receiver_node = row[0]
-        event_id = row[1]
         sender_node = row[2]
-        where_in_code = row[3]
         packet_id = row[4]
         num_bytes = row[5]
         time_stamp_millis = row[6]
         relative_time = int((time_stamp_millis - earliest_packet_time) / 1000)
         bucket_index = int(relative_time / bucket_size_seconds)
-        packet_type = "Unknown"
-        if(packet_id == PACKET_BEACON):
-            packet_type = "beacon"
-        elif(packet_id == PACKET_HANDSHAKE):
-            packet_type = "handshake"
-        elif(packet_id == PACKET_BABEL):
-            packet_type = "babel"
-        elif(packet_id == PACKET_GVINE):
-            packet_type = "obligation"
+        packet_type = get_packet_type(packet_id)
 
         if(packet_type not in buckets_dict.keys()):
             buckets_dict[packet_type] = {}
@@ -501,7 +482,7 @@ def plot_packets_received_data(buckets_dict, bucket_size_seconds, last_second):
         for node in sorted(buckets_dict[packet_type].keys()):
             index = int(node[-1])
             index = get_trailing_number(node)
-            row_num = int((index - 1)/ 2) + 1
+            row_num = int((index - 1) / 2) + 1
             col_num = 2 - index % 2
             figure.append_trace(traces[packet_type][node], row_num, col_num)
     return figure
@@ -595,6 +576,20 @@ def plot_figure(figure, file_name, offline):
         plotly.plotly.iplot(figure, filename=file_name)
 
 
+def get_packet_type(packet_id):
+    if(packet_id == PACKET_BEACON):
+        packet_type = "beacon"
+    elif(packet_id == PACKET_HANDSHAKE):
+        packet_type = "handshake"
+    elif(packet_id == PACKET_BABEL):
+        packet_type = "babel"
+    elif(packet_id == PACKET_GVINE):
+        packet_type = "obligation"
+    else:
+        print("UNKNOWN PACKET TYPE")
+    return packet_type
+
+
 def get_packet_type_data(path_to_input, table_name, type_index):
     packet_rows = get_sql_data(path_to_input, table_name)
     type_dict = {}
@@ -603,16 +598,8 @@ def get_packet_type_data(path_to_input, table_name, type_index):
     type_dict["babel"] = []
     type_dict["handshake"] = []
     for row in packet_rows:
-        if(row[type_index] == PACKET_BEACON):
-            type_dict["beacon"].append(row)
-        elif(row[type_index] == PACKET_GVINE):
-            type_dict["gvine"].append(row)
-        elif(row[type_index] == PACKET_BABEL):
-            type_dict["babel"].append(row)
-        elif(row[type_index] == PACKET_HANDSHAKE):
-            type_dict["handshake"].append(row)
-        else:
-            print("UNKNOWN PACKET TYPE")
+        packet_type = get_packet_type(row[type_index])
+        type_dict[packet_type].append(row)
     return type_dict
 
 
