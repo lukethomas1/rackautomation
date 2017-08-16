@@ -593,6 +593,15 @@ def stats_basic_packets():
     graphsuite.plot_basic_direction(seconds_dict, "received", True, "Received Average")
 
 
+def stats_type_packets():
+    init_notebook_mode(connected=True)
+    buckets_dict = packetsuite.make_type_packets_dict()
+    graphsuite.plot_type_direction(buckets_dict, "sent", False, "sent")
+    graphsuite.plot_type_direction(buckets_dict, "received", False, "received")
+    graphsuite.plot_type_direction(buckets_dict, "sent", True, "sent_cumulative")
+    graphsuite.plot_type_direction(buckets_dict, "received", True, "received_cumulative")
+
+
 def stats_sent_packets():
     paths = glob("./stats/events/" + SAVE_FILE + "/*.db")
     paths.sort()

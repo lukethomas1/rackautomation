@@ -16,6 +16,7 @@ from re import sub
 import config
 import statsuite
 import graphsuite
+import constants
 from functions import choose_timestamp_path
 
 # This suppresses warning messages produced by scapy on module load
@@ -28,6 +29,7 @@ PACKET_BEACON = 1
 PACKET_GVINE = 2
 PACKET_HANDSHAKE = 3
 PACKET_BABEL = 4
+PACKET_TYPES = constants.PACKET_TYPES
 
 ##### TCPDUMP ANALYSIS #####
 
@@ -44,42 +46,31 @@ def get_pcap_node_dict(dump_dir, num_nodes):
     return node_dict
 
 
-# return dictionary of sent/received packets and beacon/gvine/handshake/babel below it
 def read_pcap(path):
-    node_name = path.split("/")[-1].split(".")[0]
+    """Read GrapeVine pcap file and parse packets by direction and packet type
 
-    # Initialize dictionary
+    :param path: Path to the pcap file to be parsed
+    :return: node_dict[direction][packet_type] = packets
+    """
+    node_name = path.split("/")[-1].split(".")[0]
     node_dict = {}
     node_dict["sent"] = {}
     node_dict["received"] = {}
     for direction in node_dict.keys():
-        node_dict[direction]["beacon"] = []
-        node_dict[direction]["gvine"] = []
-        node_dict[direction]["handshake"] = []
-        node_dict[direction]["babel"] = []
-
+        for packet_type in PACKET_TYPES:
+            node_dict[packet_type] = []
     # Fill dictionary
     packets = rdpcap(path)
     for packet in packets:
         try:
-            type = packet.load[3]
+            type = get_gvine_packet_type(packet)
         except:
             print("ERROR: PACKET WITHOUT A PAYLOAD")
             continue
         direction = "received"
         if(packet[IP].src.split(".")[-1] == str(statsuite.get_trailing_number(node_name))):
             direction = "sent"
-        if(type == PACKET_BEACON):
-            node_dict[direction]["beacon"].append(packet)
-        elif(type == PACKET_GVINE):
-            node_dict[direction]["gvine"].append(packet)
-        elif(type == PACKET_HANDSHAKE):
-            node_dict[direction]["handshake"].append(packet)
-        elif(type == PACKET_BABEL):
-            node_dict[direction]["babel"].append(packet)
-        else:
-            # print("PACKET WITH UNKNOWN TYPE")
-            continue
+        node_dict[direction][type].append(packet)
     return node_dict
 
 
@@ -93,15 +84,10 @@ def get_packet_counts(node_dict):
     num_packets_dict["received"] = 0
     for direction in ("sent", "received"):
         for type in node_dict[direction].keys():
-            num_packets_dict[direction] += len(node_dict[direction][type])
-            if(type == "beacon"):
-                num_packets_dict["beacon"] += len(node_dict[direction][type])
-            elif(type == "gvine"):
-                num_packets_dict["gvine"] += len(node_dict[direction][type])
-            elif(type == "handshake"):
-                num_packets_dict["handshake"] += len(node_dict[direction][type])
-            elif(type == "babel"):
-                num_packets_dict["babel"] += len(node_dict[direction][type])
+            packet = node_dict[direction][type]
+            packet_type = get_gvine_packet_type(packet)
+            num_packets_dict[direction] += len(packet)
+            num_packets_dict[packet_type] += len(packet)
     return num_packets_dict
 
 
@@ -146,7 +132,6 @@ def get_sql_node_dict(path_to_input, num_nodes):
                                             SENT_TYPE_INDEX)
     received_dict = statsuite.get_packet_type_data(path_to_input, "loggableeventpacketreceived",
                                                    RECEIVED_TYPE_INDEX)
-
     node_dict = make_empty_node_dict(num_nodes)
     for type in received_dict.keys():
         for row in received_dict[type]:
@@ -159,6 +144,7 @@ def get_sql_node_dict(path_to_input, num_nodes):
 
 def get_sql_timestamp_dbs():
     return glob("./stats/events/" + SAVE_FILE + "/*.db")
+
 
 def compare_all_sql_tcpdump(num_nodes):
     sql_dbs = get_sql_timestamp_dbs()
@@ -184,6 +170,7 @@ def compare_sql_tcpdump(sql_path, dump_path, num_nodes):
         print("Node: " + node_name)
         compare_num_packets_dicts(sql_counts, dump_counts)
 
+
 def compare_num_packets_dicts(sql_dict, dump_dict):
     for category in sql_dict.keys():
         num_sql = sql_dict[category]
@@ -200,13 +187,10 @@ def make_basic_packets_dict():
     chosen_dir = choose_timestamp_path(dump_dirs)
     pcap_files = glob(chosen_dir + "/*")
     packets_dict = {}
-    earliest_time = 99999999999999
-    latest_time = -1
     for pcap_path in pcap_files:
         node_name = pcap_path.split("/")[-1].split(".")[0]
         packets_dict[node_name] = rdpcap(pcap_path)
-        earliest_time = min(earliest_time, int(packets_dict[node_name][0].time))
-        latest_time = max(latest_time, int(packets_dict[node_name][-1].time))
+    earliest_time, latest_time = get_earliest_latest_packet(packets_dict)
     seconds_dict = {}
     for node_name in packets_dict.keys():
         seconds_dict[node_name] = {}
@@ -222,6 +206,62 @@ def make_basic_packets_dict():
             else:
                 seconds_dict[node_name]["received"][str(second)] += len(packet)
     return seconds_dict
+
+
+def make_type_packets_dict():
+    dump_dirs = get_dump_timestamp_dirs()
+    chosen_dir = choose_timestamp_path(dump_dirs)
+    pcap_files = glob(chosen_dir + "/*")
+    packets_dict = {}
+    for pcap_path in pcap_files:
+        node_name = pcap_path.split("/")[-1].split(".")[0]
+        packets_dict[node_name] = rdpcap(pcap_path)
+    earliest_time, latest_time = get_earliest_latest_packet(packets_dict)
+    seconds_dict = make_bucket_template(packets_dict.keys(), earliest_time, latest_time)
+    for node_name in packets_dict.keys():
+        for packet in packets_dict[node_name]:
+            is_sender = is_packet_sender(packet, statsuite.get_trailing_number(node_name))
+            direction = "sent" if is_sender else "received"
+            try:
+                packet_type = get_gvine_packet_type(packet)
+            except IndexError:
+                continue
+            second = int(packet.time - earliest_time)
+            seconds_dict[direction][packet_type][node_name][str(second)] += len(packet)
+    return seconds_dict
+
+
+def make_bucket_template(node_names, earliest_time, latest_time):
+    bucket_template = {}
+    for direction in ("sent", "received"):
+        bucket_template[direction] = {}
+        for packet_type in PACKET_TYPES:
+            bucket_template[direction][packet_type] = {}
+            for node_name in node_names:
+                bucket_template[direction][packet_type][node_name] = {}
+                for second in range(latest_time - earliest_time + 1):
+                    bucket_template[direction][packet_type][node_name][str(second)] = 0
+    return bucket_template
+
+
+def get_earliest_latest_packet(packets_dict):
+    """Return the earliest and latest timestamp (in seconds since 1970) of the lists in packets_dict
+
+    :param packets_dict: packets_dict[node] = pcap_packets_list
+    :return: earliest_time, latest_time
+    """
+    earliest_time = 99999999999999
+    latest_time = -1
+    earliest_latest = {key: (value[0].time, value[-1].time) for key, value in packets_dict.items()}
+    for node in earliest_latest.keys():
+        early_late_tuple = earliest_latest[node]
+        earliest_time = min(earliest_time, int(early_late_tuple[0]))
+        latest_time = max(latest_time, int(early_late_tuple[1]))
+    return earliest_time, latest_time
+
+
+def get_gvine_packet_type(packet):
+    return PACKET_TYPES[packet.load[3] - 1]
 
 
 def is_packet_sender(packet, node_index):

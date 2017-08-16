@@ -571,7 +571,7 @@ def plot_rank_data(buckets_dict, bucket_size_seconds, last_second):
 
 def plot_figure(figure, file_name, offline):
     if(offline):
-        plotly.offline.iplot(figure, filename=file_name)
+        plotly.offline.iplot(figure)
     else:
         plotly.plotly.iplot(figure, filename=file_name)
 
@@ -586,17 +586,19 @@ def get_packet_type(packet_id):
     elif(packet_id == PACKET_GVINE):
         packet_type = "obligation"
     else:
+        packet_type = "unknown"
         print("UNKNOWN PACKET TYPE")
     return packet_type
 
 
 def get_packet_type_data(path_to_input, table_name, type_index):
     packet_rows = get_sql_data(path_to_input, table_name)
-    type_dict = {}
-    type_dict["beacon"] = []
-    type_dict["gvine"] = []
-    type_dict["babel"] = []
-    type_dict["handshake"] = []
+    type_dict = {
+        "beacon": [],
+        "gvine": [],
+        "babel": [],
+        "handshake": []
+    }
     for row in packet_rows:
         packet_type = get_packet_type(row[type_index])
         type_dict[packet_type].append(row)
@@ -627,9 +629,8 @@ def print_delay_data(path_to_input):
     for key in files_dict.keys():
         print()
         for row in files_dict[key]:
-            print(row[0] + " received " + key + " (" + str(row[7]) + " bytes) in " + str(row[
-                                                                                             4]/1000)
-                  + " seconds")
+            print(row[0] + " received " + key + " (" + str(row[7]) + " bytes) in " +
+                  str(row[4]/1000) + " seconds")
 
 
 def get_earliest_packet_time(packet_rows, index_of_timestamp):
