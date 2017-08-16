@@ -2,7 +2,7 @@
 NODE_PREFIX = "node-"
 
 SAVE_FILE = "8flat"
-JUPYTER_SAVE_FILE = "8flat"
+JUPYTER_SAVE_FILE = "normvsgvinedumps"
 PCAP_SAVE_FILE = "8flat"
 
 IMAGE_NAME = "laptop"

@@ -693,7 +693,6 @@ def coord_distance(lat1, lon1, lat2, lon2):
 ##### NORM CONFIGURATION #####
 
 def start_norm(iplist, subnets, nodes, send_bps, receive_bps):
-    print("Only sending on: " + str(nodes[0]))
     send_commands = get_norm_send_commands(iplist, subnets, nodes, send_bps)
     receive_commands = get_norm_receive_commands(iplist, subnets, nodes, receive_bps)
     loc = path.expanduser("~/.ssh/id_rsa")
@@ -708,7 +707,6 @@ def start_norm(iplist, subnets, nodes, send_bps, receive_bps):
         if(node_name in send_commands.keys()):
             for send_command in send_commands[node_name]:
                 command = "cd ~/norm/bin/ && " + send_command
-                print("Executing on " + node_name + ": " + command)
                 stdin, stdout, stderr = ssh.exec_command(command)
         for receive_command in receive_commands[node_name]:
             command = "cd ~/norm/bin/ && " + str(receive_command)
@@ -739,7 +737,8 @@ def get_norm_receive_commands(iplist, subnets, nodes, receive_bps):
 
 
 def get_norm_send_commands(iplist, subnets, nodes, send_bps):
-    SEND_COMMAND = "./norm addr 239.255.255.0/{0!s} interface {1} rate {2!s} sendfile ./outbox repeat -1 updatesOnly trace on log txlog.txt &"
+    SEND_COMMAND = "./norm addr 239.255.255.0/{0!s} interface {1} rate {2!s} sendfile ./outbox " \
+                   "repeat -1 updatesOnly trace on log txlog.txt &"
     commands = {}
     #for index in range(0, len(nodes)):
     for index in range(0, 1):

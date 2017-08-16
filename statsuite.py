@@ -862,7 +862,7 @@ def generate_event_dbs(iplist):
 
 
 def clear_node_event_data(save_file):
-    command = "rm -f ./stats/events/" + save_file + "/*"
+    command = "rm -f ./stats/events/" + save_file + "/nodedata/*"
     system(command)
 
 

@@ -25,6 +25,7 @@ import testsuite
 import statsuite
 import autotest
 import packetsuite
+import graphsuite
 import config
 
 # Constants defined in config.py
@@ -257,7 +258,6 @@ def start_debug(save_file, iplist, nodes, subnets, nodeipdict):
     print("Done.")
 
 
-
 def start_console(iplist):
     user = "emane-01"
     terminal = ['gnome-terminal']
@@ -280,8 +280,8 @@ def start_gvine(iplist):
 
 
 def start_norm(iplist, subnets, nodes):
-    send_bps = 800000
-    receive_bps = 800000
+    send_bps = 50000
+    receive_bps = 100000
     functions.start_norm(iplist, subnets, nodes, send_bps, receive_bps)
 
 
@@ -529,7 +529,7 @@ def stats_events(save_file, iplist):
     sleep(2)
 
     print("\nCopying Event data")
-    stats.clear_node_event_data(save_file)
+    statsuite.clear_node_event_data(save_file)
     path_to_db = "/home/emane-01/test/emane/gvine/node/dbs/eventsql_copy.db"
     statsuite.copy_event_dbs(iplist, path_to_db, "./stats/events/" + save_file + "/nodedata/")
 
@@ -586,7 +586,11 @@ def jupyter_graphs():
 
 def stats_basic_packets():
     init_notebook_mode(connected=True)
-    packetsuite.make_basic_packets_dict()
+    seconds_dict = packetsuite.make_basic_packets_dict()
+    graphsuite.plot_basic_direction(seconds_dict, "sent", False, "Sent Each Second")
+    graphsuite.plot_basic_direction(seconds_dict, "received", False, "Received Each Second")
+    graphsuite.plot_basic_direction(seconds_dict, "sent", True, "Sent Average")
+    graphsuite.plot_basic_direction(seconds_dict, "received", True, "Received Average")
 
 
 def stats_sent_packets():

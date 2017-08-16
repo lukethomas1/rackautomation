@@ -221,9 +221,6 @@ def make_basic_packets_dict():
                 seconds_dict[node_name]["sent"][str(second)] += len(packet)
             else:
                 seconds_dict[node_name]["received"][str(second)] += len(packet)
-
-    graphsuite.plot_basic_direction(seconds_dict, "sent", "testsent")
-    graphsuite.plot_basic_direction(seconds_dict, "received", "testreceived")
     return seconds_dict
 
 

@@ -37,11 +37,11 @@ def make_trace(x_list, y_list, trace_mode, trace_name, show_legend=True, line_wi
     )
     return trace
 
-def plot_basic_direction(packets_dict, direction, file_name):
+def plot_basic_direction(packets_dict, direction, plot_average, file_name):
     """Graph cumulative packets sent over time.
 
     Keyword Arguments:
-        packets_dict: packets_dict[node_name][direction][second] = packets_sent_during_that_second
+        packets_dict: packets_dict[node_name][direction][second] = bytes_sent_during_that_second
     Returns None.
     """
     traces = {}
@@ -52,7 +52,10 @@ def plot_basic_direction(packets_dict, direction, file_name):
         for second in sorted(packets_dict[node_name][direction].keys(), key=int):
             sum_packets += packets_dict[node_name][direction][second]
             x.append(int(second))
-            y.append(sum_packets)
+            if(plot_average):
+                y.append(int(sum_packets/(int(second) + 1)))
+            else:
+                y.append(sum_packets)
         traces[node_name] = make_trace(x, y, "line", node_name)
     ordered_nodes = sorted(packets_dict.keys(), key=lambda n: statsuite.get_trailing_number(n))
     num_columns = 1
@@ -68,3 +71,38 @@ def plot_basic_direction(packets_dict, direction, file_name):
         figure.append_trace(traces[ordered_nodes[index]], row_num, col_num)
     figure['layout'].update(height=300*num_rows, width=800, title=file_name)
     plotly.offline.iplot(figure)
+
+
+def plot_cumulative_average(packets_dict, direction, file_name):
+    """Graph cumulative average of bytes sent over time
+
+    :param packets_dict: packets_dict[node_name][direction][second] = bytes_sent_during_that_second
+    :param direction: "sent" or "received" packets
+    :param file_name: Title of the graph
+    :return:
+    """
+    traces = {}
+    for node_name in packets_dict.keys():
+        x = []
+        y = []
+        sum_packets = 0
+        for second in sorted(packets_dict[node_name][direction].keys(), key=int):
+            sum_packets += packets_dict[node_name][direction][second]
+            x.append(int(second))
+            y.append(int(sum_packets/second))
+        traces[node_name] = make_trace(x, y, "line", node_name)
+    ordered_nodes = sorted(packets_dict.keys(), key=lambda n: statsuite.get_trailing_number(n))
+    num_columns = 1
+    num_rows = len(ordered_nodes)
+    subplot_titles = []
+    for node in ordered_nodes:
+        subplot_titles.append(node)
+    figure = plotly.tools.make_subplots(rows=num_rows, cols=num_columns,
+                                        subplot_titles=subplot_titles, print_grid=False)
+    for index in range(len(ordered_nodes)):
+        row_num = index + 1
+        col_num = 1
+        figure.append_trace(traces[ordered_nodes[index]], row_num, col_num)
+    figure['layout'].update(height=300*num_rows, width=800, title=file_name)
+    plotly.offline.iplot(figure)
+
