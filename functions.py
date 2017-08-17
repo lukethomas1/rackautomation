@@ -1070,7 +1070,7 @@ def subnet_tcpdump(nodes, subnets, node_prefix, node_to_ip_dict):
         for index in range(len(node_subnets)):
             interface = "emane" + str(index)
             print("Starting tcpdump on " + node_name + " and interface " + interface)
-            command = "sudo nohup tcpdump -i " + interface + " -n udp -w " \
+            command = "sudo nohup tcpdump -i " + interface + " -n tcp -w " \
                       "~/test/emane/gvine/node/" + interface + ".pcap &>/dev/null &"
             node_commands.append(command)
         remote_execute_commands(node_commands, node_to_ip_dict[node_name], "emane-01", False,

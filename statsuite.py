@@ -1023,3 +1023,14 @@ def copy_dump_files(iplist, output_dir):
                   "/node" + str(index + 1) + ".cap"
         system(command)
     return folder_name
+
+
+def read_params(folder_path):
+    params_path = folder_path + "params" if folder_path[-1] == "/" else folder_path + "/params"
+    if(path.isfile(params_path)):
+        with open(params_path, "r") as param_file:
+            param_list = param_file.readlines()
+    else:
+        param_list = ["NO PARAMETER DATA"]
+    return param_list
+

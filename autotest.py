@@ -106,8 +106,8 @@ def run(need_setup, need_configure):
 
     # Parameters with indices: Iteration, Source Node, Message Size, Error Rate
     param_indices = initial_indices
-    max_indices = [num_iterations, len(nodes), len(msg_sizes_bytes), len(error_rates)]
-    # max_indices = [num_iterations, 2, len(msg_sizes_bytes), len(error_rates)]
+    # max_indices = [num_iterations, len(nodes), len(msg_sizes_bytes), len(error_rates)]
+    max_indices = [num_iterations, 1, len(msg_sizes_bytes), len(error_rates)]
     done = False
     errors_in_a_row = 0
     while(not done):
@@ -136,7 +136,7 @@ def run(need_setup, need_configure):
             # Calculate the maximum wait time for this test
             estimated_hop_time = functions.estimate_hop_time(max_tx_rate, int(message_size_kb) *
                                                              1000, frag_size)
-            wait_msg_time = estimated_hop_time * (len(subnets) + 1) * (1 / (1 - error_rate))
+            wait_msg_time = estimated_hop_time * (len(subnets) + 2) * (1 / (1 - error_rate))
             wait_msg_time = max([wait_msg_time, 25])
             print("Estimated hop time: " + str(estimated_hop_time))
             print("Maximum Wait Time: " + str(wait_msg_time))
@@ -405,8 +405,9 @@ def gather_data(param_indices):
     input_dir = "./stats/events/" + SAVE_FILE + "/nodedata/"
     output_dir = "./stats/events/" + SAVE_FILE + "/"
     path_to_sql_db = statsuite.combine_event_dbs(input_dir, output_dir)
-    sql_folder = path_to_sql_db.split("/")[0:-1]
-    write_test_params(param_indices, sql_folder)
+    sql_folder = "/".join(path_to_sql_db.split("/")[0:-1])
+    # Need to save sql dbs in their own folder before writing params
+    # write_test_params(param_indices, sql_folder)
 
     print("Copying PCAP files")
     dump_folder = commands.stats_tcpdump(iplist)
@@ -424,14 +425,18 @@ def write_test_params(param_indices, folder_path):
     sender_node = param_indices[1] + 1
     msg_size = msg_sizes_bytes[param_indices[2]]
     error_rate = error_rates[param_indices[3]]
-    with open(folder_path + "/params") as param_file:
-        param_file.write("Iteration: " + str(iteration))
-        param_file.write("Sender Node: " + str(sender_node))
-        param_file.write("Msg Size: " + str(msg_size))
-        param_file.write("Error Rate: " + str(error_rate))
-        param_file.write("Tx Rate: " + str(max_tx_rate))
-        param_file.write("Topology: " + SAVE_FILE)
-        param_file.write("Rackspace Image: " + IMAGE_NAME)
+    param_path = folder_path + "params" if folder_path[-1] == "/" else folder_path + "/params"
+    param_description = [
+        "Iteration: " + str(iteration),
+        "Sender Node: " + str(sender_node),
+        "Msg Size: " + str(msg_size),
+        "Error Rate: " + str(error_rate),
+        "Tx Rate: " + str(max_tx_rate),
+        "Topology: " + SAVE_FILE,
+        "Rackspace Image: " + IMAGE_NAME
+    ]
+    with open(param_path, "w") as param_file:
+        param_file.writelines(param_description)
 
 
 def cleanup():

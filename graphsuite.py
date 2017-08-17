@@ -38,7 +38,7 @@ def make_trace(x_list, y_list, trace_mode, trace_name, show_legend=True, line_wi
     )
     return trace
 
-def plot_basic_direction(packets_dict, direction, plot_average, file_name):
+def plot_basic_direction(packets_dict, direction, plot_average, graph_title):
     """Graph cumulative packets sent over time.
 
     Keyword Arguments:
@@ -63,14 +63,14 @@ def plot_basic_direction(packets_dict, direction, plot_average, file_name):
     num_rows = len(ordered_nodes)
     subplot_titles = []
     for node in ordered_nodes:
-        subplot_titles.append(node)
+        subplot_titles.append(graph_title + "_" + node)
     figure = plotly.tools.make_subplots(rows=num_rows, cols=num_columns,
                                         subplot_titles=subplot_titles, print_grid=False)
     for index in range(len(ordered_nodes)):
         row_num = index + 1
         col_num = 1
         figure.append_trace(traces[ordered_nodes[index]], row_num, col_num)
-    figure['layout'].update(height=300*num_rows, width=800, title=file_name)
+    figure['layout'].update(height=300*num_rows, width=800, title=graph_title)
     plotly.offline.iplot(figure)
 
 def plot_type_direction(buckets_dict, direction, is_cumulative, graph_title):
