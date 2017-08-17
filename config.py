@@ -1,5 +1,5 @@
 # Used for rackspace node naming and some other naming, will break things if changed
-NODE_PREFIX = "node-"
+NODE_PREFIX = "node"
 
 SAVE_FILE = "8flat"
 JUPYTER_SAVE_FILE = "8flat"
@@ -28,5 +28,5 @@ NUM_INDICES = 4
 MAX_TX_RATE = 50000
 NUM_ITERATIONS = 1
 MSG_SIZES_BYTES = ["100000"]
-ERROR_RATES = [.1, .3, .5]
+ERROR_RATES = [0, .25, .5, .75]
 MSG_INTERVAL = 9999

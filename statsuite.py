@@ -1022,3 +1022,4 @@ def copy_dump_files(iplist, output_dir):
         command = "scp emane-01@" + ip + ":" + "~/test/emane/gvine/node/*.pcap " + folder_name + \
                   "/node" + str(index + 1) + ".cap"
         system(command)
+    return folder_name

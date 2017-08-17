@@ -136,7 +136,7 @@ def run(need_setup, need_configure):
             # Calculate the maximum wait time for this test
             estimated_hop_time = functions.estimate_hop_time(max_tx_rate, int(message_size_kb) *
                                                              1000, frag_size)
-            wait_msg_time = estimated_hop_time * len(subnets) * 2
+            wait_msg_time = estimated_hop_time * (len(subnets) + 1) * (1 / (1 - error_rate))
             wait_msg_time = max([wait_msg_time, 25])
             print("Estimated hop time: " + str(estimated_hop_time))
             print("Maximum Wait Time: " + str(wait_msg_time))
@@ -171,7 +171,7 @@ def run(need_setup, need_configure):
             stop()
             # Gather event data
             if(test_success):
-                gather_data()
+                gather_data(param_indices)
             # Remove test data from nodes
             cleanup()
             sleep(3)
@@ -389,7 +389,7 @@ def stop():
     functions.remote_emane(SAVE_FILE, IP_FILE, script_file)
 
 
-def gather_data():
+def gather_data(param_indices):
     # Gather data from nodes
     print("Converting LaJollaDb to Sqlite3 on each node")
     statsuite.generate_event_dbs(iplist)
@@ -405,8 +405,33 @@ def gather_data():
     input_dir = "./stats/events/" + SAVE_FILE + "/nodedata/"
     output_dir = "./stats/events/" + SAVE_FILE + "/"
     path_to_sql_db = statsuite.combine_event_dbs(input_dir, output_dir)
+    sql_folder = path_to_sql_db.split("/")[0:-1]
+    write_test_params(param_indices, sql_folder)
 
-    commands.stats_tcpdump(iplist)
+    print("Copying PCAP files")
+    dump_folder = commands.stats_tcpdump(iplist)
+    write_test_params(param_indices, dump_folder)
+
+
+def write_test_params(param_indices, folder_path):
+    """Write test parameters to "params" file at folder_path
+
+    :param param_indices: Indices of the current test parameters, in the format
+    param_indices = [iteration_index, sender_node_index, msg_size_index, error_rate_index]
+    :param folder_path: Folder path to write the "params" file to
+    """
+    iteration = param_indices[0] + 1
+    sender_node = param_indices[1] + 1
+    msg_size = msg_sizes_bytes[param_indices[2]]
+    error_rate = error_rates[param_indices[3]]
+    with open(folder_path + "/params") as param_file:
+        param_file.write("Iteration: " + str(iteration))
+        param_file.write("Sender Node: " + str(sender_node))
+        param_file.write("Msg Size: " + str(msg_size))
+        param_file.write("Error Rate: " + str(error_rate))
+        param_file.write("Tx Rate: " + str(max_tx_rate))
+        param_file.write("Topology: " + SAVE_FILE)
+        param_file.write("Rackspace Image: " + IMAGE_NAME)
 
 
 def cleanup():
