@@ -294,8 +294,8 @@ def setup(need_configure):
 def necessary_setup():
     functions.change_gvine_tx_rate(max_tx_rate, "./autotestfiles/gvine.conf.json")
 
-    #global error_rate_templates
-    #error_rate_templates = functions.generate_error_rate_commands(subnets, nodes, error_rates)
+    global error_rate_templates
+    error_rate_templates = functions.generate_error_rate_commands(subnets, nodes)
 
 
 def node_certs(iplist):
@@ -352,7 +352,15 @@ def prepare_test(iteration, source_node, message_size_kb, error_rate, source_ip,
                 ip = iplist[index]
                 templates = error_rate_templates[index + 1]
                 for template in templates:
+                    print("Removing error_rate " + str(previous_error_rate) + " from " + ip)
                     functions.remote_remove_error_rate(ip, previous_error_rate, template)
+        if(error_rate != 0):
+            for index in range(len(iplist)):
+                ip = iplist[index]
+                templates = error_rate_templates[index + 1]
+                for template in templates:
+                    print("Setting error_rate " + str(error_rate) + " on " + ip)
+                    functions.remote_set_error_rate(ip, error_rate, template)
         previous_error_rate = error_rate
 
 

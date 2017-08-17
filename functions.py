@@ -915,12 +915,11 @@ def change_gvine_frag_size(frag_size, path_to_conf):
         file.writelines(lines)
 
 
-def generate_error_rate_commands(subnets, nodes, error_rates):
+def generate_error_rate_commands(subnets, nodes):
     template = (
-        "sudo iptables {action} INPUT -i {interface} -m statistic --mode random --probability {"
-        "rate} -j DROP"
+        "sudo iptables {{action}} INPUT -i {interface} -m statistic --mode random --probability {{"
+        "rate}} -j DROP"
     )
-
     # Determine the interfaces each node uses
     interfaces_dict = {}
     for subnet in subnets:
@@ -941,12 +940,12 @@ def generate_error_rate_commands(subnets, nodes, error_rates):
 
 def remote_set_error_rate(ip, error_rate, command_template):
     command = command_template.format(action="-A", rate=str(error_rate))
-    remote_execute_command(command, ip, "emane-01", True, True)
+    remote_execute_command(command, ip, "emane-01", False, False)
 
 
 def remote_remove_error_rate(ip, error_rate, command_template):
     command = command_template.format(action="-D", rate=str(error_rate))
-    remote_execute_command(command, ip, "emane-01", True, True)
+    remote_execute_command(command, ip, "emane-01", False, False)
 
 
 def remote_execute_command(command, ip, remote_username, print_stdout, print_stderr):
