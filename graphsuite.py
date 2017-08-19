@@ -57,7 +57,7 @@ def plot_basic_direction(packets_dict, direction, plot_average, graph_title):
                 y.append(int(sum_packets/(int(second) + 1)))
             else:
                 y.append(sum_packets)
-        traces[node_name] = make_trace(x, y, "line", node_name)
+        traces[node_name] = make_trace(x, y, "lines+markers", node_name)
     ordered_nodes = sorted(packets_dict.keys(), key=lambda n: statsuite.get_trailing_number(n))
     num_columns = 1
     num_rows = len(ordered_nodes)
@@ -73,11 +73,41 @@ def plot_basic_direction(packets_dict, direction, plot_average, graph_title):
     figure['layout'].update(height=300*num_rows, width=800, title=graph_title)
     plotly.offline.iplot(figure)
 
-def plot_type_direction(buckets_dict, direction, is_cumulative, graph_title):
+
+def plot_basic_combined_direction(combined_dict, direction, plot_average, plot_cumulative, graph_title):
+    """
+
+    :param combined_dict: combined_dict[direction][second] = bytes_sent_that_second
+    :param direction:
+    :param plot_average:
+    :param plot_cumulative:
+    :param graph_title:
+    """
+    x = []
+    y = []
+    sum_packets = 0
+    for second in sorted(combined_dict[direction].keys(), key=int):
+        sum_packets += combined_dict[direction][second]
+        x.append(int(second))
+        if(plot_average):
+            y.append(sum_packets / (int(second) + 1))
+        elif(plot_cumulative):
+            y.append(sum_packets)
+        else:
+            y.append(combined_dict[direction][second])
+    trace = make_trace(x, y, "lines+markers", "combined")
+    figure = plotly.tools.make_subplots(rows=1, cols=1, print_grid=False)
+    figure.append_trace(trace, 1, 1)
+    figure['layout'].update(height=300, width=800, title=graph_title)
+    plotly.offline.iplot(figure)
+
+
+def plot_type_direction(buckets_dict, direction, bucket_size, is_cumulative, graph_title):
     """Graph packets sent by type each second.
 
     :param buckets_dict: buckets_dict[direction][packet_type][node][second] = bytes_sent
     :param direction: "sent" or "received"
+    :param bucket_size: size of bucket
     :param is_cumulative: Graph cumulative packets sent or not
     :param graph_title: Title of graph
     """
@@ -91,11 +121,15 @@ def plot_type_direction(buckets_dict, direction, is_cumulative, graph_title):
             sum_packets = 0
             for second in sorted(packets_dict[packet_type][node_name].keys(), key=int):
                 sum_packets += packets_dict[packet_type][node_name][second]
-                x.append(int(second))
-                if(is_cumulative):
-                    y.append(sum_packets)
-                else:
-                    y.append(packets_dict[packet_type][node_name][second])
+                if int(second) % bucket_size == 0:
+                    x.append(int(second) / bucket_size)
+                    if(is_cumulative):
+                        y.append(sum_packets)
+                    else:
+                        if(int(second) == 0):
+                            y.append(sum_packets)
+                        else:
+                            y.append(sum_packets / (int(second) / bucket_size))
             traces[packet_type][node_name] = make_trace(x, y, "line", node_name + "_" +
                                                         packet_type, line_color=PACKET_COLORS[packet_type])
     ordered_nodes = sorted(packets_dict["beacon"].keys(), key=lambda n: statsuite.get_trailing_number(n))

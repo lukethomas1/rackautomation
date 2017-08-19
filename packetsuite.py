@@ -208,6 +208,24 @@ def make_basic_packets_dict():
     return seconds_dict
 
 
+def make_basic_combined_dict(seconds_dict):
+    """
+
+    :param seconds_dict: seconds_dict[node_name][direction][second] = bytes_sent_that_second
+    """
+    combined_dict = {
+        "sent": {},
+        "received": {}
+    }
+    for node_name in seconds_dict.keys():
+        for direction in seconds_dict[node_name].keys():
+            for second in seconds_dict[node_name][direction].keys():
+                if second not in combined_dict[direction].keys():
+                    combined_dict[direction][second] = 0
+                combined_dict[direction][second] += seconds_dict[node_name][direction][second]
+    return combined_dict
+
+
 def make_type_packets_dict(chosen_dir=None):
     if(chosen_dir is None):
         dump_dirs = get_dump_timestamp_dirs()

@@ -589,15 +589,16 @@ def jupyter_pcap_graphs():
     init_notebook_mode(connected=True)
     paths = glob("./stats/dumps/" + JUPYTER_SAVE_FILE + "/*")
     paths.sort()
+    bucket_size = 1
     for index in range(len(paths)):
         folder_path = paths[index]
         print("PCAP folder path: " + folder_path)
         print("\n".join(statsuite.read_params(folder_path)))
         seconds_dict = packetsuite.make_type_packets_dict(chosen_dir=folder_path)
-        graphsuite.plot_type_direction(seconds_dict, "sent", False, "sent")
-        graphsuite.plot_type_direction(seconds_dict, "received", False, "received")
-        graphsuite.plot_type_direction(seconds_dict, "sent", True, "sent_cumulative")
-        graphsuite.plot_type_direction(seconds_dict, "received", True, "received_cumulative")
+        graphsuite.plot_type_direction(seconds_dict, "sent", bucket_size, False, "sent")
+        graphsuite.plot_type_direction(seconds_dict, "received", bucket_size, False, "received")
+        graphsuite.plot_type_direction(seconds_dict, "sent", bucket_size, True, "sent_cumulative")
+        graphsuite.plot_type_direction(seconds_dict, "received", bucket_size, True, "received_cumulative")
 
 
 def stats_basic_packets():
@@ -609,13 +610,26 @@ def stats_basic_packets():
     graphsuite.plot_basic_direction(seconds_dict, "received", True, "Received Average")
 
 
+def stats_basic_packets_combined():
+    init_notebook_mode(connected=True)
+    seconds_dict = packetsuite.make_basic_packets_dict()
+    combined_dict = packetsuite.make_basic_combined_dict(seconds_dict)
+    graphsuite.plot_basic_combined_direction(combined_dict, "sent", True, False, "Tx Average")
+    graphsuite.plot_basic_combined_direction(combined_dict, "sent", False, True, "Tx Cumulative")
+    # graphsuite.plot_basic_combined_direction(combined_dict, "sent", False, False, "Tx Per Second")
+    graphsuite.plot_basic_combined_direction(combined_dict, "received", True, False, "Rx Average")
+    graphsuite.plot_basic_combined_direction(combined_dict, "received", False, True, "Rx Cumulative")
+    # graphsuite.plot_basic_combined_direction(combined_dict, "received", False, False, "Rx Per Second")
+
+
 def stats_type_packets():
     init_notebook_mode(connected=True)
+    bucket_size = int(input("Bucket Size? : "))
     seconds_dict = packetsuite.make_type_packets_dict()
-    graphsuite.plot_type_direction(seconds_dict, "sent", False, "sent")
-    graphsuite.plot_type_direction(seconds_dict, "received", False, "received")
-    graphsuite.plot_type_direction(seconds_dict, "sent", True, "sent_cumulative")
-    graphsuite.plot_type_direction(seconds_dict, "received", True, "received_cumulative")
+    graphsuite.plot_type_direction(seconds_dict, "sent", bucket_size, False, "sent")
+    graphsuite.plot_type_direction(seconds_dict, "received", bucket_size, False, "received")
+    graphsuite.plot_type_direction(seconds_dict, "sent", bucket_size, True, "sent_cumulative")
+    graphsuite.plot_type_direction(seconds_dict, "received", bucket_size, True, "received_cumulative")
 
 
 def stats_sent_packets():
