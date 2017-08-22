@@ -772,6 +772,23 @@ def clean_norm(iplist):
         ssh.exec_command(clean_logs)
         ssh.close()
 
+
+def get_norm_delays(file_name, iplist):
+    loc = path.expanduser("~/.ssh/id_rsa")
+    key = RSAKey.from_private_key_file(loc)
+    ssh = SSHClient()
+    ssh.set_missing_host_key_policy(AutoAddPolicy())
+
+    delays = []
+    for ip in iplist:
+        ssh.connect(ip, username="emane-01", pkey=key)
+        command = "cd ~/norm/bin/outbox && stat -c%Y " + file_name
+        stdin, stdout, stderr = ssh.exec_command(command)
+        delays.append(stdout.read().decode().splitlines()[0])
+        ssh.close()
+    return delays
+
+
 ##### RACKSPACE API INTERACTION #####
 
 def get_rack_status_list():
@@ -1070,7 +1087,7 @@ def subnet_tcpdump(nodes, subnets, node_prefix, node_to_ip_dict):
         for index in range(len(node_subnets)):
             interface = "emane" + str(index)
             print("Starting tcpdump on " + node_name + " and interface " + interface)
-            command = "sudo nohup tcpdump -i " + interface + " -n tcp -w " \
+            command = "sudo nohup tcpdump -i " + interface + " -n udp -w " \
                       "~/test/emane/gvine/node/" + interface + ".pcap &>/dev/null &"
             node_commands.append(command)
         remote_execute_commands(node_commands, node_to_ip_dict[node_name], "emane-01", False,

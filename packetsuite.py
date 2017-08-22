@@ -201,10 +201,11 @@ def make_basic_packets_dict():
             seconds_dict[node_name]["received"][str(int(second))] = 0
         for packet in packets_dict[node_name]:
             second = int(packet.time - earliest_time)
-            if(is_packet_sender(packet, statsuite.get_trailing_number(node_name))):
-                seconds_dict[node_name]["sent"][str(second)] += len(packet)
-            else:
-                seconds_dict[node_name]["received"][str(second)] += len(packet)
+            if(second < latest_time - earliest_time):
+                if(is_packet_sender(packet, statsuite.get_trailing_number(node_name))):
+                    seconds_dict[node_name]["sent"][str(second)] += len(packet)
+                else:
+                    seconds_dict[node_name]["received"][str(second)] += len(packet)
     return seconds_dict
 
 

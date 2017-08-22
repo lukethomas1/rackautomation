@@ -18,6 +18,7 @@ from collections import OrderedDict
 from glob import glob
 from re import sub
 from plotly.offline import init_notebook_mode
+import plotly
 
 # Local Imports
 import functions
@@ -437,6 +438,16 @@ def node_delay():
     print("Success")
 
 
+def norm_delay(iplist):
+    message_name = input("Choose message file name: ")
+    sender_node = int(input("Sender node: "))
+    norm_delays = functions.get_norm_delays(message_name, iplist)
+    sender_time = int(norm_delays[sender_node - 1])
+    for index in range(len(norm_delays)):
+        if index != sender_node - 1:
+            print(NODE_PREFIX + str(index + 1) + ": " + str(int(norm_delays[index]) - sender_time))
+
+
 def message(iplist):
     message_name = input("Choose message file name: ")
     file_size = input("Choose file size (kilobytes): ")
@@ -614,7 +625,7 @@ def stats_basic_packets_combined():
     init_notebook_mode(connected=True)
     seconds_dict = packetsuite.make_basic_packets_dict()
     combined_dict = packetsuite.make_basic_combined_dict(seconds_dict)
-    graphsuite.plot_basic_combined_direction(combined_dict, "sent", True, False, "Tx Average")
+    graphsuite.plot_basic_combined_direction(combined_dict, "sent", True, False, "Unicast")
     graphsuite.plot_basic_combined_direction(combined_dict, "sent", False, True, "Tx Cumulative")
     # graphsuite.plot_basic_combined_direction(combined_dict, "sent", False, False, "Tx Per Second")
     graphsuite.plot_basic_combined_direction(combined_dict, "received", True, False, "Rx Average")

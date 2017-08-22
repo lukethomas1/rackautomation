@@ -74,7 +74,8 @@ def plot_basic_direction(packets_dict, direction, plot_average, graph_title):
     plotly.offline.iplot(figure)
 
 
-def plot_basic_combined_direction(combined_dict, direction, plot_average, plot_cumulative, graph_title):
+def plot_basic_combined_direction(combined_dict, direction, plot_average, plot_cumulative,
+                                  graph_title):
     """
 
     :param combined_dict: combined_dict[direction][second] = bytes_sent_that_second
@@ -90,12 +91,12 @@ def plot_basic_combined_direction(combined_dict, direction, plot_average, plot_c
         sum_packets += combined_dict[direction][second]
         x.append(int(second))
         if(plot_average):
-            y.append(sum_packets / (int(second) + 1))
+            y.append(sum_packets / (int(second)))
         elif(plot_cumulative):
             y.append(sum_packets)
         else:
             y.append(combined_dict[direction][second])
-    trace = make_trace(x, y, "lines+markers", "combined")
+    trace = make_trace(x, y, "lines", graph_title)
     figure = plotly.tools.make_subplots(rows=1, cols=1, print_grid=False)
     figure.append_trace(trace, 1, 1)
     figure['layout'].update(height=300, width=800, title=graph_title)
@@ -147,3 +148,9 @@ def plot_type_direction(buckets_dict, direction, bucket_size, is_cumulative, gra
             figure.append_trace(traces[packet_type][ordered_nodes[index]], row_num, col_num)
     figure['layout'].update(height=300*num_rows, width=800, title=graph_title)
     plotly.offline.iplot(figure)
+
+
+def make_figure_same_graph(figure, row, col, traces_dict):
+    for key in traces_dict.keys():
+        figure.append_trace(traces_dict[key], row, col)
+    return figure

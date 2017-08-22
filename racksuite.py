@@ -83,6 +83,8 @@ while(loop):
         commands.avg_hop_transfer_delay(iplist, nodeipdict, subnets, nodes)
     elif(arg == "nodedelay"):
         commands.node_delay()
+    elif(arg == "norm_delay"):
+        commands.norm_delay(iplist)
     elif(arg == "message"):
         commands.message(iplist)
     elif(arg == "norm_message"):
