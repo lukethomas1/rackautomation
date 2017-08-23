@@ -637,10 +637,17 @@ def stats_type_packets():
     init_notebook_mode(connected=True)
     bucket_size = int(input("Bucket Size? : "))
     seconds_dict = packetsuite.make_type_packets_dict()
-    graphsuite.plot_type_direction(seconds_dict, "sent", bucket_size, False, "sent")
-    graphsuite.plot_type_direction(seconds_dict, "received", bucket_size, False, "received")
+    graphsuite.plot_type_direction(seconds_dict, "sent", bucket_size, False, "sent_average")
+    graphsuite.plot_type_direction(seconds_dict, "received", bucket_size, False, "received_average")
     graphsuite.plot_type_direction(seconds_dict, "sent", bucket_size, True, "sent_cumulative")
     graphsuite.plot_type_direction(seconds_dict, "received", bucket_size, True, "received_cumulative")
+
+
+def stats_stop_beacons():
+    paths = packetsuite.get_sql_timestamp_dbs()
+    chosen_path = functions.choose_timestamp_path(paths)
+    stop_dict = statsuite.make_stop_beacon_dict(chosen_path)
+    statsuite.print_stop_dict(stop_dict)
 
 
 def stats_sent_packets():

@@ -57,7 +57,7 @@ def plot_basic_direction(packets_dict, direction, plot_average, graph_title):
                 y.append(int(sum_packets/(int(second) + 1)))
             else:
                 y.append(sum_packets)
-        traces[node_name] = make_trace(x, y, "lines+markers", node_name)
+        traces[node_name] = make_trace(x, y, "lines", node_name)
     ordered_nodes = sorted(packets_dict.keys(), key=lambda n: statsuite.get_trailing_number(n))
     num_columns = 1
     num_rows = len(ordered_nodes)

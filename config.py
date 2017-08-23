@@ -1,11 +1,11 @@
 # Used for rackspace node naming and some other naming, will break things if changed
-NODE_PREFIX = "node"
+NODE_PREFIX = "node-"
 
 SAVE_FILE = "8flat"
 JUPYTER_SAVE_FILE = "8flat"
 PCAP_SAVE_FILE = "8flat"
 
-IMAGE_NAME = "passwd"
+IMAGE_NAME = "stopbeacon"
 
 RACK_KEY = "mykey"
 
@@ -27,6 +27,6 @@ IP_BLACK_LIST = [
 NUM_INDICES = 4
 MAX_TX_RATE = 50000
 NUM_ITERATIONS = 1
-MSG_SIZES_BYTES = ["161000", "485000"]
-ERROR_RATES = [0, .25, .5, .75]
+MSG_SIZES_BYTES = ["146000"]
+ERROR_RATES = [0, .1, .2, .3, .4, .5, .6, .7, .8, .9]
 MSG_INTERVAL = 9999

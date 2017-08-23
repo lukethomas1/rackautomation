@@ -185,7 +185,7 @@ def compare_num_packets_dicts(sql_dict, dump_dict):
 def make_basic_packets_dict():
     dump_dirs = get_dump_timestamp_dirs()
     chosen_dir = choose_timestamp_path(dump_dirs)
-    pcap_files = glob(chosen_dir + "/*")
+    pcap_files = glob(chosen_dir + "/*.cap")
     packets_dict = {}
     for pcap_path in pcap_files:
         node_name = pcap_path.split("/")[-1].split(".")[0]

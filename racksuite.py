@@ -132,6 +132,8 @@ while(loop):
         commands.stats_received_rank()
     elif(arg == "basic_packets_graph"):
         commands.stats_basic_packets()
+    elif(arg == "stop_beacon"):
+        commands.stats_stop_beacons()
     elif(arg == "counts"):
         packetsuite.compare_all_sql_tcpdump(len(nodes))
     elif(arg == "delays"):

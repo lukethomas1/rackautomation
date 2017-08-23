@@ -18,6 +18,7 @@ import plotly
 
 # Local imports
 from functions import create_dir
+import packetsuite
 
 # Global Constants
 PACKETS_LIST = ["beacon", "gvine", "handshake", "babel"]
@@ -1034,3 +1035,37 @@ def read_params(folder_path):
         param_list = ["NO PARAMETER DATA"]
     return param_list
 
+##### STOP BEACONS #####
+
+def make_stop_beacon_dict(path_to_db):
+    """Return dictionary stop_dict[direction][node_name] = list_of_stop_beacons
+
+    :param path_to_db: Path to sql db to parse
+    :return:
+    """
+    rows = get_sql_data(path_to_db, "loggableeventstopbeacon")
+    stop_dict = {
+        "tx": {},
+        "rx": {}
+    }
+    for row in rows:
+        node_name = row[0]
+        frag_index = row[2]
+        direction = row[5]
+        timestamp = row[6]
+        if node_name not in stop_dict[direction].keys():
+            stop_dict[direction][node_name] = {}
+        if str(frag_index) not in stop_dict[direction][node_name].keys():
+            stop_dict[direction][node_name][str(frag_index)] = 0
+        stop_dict[direction][node_name][str(frag_index)] = timestamp
+    return stop_dict
+
+
+def print_stop_dict(stop_dict):
+    for direction in stop_dict.keys():
+        print("Direction: " + direction)
+        for node_name in sorted(stop_dict[direction].keys(), key=get_trailing_number):
+            print("Node: " + node_name)
+            for frag_index in sorted(stop_dict[direction][node_name].keys(), key=int):
+                print(frag_index + ": " + str(stop_dict[direction][node_name][frag_index]))
+            print()

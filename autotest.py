@@ -117,6 +117,9 @@ def run(need_setup, need_configure):
             iteration = param_indices[0]
             source_node = param_indices[1]
             message_size_kb = str(int(int(msg_sizes_bytes[param_indices[2]]) / 1000))
+            if(param_indices[3] > 0):
+                global previous_error_rate
+                previous_error_rate = error_rates[param_indices[3] - 1]
             error_rate = error_rates[param_indices[3]]
             source_ip = iplist[source_node]
             frag_size = 100 if int(message_size_kb) <= 100 else 500
@@ -436,7 +439,8 @@ def write_test_params(param_indices, folder_path):
         "Rackspace Image: " + IMAGE_NAME
     ]
     with open(param_path, "w") as param_file:
-        param_file.writelines(param_description)
+        for line in param_description:
+            param_file.write(line + "\n")
 
 
 def cleanup():
