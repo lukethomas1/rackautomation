@@ -178,3 +178,34 @@ def plot_stop_dict(stop_dict, direction, graph_title):
         figure.append_trace(traces[ordered_nodes[index]], row_num, col_num)
     figure['layout'].update(height=300*num_rows, width=800, title=graph_title)
     plotly.offline.iplot(figure)
+
+
+def make_45_combined_trace(combined_dict, direction, plot_cumulative, trace_title, color):
+    """
+
+    :param combined_dict: combined_dict[direction][second] = bytes_sent_that_second
+    :param direction: tx or rx
+    :param plot_cumulative: Should this plot be cumulative or average
+    :param trace_title: Title of the trace
+    :param color: Color of the line trace
+    """
+    x = []
+    y = []
+    bucket_size = 45
+    num_buckets = 26
+    last_second = bucket_size * num_buckets
+    sum_packets = 0
+    for second in range(last_second + 1):
+        if str(second) in combined_dict[direction].keys():
+            sum_packets += combined_dict[direction][str(second)]
+        if second % bucket_size == 0:
+            x.append(second / bucket_size)
+            if plot_cumulative:
+                y.append(sum_packets)
+            else:  # plot average
+                bucket_index = second / bucket_size
+                if bucket_index != 0:
+                    y.append(int(sum_packets / bucket_index))
+                else:
+                    y.append(sum_packets)
+    return make_trace(x, y, "lines", trace_title, line_color=color)

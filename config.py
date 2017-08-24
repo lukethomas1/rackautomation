@@ -5,7 +5,7 @@ SAVE_FILE = "8flat"
 JUPYTER_SAVE_FILE = "8flat"
 PCAP_SAVE_FILE = "8flat"
 
-IMAGE_NAME = "stopbeacon"
+IMAGE_NAME = "v411"
 
 RACK_KEY = "mykey"
 

@@ -125,6 +125,18 @@ def choose_timestamp_path(paths, index=-1):
     return chosen_path
 
 
+def choose_alphabetic_path(paths, index=-1):
+    paths.sort()
+    paths.reverse()
+    num = str(len(paths) - 1)
+
+    if(index < 0):
+        user_input = input("Choose path (alphabetic a-z 0-" + num + ") : ")
+        index = int(user_input)
+    chosen_path = sub(r"[\\]", '', paths[index])
+    return chosen_path
+
+
 def clean_node_data(ip_file):
     command = (
         "cd ~/test/emane/gvine/node/ && rm -rf gvine.msg* gvine.frag* " +

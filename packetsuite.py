@@ -54,8 +54,8 @@ def read_pcap(path):
     """
     node_name = path.split("/")[-1].split(".")[0]
     node_dict = {}
-    node_dict["sent"] = {}
-    node_dict["received"] = {}
+    node_dict["tx"] = {}
+    node_dict["rx"] = {}
     for direction in node_dict.keys():
         for packet_type in PACKET_TYPES:
             node_dict[direction][packet_type] = []
@@ -67,9 +67,9 @@ def read_pcap(path):
         except:
             print("ERROR: PACKET WITHOUT A PAYLOAD")
             continue
-        direction = "received"
+        direction = "rx"
         if(packet[IP].src.split(".")[-1] == str(statsuite.get_trailing_number(node_name))):
-            direction = "sent"
+            direction = "tx"
         node_dict[direction][type].append(packet)
     return node_dict
 
@@ -119,7 +119,7 @@ def make_empty_node_dict(num_nodes):
     for index in range(num_nodes):
         name = "node" + str(index + 1)
         node_dict[name] = {}
-        for direction in ("sent", "received"):
+        for direction in ("tx", "rx"):
             node_dict[name][direction] = {}
             for type in ("beacon", "gvine", "handshake", "babel"):
                 node_dict[name][direction][type] = []
@@ -182,9 +182,10 @@ def compare_num_packets_dicts(sql_dict, dump_dict):
                   + str(num_dump))
 
 
-def make_basic_packets_dict():
-    dump_dirs = get_dump_timestamp_dirs()
-    chosen_dir = choose_timestamp_path(dump_dirs)
+def make_basic_packets_dict(chosen_dir=""):
+    if not chosen_dir:
+        dump_dirs = get_dump_timestamp_dirs()
+        chosen_dir = choose_timestamp_path(dump_dirs)
     pcap_files = glob(chosen_dir + "/*.cap")
     packets_dict = {}
     for pcap_path in pcap_files:
@@ -194,18 +195,18 @@ def make_basic_packets_dict():
     seconds_dict = {}
     for node_name in packets_dict.keys():
         seconds_dict[node_name] = {}
-        seconds_dict[node_name]["sent"] = {}
-        seconds_dict[node_name]["received"] = {}
+        seconds_dict[node_name]["tx"] = {}
+        seconds_dict[node_name]["rx"] = {}
         for second in range(latest_time - earliest_time + 1):
-            seconds_dict[node_name]["sent"][str(int(second))] = 0
-            seconds_dict[node_name]["received"][str(int(second))] = 0
+            seconds_dict[node_name]["tx"][str(int(second))] = 0
+            seconds_dict[node_name]["rx"][str(int(second))] = 0
         for packet in packets_dict[node_name]:
             second = int(packet.time - earliest_time)
             if(second < latest_time - earliest_time):
                 if(is_packet_sender(packet, statsuite.get_trailing_number(node_name))):
-                    seconds_dict[node_name]["sent"][str(second)] += len(packet)
+                    seconds_dict[node_name]["tx"][str(second)] += len(packet)
                 else:
-                    seconds_dict[node_name]["received"][str(second)] += len(packet)
+                    seconds_dict[node_name]["rx"][str(second)] += len(packet)
     return seconds_dict
 
 
@@ -215,8 +216,8 @@ def make_basic_combined_dict(seconds_dict):
     :param seconds_dict: seconds_dict[node_name][direction][second] = bytes_sent_that_second
     """
     combined_dict = {
-        "sent": {},
-        "received": {}
+        "tx": {},
+        "rx": {}
     }
     for node_name in seconds_dict.keys():
         for direction in seconds_dict[node_name].keys():
@@ -241,7 +242,7 @@ def make_type_packets_dict(chosen_dir=None):
     for node_name in packets_dict.keys():
         for packet in packets_dict[node_name]:
             is_sender = is_packet_sender(packet, statsuite.get_trailing_number(node_name))
-            direction = "sent" if is_sender else "received"
+            direction = "tx" if is_sender else "rx"
             try:
                 packet_type = get_gvine_packet_type(packet)
             except IndexError:
@@ -253,7 +254,7 @@ def make_type_packets_dict(chosen_dir=None):
 
 def make_bucket_template(node_names, earliest_time, latest_time):
     bucket_template = {}
-    for direction in ("sent", "received"):
+    for direction in ("tx", "rx"):
         bucket_template[direction] = {}
         for packet_type in PACKET_TYPES:
             bucket_template[direction][packet_type] = {}
@@ -288,7 +289,3 @@ def is_packet_sender(packet, node_index):
     if(str(packet[IP].src.split(".")[-1]) == str(node_index)):
         return True
     return False
-
-
-if __name__ == "__main__":
-    print("main")
