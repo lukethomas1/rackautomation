@@ -127,10 +127,7 @@ def plot_type_direction(buckets_dict, direction, bucket_size, is_cumulative, gra
                     if(is_cumulative):
                         y.append(sum_packets)
                     else:
-                        if(int(second) == 0):
-                            y.append(sum_packets)
-                        else:
-                            y.append(sum_packets / (int(second) / bucket_size))
+                        y.append(packets_dict[packet_type][node_name][second])
             traces[packet_type][node_name] = make_trace(x, y, "line", node_name + "_" +
                                                         packet_type, line_color=PACKET_COLORS[packet_type])
     ordered_nodes = sorted(packets_dict["beacon"].keys(), key=lambda n: statsuite.get_trailing_number(n))
@@ -154,3 +151,30 @@ def make_figure_same_graph(figure, row, col, traces_dict):
     for key in traces_dict.keys():
         figure.append_trace(traces_dict[key], row, col)
     return figure
+
+
+def plot_stop_dict(stop_dict, direction, graph_title):
+    traces = {}
+    dir_dict = stop_dict[direction]
+    for node_name in dir_dict.keys():
+        x = []
+        y = []
+        for frag_index in sorted(dir_dict[node_name].keys(), key=int):
+            x.append(dir_dict[node_name][frag_index])
+            y.append(int(frag_index))
+        traces[node_name] = make_trace(x, y, "markers", node_name)
+
+    ordered_nodes = sorted(dir_dict.keys(), key=lambda n: statsuite.get_trailing_number(n))
+    num_columns = 1
+    num_rows = len(ordered_nodes)
+    subplot_titles = []
+    for node in ordered_nodes:
+        subplot_titles.append(graph_title + "_" + node)
+    figure = plotly.tools.make_subplots(rows=num_rows, cols=num_columns,
+                                        subplot_titles=subplot_titles, print_grid=False)
+    for index in range(len(ordered_nodes)):
+        row_num = index + 1
+        col_num = 1
+        figure.append_trace(traces[ordered_nodes[index]], row_num, col_num)
+    figure['layout'].update(height=300*num_rows, width=800, title=graph_title)
+    plotly.offline.iplot(figure)

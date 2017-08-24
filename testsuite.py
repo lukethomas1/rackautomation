@@ -84,11 +84,14 @@ def wait_for_message_received(file_name, sender_node, iplist, inv_ipdict, nodes,
     start_time = time()
     received = False
     topodict = generate_rack_to_topo_dict(iplist, inv_ipdict, nodes)
-    while(not received and (time() - start_time) < wait_time):
-        sleep(sleep_time)
-        elapsed_time = time() - start_time
-        print("\nChecking if message was received: " + str(elapsed_time) + " seconds")
-        received = check_network_received(file_name, iplist, inv_ipdict, topodict, sender_node)
+    try:
+        while(not received and (time() - start_time) < wait_time):
+            sleep(sleep_time)
+            elapsed_time = time() - start_time
+            print("\nChecking if message was received: " + str(elapsed_time) + " seconds")
+            received = check_network_received(file_name, iplist, inv_ipdict, topodict, sender_node)
+    except KeyboardInterrupt:
+        pass
     return received
 
 

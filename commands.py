@@ -469,10 +469,11 @@ def norm_message(iplist):
     testsuite.send_norm_message(iplist[0], message_name, file_size)
     
 
-def test_message(iplist):
+def test_message(iplist, inv_ipdict, nodes):
     message_name = input("Choose message file name: ")
     file_size = input("Choose file size (kilobytes): ")
     testsuite.message_test_gvine(iplist, message_name, file_size)
+    testsuite.wait_for_message_received(message_name, 1, iplist, inv_ipdict, nodes, 9999)
 
 
 def stats_directories(save_file):
@@ -606,10 +607,11 @@ def jupyter_pcap_graphs():
         print("PCAP folder path: " + folder_path)
         print("\n".join(statsuite.read_params(folder_path)))
         seconds_dict = packetsuite.make_type_packets_dict(chosen_dir=folder_path)
-        graphsuite.plot_type_direction(seconds_dict, "sent", bucket_size, False, "sent")
-        graphsuite.plot_type_direction(seconds_dict, "received", bucket_size, False, "received")
-        graphsuite.plot_type_direction(seconds_dict, "sent", bucket_size, True, "sent_cumulative")
-        graphsuite.plot_type_direction(seconds_dict, "received", bucket_size, True, "received_cumulative")
+        graphsuite.plot_type_direction(seconds_dict, "sent", bucket_size, False, "tx_each_second")
+        graphsuite.plot_type_direction(seconds_dict, "received", bucket_size, False,
+                                       "rx_each_second")
+        graphsuite.plot_type_direction(seconds_dict, "sent", bucket_size, True, "tx_cumulative")
+        graphsuite.plot_type_direction(seconds_dict, "received", bucket_size, True, "rx_cumulative")
 
 
 def stats_basic_packets():
@@ -637,17 +639,18 @@ def stats_type_packets():
     init_notebook_mode(connected=True)
     bucket_size = int(input("Bucket Size? : "))
     seconds_dict = packetsuite.make_type_packets_dict()
-    graphsuite.plot_type_direction(seconds_dict, "sent", bucket_size, False, "sent_average")
-    graphsuite.plot_type_direction(seconds_dict, "received", bucket_size, False, "received_average")
-    graphsuite.plot_type_direction(seconds_dict, "sent", bucket_size, True, "sent_cumulative")
-    graphsuite.plot_type_direction(seconds_dict, "received", bucket_size, True, "received_cumulative")
+    graphsuite.plot_type_direction(seconds_dict, "sent", bucket_size, False, "tx_each_second")
+    graphsuite.plot_type_direction(seconds_dict, "received", bucket_size, False, "rx_each_second")
+    graphsuite.plot_type_direction(seconds_dict, "sent", bucket_size, True, "tx_cumulative")
+    graphsuite.plot_type_direction(seconds_dict, "received", bucket_size, True, "rx_cumulative")
 
 
 def stats_stop_beacons():
     paths = packetsuite.get_sql_timestamp_dbs()
     chosen_path = functions.choose_timestamp_path(paths)
     stop_dict = statsuite.make_stop_beacon_dict(chosen_path)
-    statsuite.print_stop_dict(stop_dict)
+    init_notebook_mode(connected=True)
+    graphsuite.plot_stop_dict(stop_dict, "tx", "tx_stop_beacons")
 
 
 def stats_sent_packets():

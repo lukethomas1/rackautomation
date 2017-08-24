@@ -90,7 +90,8 @@ while(loop):
     elif(arg == "norm_message"):
         commands.norm_message(iplist)
     elif(arg == "testmessage"):
-        commands.test_message(iplist)
+        inv_ipdict = functions.invert_dict(nodeipdict)
+        commands.test_message(iplist, inv_ipdict, nodes)
     elif(arg == "checkreceiving"):
         sender_node = int(input("Sender node? : "))
         testsuite.check_network_receiving(iplist, sender_node)

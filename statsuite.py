@@ -585,7 +585,7 @@ def get_packet_type(packet_id):
     elif(packet_id == PACKET_BABEL):
         packet_type = "babel"
     elif(packet_id == PACKET_GVINE):
-        packet_type = "obligation"
+        packet_type = "gvine"
     else:
         packet_type = "unknown"
         print("UNKNOWN PACKET TYPE")
@@ -1044,6 +1044,7 @@ def make_stop_beacon_dict(path_to_db):
     :return:
     """
     rows = get_sql_data(path_to_db, "loggableeventstopbeacon")
+    earliest_time = get_earliest_of_all_packets(path_to_db)
     stop_dict = {
         "tx": {},
         "rx": {}
@@ -1057,7 +1058,7 @@ def make_stop_beacon_dict(path_to_db):
             stop_dict[direction][node_name] = {}
         if str(frag_index) not in stop_dict[direction][node_name].keys():
             stop_dict[direction][node_name][str(frag_index)] = 0
-        stop_dict[direction][node_name][str(frag_index)] = timestamp
+        stop_dict[direction][node_name][str(frag_index)] = int((timestamp - earliest_time) / 1000)
     return stop_dict
 
 
