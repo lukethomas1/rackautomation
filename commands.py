@@ -34,7 +34,9 @@ NODE_PREFIX = config.NODE_PREFIX
 SAVE_FILE = config.SAVE_FILE
 JUPYTER_SAVE_FILE = config.JUPYTER_SAVE_FILE
 IMAGE_NAME = config.IMAGE_NAME
-IP_FILE = config.IP_FILE
+RACK_IP_FILE = config.RACK_IP_FILE
+PI_IP_FILE = config.PI_IP_FILE
+PI_IP_LIST = config.PI_IP_LIST
 IP_BLACK_LIST = config.IP_BLACK_LIST
 JAR_FILE = config.JAR_FILE
 RACK_KEY = config.RACK_KEY
@@ -114,13 +116,13 @@ def setup(save_file, subnets, nodes, iplist):
     functions.add_known_hosts(iplist)
 
     # Create topology directory on each rackspace node
-    print("Creating remote directories with ipfile: " + IP_FILE)
-    functions.remote_create_dirs(save_file, IP_FILE)
+    print("Creating remote directories with ipfile: " + RACK_IP_FILE)
+    functions.remote_create_dirs(save_file, RACK_IP_FILE)
     sleep(2)
 
     # Copy the default config to each rackspace node
     print("Copying default config")
-    functions.remote_copy_default_config(save_file, IP_FILE)
+    functions.remote_copy_default_config(save_file, RACK_IP_FILE)
     sleep(2)
 
     if(len(iplist) == 0):
@@ -140,7 +142,7 @@ def setup(save_file, subnets, nodes, iplist):
 
     # Move grapevine files from svn folder to test folder on each rack instance
     print("Preparing GrapeVine test")
-    functions.setup_grapevine(save_file, IP_FILE)
+    functions.setup_grapevine(save_file, RACK_IP_FILE)
 
     # Do node certifications
     gvpki(iplist)
@@ -161,7 +163,7 @@ def change_frag_size():
 
 def push_config():
     path_to_conf = "./autotestfiles/gvine.conf.json"
-    functions.push_gvine_conf(IP_FILE, path_to_conf)
+    functions.push_gvine_conf(RACK_IP_FILE, path_to_conf)
 
 
 def push_file():
@@ -175,7 +177,7 @@ def push_file():
     else:
         dest_path = path.expanduser(dest_path)
     src_path = path.expanduser(src_path)
-    functions.push_file(IP_FILE, src_path, dest_path)
+    functions.push_file(RACK_IP_FILE, src_path, dest_path)
 
 
 def gvpki(iplist):
@@ -191,7 +193,7 @@ def gvpki(iplist):
     # Push all certs to each node
     print("Pushing certs")
     path_to_certs = "./keystore/*"
-    functions.push_certs(IP_FILE, path_to_certs, path_to_jar)
+    functions.push_certs(RACK_IP_FILE, path_to_certs, path_to_jar)
     sleep(2)
     # Load all certs on each node
     print("Loading certs")
@@ -223,15 +225,15 @@ def remove_error_rate(subnets, nodes, iplist):
 # Synchronizes rackspace nodes (not sure what it does, soroush had it),
 # then runs emane_start.sh on each rackspace node in the topology
 def start(save_file, iplist):
-    functions.synchronize(IP_FILE)
+    functions.synchronize(RACK_IP_FILE)
 
     print("Starting emane")
     script_name = 'emane_start.sh'
-    functions.remote_emane(save_file, IP_FILE, script_name)
+    functions.remote_emane(save_file, RACK_IP_FILE, script_name)
     sleep(2)
 
     print("Deleting previous gvine log files")
-    functions.delete_gvine_log_files(IP_FILE)
+    functions.delete_gvine_log_files(RACK_IP_FILE)
     sleep(2)
 
     print("Starting GrapeVine jar: " + JAR_FILE)
@@ -240,18 +242,18 @@ def start(save_file, iplist):
 
 
 def start_debug(save_file, iplist, nodes, subnets, nodeipdict):
-    functions.synchronize(IP_FILE)
+    functions.synchronize(RACK_IP_FILE)
 
     print("Starting emane")
     script_name = 'emane_start.sh'
-    functions.remote_emane(save_file, IP_FILE, script_name)
+    functions.remote_emane(save_file, RACK_IP_FILE, script_name)
     sleep(2)
 
     print("Logging subnet traffic with tcpdump")
     functions.subnet_tcpdump(nodes, subnets, NODE_PREFIX, nodeipdict)
 
     print("Deleting previous gvine log files")
-    functions.delete_gvine_log_files(IP_FILE)
+    functions.delete_gvine_log_files(RACK_IP_FILE)
     sleep(2)
 
     print("Starting GrapeVine jar: " + JAR_FILE)
@@ -270,7 +272,7 @@ def start_console(iplist):
 def start_emane(save_file):
     print("Starting emane")
     script_name = 'emane_start.sh'
-    functions.remote_emane(save_file, IP_FILE, script_name)
+    functions.remote_emane(save_file, RACK_IP_FILE, script_name)
 
 
 def start_gvine(iplist):
@@ -289,26 +291,26 @@ def start_norm(iplist, subnets, nodes):
 # Runs emane_stop.sh on each rackspace node in the topology
 def stop(save_file):
     # Stop GrapeVine
-    functions.parallel_ssh(IP_FILE, "sudo pkill java")
+    functions.parallel_ssh(RACK_IP_FILE, "sudo pkill java")
     # Stop Norm
-    functions.parallel_ssh(IP_FILE, "sudo pkill norm")
+    functions.parallel_ssh(RACK_IP_FILE, "sudo pkill norm")
     # Stop tcpdump
-    functions.parallel_ssh(IP_FILE, "sudo pkill tcpdump")
+    functions.parallel_ssh(RACK_IP_FILE, "sudo pkill tcpdump")
     # Stop EMANE
     script_file = 'emane_stop.sh'
-    functions.remote_emane(save_file, IP_FILE, script_file)
+    functions.remote_emane(save_file, RACK_IP_FILE, script_file)
     sleep(2)
     print("Done.")
 
 
 def stop_gvine():
     print("Stopping gvine")
-    functions.parallel_ssh(IP_FILE, "sudo pkill java")
+    functions.parallel_ssh(RACK_IP_FILE, "sudo pkill java")
 
 
 def stop_norm():
     print("Stopping norm")
-    functions.parallel_ssh(IP_FILE, "sudo pkill norm")
+    functions.parallel_ssh(RACK_IP_FILE, "sudo pkill norm")
 
 
 def start_basic_tcpdump(nodes, subnets, nodeipdict):
@@ -317,12 +319,12 @@ def start_basic_tcpdump(nodes, subnets, nodeipdict):
 
 
 def stop_all_tcpdump():
-    functions.parallel_ssh(IP_FILE, "sudo pkill tcpdump")
+    functions.parallel_ssh(RACK_IP_FILE, "sudo pkill tcpdump")
 
 
 def ping(subnets, nodes):
     print("Setting up")
-    functions.generate_network_ping_list(subnets, nodes, IP_FILE, IP_BLACK_LIST)
+    functions.generate_network_ping_list(subnets, nodes, RACK_IP_FILE, IP_BLACK_LIST)
     testsuite.ping_network()
     print("Done.")
 
@@ -758,11 +760,11 @@ def stats_delays(save_file, num_nodes):
 def clean():
     clean_amount = input("Clean 1) Data 2) Non certs 3) All non .jar : ")
     if(clean_amount == "1"):
-        functions.clean_node_data(IP_FILE)
+        functions.clean_node_data(RACK_IP_FILE)
     elif(clean_amount == "2"):
-        functions.clean_more(IP_FILE)
+        functions.clean_more(RACK_IP_FILE)
     elif(clean_amount == "3"):
-        functions.clean_nodes(IP_FILE)
+        functions.clean_nodes(RACK_IP_FILE)
 
 
 # Deletes the topologies/<topology-name>/ folder on each rackspace node

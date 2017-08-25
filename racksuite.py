@@ -11,6 +11,10 @@ import commands
 import functions
 import testsuite
 import packetsuite
+import config
+
+PI_IP_LIST = config.PI_IP_LIST
+PLATFORM = config.DEFAULT_PLATFORM
 
 loop = True
 while(loop):
@@ -20,14 +24,22 @@ while(loop):
     json = config_result['json']
     subnets = config_result['subnets']
     nodes = config_result['nodes']
-    iplist = config_result['iplist']
+    rack_iplist = config_result['iplist']
     nodeipdict = config_result['nodeipdict']
+    iplist = rack_iplist
 
     arg = input("Command: ")
 
     ##### SETUP COMMANDS #####
 
-    if(arg == "init"):
+    if(arg == "platform"):
+        global PLATFORM
+        PLATFORM = input("Enter platform (pi or rack) : ")
+        if PLATFORM == "rack":
+            iplist = rack_iplist
+        elif PLATFORM == "pi":
+            iplist = PI_IP_LIST
+    elif(arg == "init" and PLATFORM == "rack"):
         commands.initialize(save, len(nodes))
     elif(arg == "iplist"):
         commands.make_iplist(len(nodes), iplist)
