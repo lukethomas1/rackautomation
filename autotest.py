@@ -9,7 +9,7 @@ from time import sleep,time
 NODE_PREFIX = config.NODE_PREFIX
 SAVE_FILE = config.SAVE_FILE
 IMAGE_NAME = config.IMAGE_NAME
-IP_FILE = config.IP_FILE
+IP_FILE = None
 IP_BLACK_LIST = config.IP_BLACK_LIST
 JAR_FILE = config.JAR_FILE
 RACK_KEY = config.RACK_KEY
@@ -52,19 +52,22 @@ def update_config():
     nodeipdict = config_result['nodeipdict']
 
 
-def initialize_parameters(max_tx, num_iter, msg_sizes, err_rates, msg_int, init_indices):
+def initialize_parameters(max_tx, num_iter, msg_sizes, err_rates, msg_int, init_indices, ip_file):
     global max_tx_rate
     global num_iterations
     global msg_sizes_bytes
     global error_rates
     global msg_interval
     global initial_indices
+    global IP_FILE
     max_tx_rate = max_tx
     num_iterations = num_iter
     msg_sizes_bytes = msg_sizes
     error_rates = err_rates
     msg_interval = msg_int
     initial_indices = init_indices
+    IP_FILE = ip_file
+
 
 
 def increment_parameters(current, max, length):

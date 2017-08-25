@@ -329,7 +329,7 @@ def ping(subnets, nodes):
     print("Done.")
 
 
-def run_auto_test():
+def run_auto_test(platform):
     # Set the test parameters and variables
     num_indices = NUM_INDICES
     max_tx_rate = MAX_TX_RATE
@@ -354,8 +354,13 @@ def run_auto_test():
         initial_indices = [0, 0, 0, 0]
 
     # Initialize the test and start running test
-    autotest.initialize_parameters(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates,
-                                   msg_interval, initial_indices)
+    if platform == "rack":
+        autotest.initialize_parameters(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates,
+                                       msg_interval, initial_indices, RACK_IP_FILE)
+    elif platform == "pi":
+        autotest.initialize_parameters(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates,
+                                       msg_interval, initial_indices, PI_IP_FILE)
+
     need_setup = bool(input("Need Setup? (Leave blank for no): "))
     need_configure = False
     if(need_setup):
