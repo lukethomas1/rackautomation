@@ -17,7 +17,7 @@ from graphsuite import make_45_combined_trace as make45
 
 def forty_five_comparison():
     init_notebook_mode(connected=True)
-    dump_dirs = glob("./stats/dumps/comparisons/*")
+    dump_dirs = glob("./stats/dumps/45benchmark/*")
     print("Unicast:")
     unicast_path = functions.choose_alphabetic_path(dump_dirs)
     print("Norm:")

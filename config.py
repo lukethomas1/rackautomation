@@ -1,7 +1,7 @@
 # Used for rackspace node naming and some other naming, will break things if changed
 NODE_PREFIX = "node-"
 
-SAVE_FILE = "8flat"
+SAVE_FILE = "twonodes"
 JUPYTER_SAVE_FILE = "8flat"
 PCAP_SAVE_FILE = "8flat"
 

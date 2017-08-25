@@ -127,7 +127,6 @@ def choose_timestamp_path(paths, index=-1):
 
 def choose_alphabetic_path(paths, index=-1):
     paths.sort()
-    paths.reverse()
     num = str(len(paths) - 1)
 
     if(index < 0):

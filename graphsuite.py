@@ -103,13 +103,15 @@ def plot_basic_combined_direction(combined_dict, direction, plot_average, plot_c
     plotly.offline.iplot(figure)
 
 
-def plot_type_direction(buckets_dict, direction, bucket_size, is_cumulative, graph_title):
+def plot_type_direction(buckets_dict, direction, bucket_size, is_cumulative, is_average,
+                        graph_title):
     """Graph packets sent by type each second.
 
     :param buckets_dict: buckets_dict[direction][packet_type][node][second] = bytes_sent
     :param direction: "sent" or "received"
     :param bucket_size: size of bucket
     :param is_cumulative: Graph cumulative packets sent or not
+    :param is_average: Graph average if not cumulative
     :param graph_title: Title of graph
     """
     traces = {}
@@ -126,6 +128,8 @@ def plot_type_direction(buckets_dict, direction, bucket_size, is_cumulative, gra
                     x.append(int(second) / bucket_size)
                     if(is_cumulative):
                         y.append(sum_packets)
+                    elif(is_average):
+                        y.append(sum_packets / ((int(second) / bucket_size) + 1))
                     else:
                         y.append(packets_dict[packet_type][node_name][second])
             traces[packet_type][node_name] = make_trace(x, y, "line", node_name + "_" +
