@@ -427,8 +427,8 @@ def kill_all_instances():
             '--name', name], stdout=PIPE)
 
 
-def parallel_ssh(ip_file, command):
-    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command], stdout=DEVNULL)
+def parallel_ssh(ip_file, command, user_name):
+    Popen(['parallel-ssh', '-h', ip_file, '-l', user_name, '-i', '-P', command], stdout=DEVNULL)
 
 
 def push_file(ip_file, src_path, dest_path):

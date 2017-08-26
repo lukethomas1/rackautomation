@@ -104,6 +104,9 @@ def configure(save_file, subnets, nodes):
 # Runs configure() to create topology locally, 
 # then distributes topology to rackspace nodes
 def setup(save_file, subnets, nodes, iplist, platform):
+    if(len(iplist) == 0):
+        print("IPLIST IS EMPTY")
+
     # Write configuration files (configure() method) before sending to nodes
     if platform == "rack":
         if(not path.isdir("./topologies/" + save_file)):
@@ -111,9 +114,9 @@ def setup(save_file, subnets, nodes, iplist, platform):
         else:
             print(save_file + " already configured")
 
-    print("Editing ssh config")
-    functions.edit_ssh_config()
-    sleep(2)
+        print("Editing ssh config")
+        functions.edit_ssh_config()
+        sleep(2)
 
     # Add all rackspace node ip addresses to this computer's known_hosts file
     functions.add_known_hosts(iplist)
@@ -124,32 +127,24 @@ def setup(save_file, subnets, nodes, iplist, platform):
         functions.remote_create_dirs(save_file, RACK_IP_FILE, RACK_USERNAME)
         sleep(2)
 
-    # Copy the default config to each rackspace node
-    if platform == "rack":
+        # Copy the default config to each rackspace node
         print("Copying default config")
         functions.remote_copy_default_config(save_file, RACK_IP_FILE, RACK_USERNAME)
         sleep(2)
 
-    if(len(iplist) == 0):
-        print("IPLIST IS EMPTY")
-
-    # Copy the scenario.eel file to each rackspace node
-    if platform == "rack":
+        # Copy the scenario.eel file to each rackspace node
         print("Copying scenario.eel")
         functions.remote_copy_scenario(save_file, iplist)
 
-    # Copy corresponding platform file to each rackspace node
-    if platform == "rack":
+        # Copy corresponding platform file to each rackspace node
         print("Copying platform xmls")
         functions.remote_copy_platform_xmls(save_file, iplist)
 
-    # Copy emane_start and emane_stop scripts to each rackspace node
-    if platform == "rack":
+        # Copy emane_start and emane_stop scripts to each rackspace node
         print("Copying emane scripts")
         functions.remote_copy_emane_scripts(save_file, iplist)
 
-    # Move grapevine files from svn folder to test folder on each rack instance
-    if platform == "rack":
+        # Move grapevine files from svn folder to test folder on each rack instance
         print("Preparing GrapeVine test")
         functions.setup_grapevine(save_file, RACK_IP_FILE)
 
@@ -303,16 +298,18 @@ def start_norm(iplist, subnets, nodes):
 
 
 # Runs emane_stop.sh on each rackspace node in the topology
-def stop(save_file):
+def stop(save_file, platform):
+    ip_file = RACK_IP_FILE if platform == "rack" else PI_IP_FILE
+    user_name = RACK_USERNAME if platform == "rack" else PI_USERNAME
     # Stop GrapeVine
-    functions.parallel_ssh(RACK_IP_FILE, "sudo pkill java")
+    functions.parallel_ssh(ip_file, "sudo pkill java", user_name)
     # Stop Norm
-    functions.parallel_ssh(RACK_IP_FILE, "sudo pkill norm")
+    functions.parallel_ssh(ip_file, "sudo pkill norm", user_name)
     # Stop tcpdump
-    functions.parallel_ssh(RACK_IP_FILE, "sudo pkill tcpdump")
+    functions.parallel_ssh(ip_file, "sudo pkill tcpdump", user_name)
     # Stop EMANE
     script_file = 'emane_stop.sh'
-    functions.remote_emane(save_file, RACK_IP_FILE, script_file)
+    functions.remote_emane(save_file, ip_file, script_file)
     sleep(2)
     print("Done.")
 
@@ -490,11 +487,12 @@ def norm_message(iplist):
     testsuite.send_norm_message(iplist[0], message_name, file_size)
     
 
-def test_message(iplist, inv_ipdict, nodes):
+def test_message(iplist, inv_ipdict, nodes, platform):
     message_name = input("Choose message file name: ")
     file_size = input("Choose file size (kilobytes): ")
-    testsuite.message_test_gvine(iplist, message_name, file_size)
-    testsuite.wait_for_message_received(message_name, 1, iplist, inv_ipdict, nodes, 9999)
+    user_name = RACK_USERNAME if platform == "rack" else PI_USERNAME
+    testsuite.message_test_gvine(iplist, message_name, file_size, user_name)
+    testsuite.wait_for_message_received(message_name, 1, iplist, inv_ipdict, nodes, 9999, user_name)
 
 
 def stats_directories(save_file):
@@ -572,11 +570,12 @@ def stats_events(save_file, iplist):
     statsuite.combine_event_dbs(input_dir, output_dir)
 
 
-def stats_tcpdump(iplist):
+def stats_tcpdump(iplist, platform):
     functions.create_dir("./stats/")
     functions.create_dir("./stats/dumps/")
     functions.create_dir("./stats/dumps/" + SAVE_FILE)
-    dump_folder = statsuite.copy_dump_files(iplist, "./stats/dumps/" + SAVE_FILE + "/")
+    user_name = RACK_USERNAME if platform == "rack" else PI_USERNAME if platform == "pi"
+    dump_folder = statsuite.copy_dump_files(iplist, "./stats/dumps/" + SAVE_FILE + "/", user_name)
     return dump_folder
 
 
@@ -671,7 +670,6 @@ def stats_type_packets(chosen_save=None):
     graphsuite.plot_type_direction(seconds_dict, "rx", bucket_size, True, False, "rx_cumulative")
     graphsuite.plot_type_direction(seconds_dict, "tx", bucket_size, False, True, "tx_average")
     graphsuite.plot_type_direction(seconds_dict, "rx", bucket_size, False, True, "rx_average")
-
 
 
 def stats_stop_beacons():

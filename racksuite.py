@@ -26,29 +26,27 @@ while(loop):
     nodes = config_result['nodes']
     rack_iplist = config_result['iplist']
     nodeipdict = config_result['nodeipdict']
-    iplist = rack_iplist
+    if PLATFORM == "rack":
+        iplist = rack_iplist
+    elif PLATFORM == "pi":
+        iplist = PI_IP_LIST
 
     arg = input("Command: ")
 
     ##### SETUP COMMANDS #####
 
     if(arg == "platform"):
-        global PLATFORM
         PLATFORM = input("Enter platform (pi or rack) : ")
-        if PLATFORM == "rack":
-            iplist = rack_iplist
-        elif PLATFORM == "pi":
-            iplist = PI_IP_LIST
     elif(arg == "init" and PLATFORM == "rack"):
         commands.initialize(save, len(nodes))
-    elif(arg == "iplist"):
+    elif(arg == "iplist"and PLATFORM == "rack"):
         commands.make_iplist(len(nodes), iplist)
     elif(arg == "reset"):
         commands.reset_topology()
     elif(arg == "configure"):
         commands.configure(save, subnets, nodes)
     elif(arg == "setup"):
-        commands.setup(save, subnets, nodes, iplist)
+        commands.setup(save, subnets, nodes, iplist, PLATFORM)
     elif(arg == "push_scenario"):
         functions.remote_copy_scenario(save, iplist)
     elif(arg == "pushconfig"):
@@ -136,7 +134,7 @@ while(loop):
     elif(arg == "stats_events"):
         commands.stats_events(save, iplist)
     elif(arg == "stats_tcpdump"):
-        commands.stats_tcpdump(iplist)
+        commands.stats_tcpdump(iplist, PLATFORM)
     elif(arg == "txpackets"):
         commands.stats_sent_packets()
     elif(arg == "rxpackets"):

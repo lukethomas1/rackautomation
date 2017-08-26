@@ -51,9 +51,9 @@ def ping_network():
         ssh.close()
 
 
-def message_test_gvine(iplist, message_name, file_size):
+def message_test_gvine(iplist, message_name, file_size, user_name):
     sender_ip = iplist[0]
-    send_gvine_message(sender_ip, message_name, file_size, "1", "")
+    send_gvine_message(sender_ip, message_name, file_size, "1", "", user_name)
 
 
 def check_network_receiving(iplist, sender_node):
@@ -79,7 +79,8 @@ def check_message_receiving(ip, ssh, key):
     return not exit_status
 
 
-def wait_for_message_received(file_name, sender_node, iplist, inv_ipdict, nodes, wait_time):
+def wait_for_message_received(file_name, sender_node, iplist, inv_ipdict, nodes, wait_time,
+                              user_name):
     sleep_time = 5
     start_time = time()
     received = False
@@ -89,13 +90,14 @@ def wait_for_message_received(file_name, sender_node, iplist, inv_ipdict, nodes,
             sleep(sleep_time)
             elapsed_time = time() - start_time
             print("\nChecking if message was received: " + str(elapsed_time) + " seconds")
-            received = check_network_received(file_name, iplist, inv_ipdict, topodict, sender_node)
+            received = check_network_received(file_name, iplist, inv_ipdict, topodict,
+                                              sender_node, user_name)
     except KeyboardInterrupt:
         pass
     return received
 
 
-def check_network_received(file_name, iplist, inv_ipdict, topodict, sender_node):
+def check_network_received(file_name, iplist, inv_ipdict, topodict, sender_node, user_name):
     loc = path.expanduser("~/.ssh/id_rsa")
     key = RSAKey.from_private_key_file(loc)
     ssh = SSHClient()
@@ -108,14 +110,15 @@ def check_network_received(file_name, iplist, inv_ipdict, topodict, sender_node)
         node_name = inv_ipdict[ip]
         node_label = topodict[node_name]
         if(ip_index != sender_index):
-            rtnVal = check_message_received(file_name, ip, node_name, node_label, ssh, key)
+            rtnVal = check_message_received(file_name, ip, node_name, node_label, ssh, key,
+                                            user_name)
             if(not rtnVal):
                 success = False
     return success
 
 
-def check_message_received(file_name, ip, node_name, node_label, ssh, key):
-    ssh.connect(ip, username="emane-01", pkey=key)
+def check_message_received(file_name, ip, node_name, node_label, ssh, key, user_name):
+    ssh.connect(ip, username=user_name, pkey=key)
     command = "ls ~/test/emane/gvine/node/data/" + file_name
     stdin, stdout, stderr = ssh.exec_command(command)
     exit_status = stdout.channel.recv_exit_status()
@@ -132,7 +135,8 @@ def print_success_fail(success, string):
         print(FAIL + string + " FAILED" + ENDCOLOR)
 
 
-def send_gvine_message(sender_ip, message_name, file_size_kb, send_node_num, receive_node_num):
+def send_gvine_message(sender_ip, message_name, file_size_kb, send_node_num, receive_node_num,
+                       user_name):
     print("Sending message on GrapeVine from " + sender_ip)
     loc = path.expanduser("~/.ssh/id_rsa")
     key = RSAKey.from_private_key_file(loc)
@@ -141,7 +145,7 @@ def send_gvine_message(sender_ip, message_name, file_size_kb, send_node_num, rec
     ssh.connect(sender_ip, username="emane-01", pkey=key)
 
     # Make the text file to be sent
-    command = "cd ~/test/emane/gvine/node/"
+    command = "cd ~/test/"
     command += " && dd if=/dev/urandom of=" + message_name + " bs=" + file_size_kb + "k count=1"
     stdin, stdout, stderr = ssh.exec_command(command)
 
