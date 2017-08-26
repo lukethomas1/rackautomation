@@ -452,9 +452,9 @@ def print_subnets_and_nodes(subnets, nodes):
 
 
 # Copy default config to topology directory
-def remote_copy_default_config(save_folder, ip_file):
+def remote_copy_default_config(save_folder, ip_file, user_name):
     command = (
-        "parallel-scp -h " + ip_file + " -l emane-01 ./default_config/* " +
+        "parallel-scp -h " + ip_file + " -l " + user_name + " ./default_config/* " +
         "/home/emane-01/GrapeVine/topologies/" + save_folder
     )
     call(command, shell=True, stdout=DEVNULL)
@@ -499,30 +499,30 @@ def remote_copy_scenario(save_folder, iplist):
 
 
 # Create topologies directory and topologies/save_name/ on each rackspace node
-def remote_create_dirs(save_folder, ip_file):
+def remote_create_dirs(save_folder, ip_file, user_name):
     # Make GrapeVine directory
-    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+    Popen(['parallel-ssh', '-h', ip_file, '-l', user_name, '-i', '-P',
     'cd ~ && mkdir GrapeVine'], stdout=DEVNULL)
     sleep(1)
 
     # Make topologies directory
-    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+    Popen(['parallel-ssh', '-h', ip_file, '-l', user_name, '-i', '-P',
     'cd ~/GrapeVine && mkdir topologies'], stdout=DEVNULL)
     sleep(1)
 
     # Make specific topology directory
-    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+    Popen(['parallel-ssh', '-h', ip_file, '-l', user_name, '-i', '-P',
     'cd ~/GrapeVine/topologies && mkdir ' + save_folder]) 
     sleep(1)
 
     # Make norm output/input "outbox" directory
-    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+    Popen(['parallel-ssh', '-h', ip_file, '-l', user_name, '-i', '-P',
     'cd ~/norm/bin/ && mkdir outbox'], stdout=DEVNULL)
     sleep(1)
 
 
-def remote_delete_events(ip_file, node_prefix):
-    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
+def remote_delete_events(ip_file, user_name):
+    Popen(['parallel-ssh', '-h', ip_file, '-l', user_name, '-i', '-P',
     'rm ~/test/emane/gvine/node/dbs/*'], stdout=DEVNULL)
     sleep(2)
 
@@ -543,7 +543,7 @@ def remote_emane(save_file, ip_file, script_file):
 
 
 # Start gvine on each rackspace node
-def remote_start_gvine(iplist, jar_name):
+def remote_start_gvine(iplist, jar_name, user_name):
     loc = path.expanduser("~/.ssh/id_rsa")
     key = RSAKey.from_private_key_file(loc)
     ssh = SSHClient()
@@ -552,11 +552,11 @@ def remote_start_gvine(iplist, jar_name):
     for index in range(1, len(iplist) + 1):
         print("Starting on " + str(iplist[index - 1]))
         try:
-            ssh.connect(iplist[index - 1], username="emane-01", pkey=key)
+            ssh.connect(iplist[index - 1], username=user_name, pkey=key)
         except:
             print("Failed to connect to " + str(iplist[index - 1]))
             continue
-        command = "cd ~/test/emane/gvine/node/ && java -jar " + jar_name + " node" + str(index) + " 500 >> log_node" + str(index) + ".txt &"
+        command = "cd ~/test/ && java -jar " + jar_name + " node" + str(index) + " 500 >> log_node" + str(index) + ".txt &"
         stdin, stdout, stderr = ssh.exec_command(command)
         ssh.close()
 

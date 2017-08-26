@@ -34,6 +34,8 @@ NODE_PREFIX = config.NODE_PREFIX
 SAVE_FILE = config.SAVE_FILE
 JUPYTER_SAVE_FILE = config.JUPYTER_SAVE_FILE
 IMAGE_NAME = config.IMAGE_NAME
+RACK_USERNAME = config.RACK_USERNAME
+PI_USERNAME = config.PI_USERNAME
 RACK_IP_FILE = config.RACK_IP_FILE
 PI_IP_FILE = config.PI_IP_FILE
 PI_IP_LIST = config.PI_IP_LIST
@@ -101,12 +103,13 @@ def configure(save_file, subnets, nodes):
 
 # Runs configure() to create topology locally, 
 # then distributes topology to rackspace nodes
-def setup(save_file, subnets, nodes, iplist):
+def setup(save_file, subnets, nodes, iplist, platform):
     # Write configuration files (configure() method) before sending to nodes
-    if(not path.isdir("./topologies/" + save_file)):
-        configure(save_file, subnets, nodes)
-    else:
-        print(save_file + " already configured")
+    if platform == "rack":
+        if(not path.isdir("./topologies/" + save_file)):
+            configure(save_file, subnets, nodes)
+        else:
+            print(save_file + " already configured")
 
     print("Editing ssh config")
     functions.edit_ssh_config()
@@ -116,33 +119,39 @@ def setup(save_file, subnets, nodes, iplist):
     functions.add_known_hosts(iplist)
 
     # Create topology directory on each rackspace node
-    print("Creating remote directories with ipfile: " + RACK_IP_FILE)
-    functions.remote_create_dirs(save_file, RACK_IP_FILE)
-    sleep(2)
+    if platform == "rack":
+        print("Creating remote directories with ipfile: " + RACK_IP_FILE)
+        functions.remote_create_dirs(save_file, RACK_IP_FILE, RACK_USERNAME)
+        sleep(2)
 
     # Copy the default config to each rackspace node
-    print("Copying default config")
-    functions.remote_copy_default_config(save_file, RACK_IP_FILE)
-    sleep(2)
+    if platform == "rack":
+        print("Copying default config")
+        functions.remote_copy_default_config(save_file, RACK_IP_FILE, RACK_USERNAME)
+        sleep(2)
 
     if(len(iplist) == 0):
         print("IPLIST IS EMPTY")
 
     # Copy the scenario.eel file to each rackspace node
-    print("Copying scenario.eel")
-    functions.remote_copy_scenario(save_file, iplist)
+    if platform == "rack":
+        print("Copying scenario.eel")
+        functions.remote_copy_scenario(save_file, iplist)
 
     # Copy corresponding platform file to each rackspace node
-    print("Copying platform xmls")
-    functions.remote_copy_platform_xmls(save_file, iplist)
+    if platform == "rack":
+        print("Copying platform xmls")
+        functions.remote_copy_platform_xmls(save_file, iplist)
 
     # Copy emane_start and emane_stop scripts to each rackspace node
-    print("Copying emane scripts")
-    functions.remote_copy_emane_scripts(save_file, iplist)
+    if platform == "rack":
+        print("Copying emane scripts")
+        functions.remote_copy_emane_scripts(save_file, iplist)
 
     # Move grapevine files from svn folder to test folder on each rack instance
-    print("Preparing GrapeVine test")
-    functions.setup_grapevine(save_file, RACK_IP_FILE)
+    if platform == "rack":
+        print("Preparing GrapeVine test")
+        functions.setup_grapevine(save_file, RACK_IP_FILE)
 
     # Do node certifications
     gvpki(iplist)
@@ -184,6 +193,7 @@ def gvpki(iplist):
     # Generate cert on each node
     print("Generating certs")
     path_to_jar = "/home/emane-01/test/emane/gvine/node/"
+    path_to_jar = "/home/pi/test/"
     functions.generate_certs(iplist, path_to_jar)
     sleep(3)
     # Pull cert down from each node
@@ -224,20 +234,24 @@ def remove_error_rate(subnets, nodes, iplist):
 
 # Synchronizes rackspace nodes (not sure what it does, soroush had it),
 # then runs emane_start.sh on each rackspace node in the topology
-def start(save_file, iplist):
-    functions.synchronize(RACK_IP_FILE)
+def start(save_file, iplist, platform):
+    if platform == "rack":
+        functions.synchronize(RACK_IP_FILE)
 
-    print("Starting emane")
-    script_name = 'emane_start.sh'
-    functions.remote_emane(save_file, RACK_IP_FILE, script_name)
-    sleep(2)
+        print("Starting emane")
+        script_name = 'emane_start.sh'
+        functions.remote_emane(save_file, RACK_IP_FILE, script_name)
+        sleep(2)
 
-    print("Deleting previous gvine log files")
-    functions.delete_gvine_log_files(RACK_IP_FILE)
-    sleep(2)
+        print("Deleting previous gvine log files")
+        functions.delete_gvine_log_files(RACK_IP_FILE)
+        sleep(2)
 
     print("Starting GrapeVine jar: " + JAR_FILE)
-    functions.remote_start_gvine(iplist, JAR_FILE)
+    if platform == "rack":
+        functions.remote_start_gvine(iplist, JAR_FILE, RACK_USERNAME)
+    elif platform == "pi":
+        functions.remote_start_gvine(iplist, JAR_FILE, PI_USERNAME)
     print("Done.")
 
 
