@@ -574,7 +574,7 @@ def stats_tcpdump(iplist, platform):
     functions.create_dir("./stats/")
     functions.create_dir("./stats/dumps/")
     functions.create_dir("./stats/dumps/" + SAVE_FILE)
-    user_name = RACK_USERNAME if platform == "rack" else PI_USERNAME if platform == "pi"
+    user_name = RACK_USERNAME if platform == "rack" else PI_USERNAME
     dump_folder = statsuite.copy_dump_files(iplist, "./stats/dumps/" + SAVE_FILE + "/", user_name)
     return dump_folder
 
