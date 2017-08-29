@@ -98,7 +98,8 @@ def configure(save_file, subnets, nodes):
     functions.create_dir(topo_path)
     functions.write_platform_xmls(subnets, nodes, topo_path, IP_BLACK_LIST)
     functions.write_emane_start_stop_scripts(save_file, len(nodes))
-    functions.write_scenario(subnets, nodes, topo_path)
+    pathloss_value = int(input("Input pathloss value : "))
+    functions.write_scenario(subnets, nodes, topo_path, pathloss_value)
 
 
 # Runs configure() to create topology locally, 
@@ -118,11 +119,10 @@ def setup(save_file, subnets, nodes, iplist, platform):
         functions.edit_ssh_config()
         sleep(2)
 
-    # Add all rackspace node ip addresses to this computer's known_hosts file
-    functions.add_known_hosts(iplist)
+        # Add all rackspace node ip addresses to this computer's known_hosts file
+        functions.add_known_hosts(iplist)
 
-    # Create topology directory on each rackspace node
-    if platform == "rack":
+        # Create topology directory on each rackspace node
         print("Creating remote directories with ipfile: " + RACK_IP_FILE)
         functions.remote_create_dirs(save_file, RACK_IP_FILE, RACK_USERNAME)
         sleep(2)
@@ -143,10 +143,6 @@ def setup(save_file, subnets, nodes, iplist, platform):
         # Copy emane_start and emane_stop scripts to each rackspace node
         print("Copying emane scripts")
         functions.remote_copy_emane_scripts(save_file, iplist)
-
-        # Move grapevine files from svn folder to test folder on each rack instance
-        print("Preparing GrapeVine test")
-        functions.setup_grapevine(save_file, RACK_IP_FILE)
 
     # Do node certifications
     gvpki(iplist)
@@ -333,10 +329,12 @@ def stop_all_tcpdump():
     functions.parallel_ssh(RACK_IP_FILE, "sudo pkill tcpdump")
 
 
-def ping(subnets, nodes):
+def ping(subnets, nodes, platform):
     print("Setting up")
-    functions.generate_network_ping_list(subnets, nodes, RACK_IP_FILE, IP_BLACK_LIST)
-    testsuite.ping_network()
+    # functions.generate_network_ping_list(subnets, nodes, RACK_IP_FILE, IP_BLACK_LIST)
+    prefix = NODE_PREFIX if platform == "rack" else "pi-"
+    user_name = RACK_USERNAME if platform == "rack" else PI_USERNAME
+    testsuite.ping_network(prefix, user_name)
     print("Done.")
 
 

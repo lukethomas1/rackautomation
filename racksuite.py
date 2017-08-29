@@ -160,7 +160,7 @@ while(loop):
     ##### STOP COMMANDS #####
 
     elif(arg == "stop"):
-        commands.stop(save)
+        commands.stop(save, PLATFORM)
     elif(arg == "stop_gvine"):
         commands.stop_gvine()
     elif(arg == "stop_norm"):

@@ -2,7 +2,7 @@
 DEFAULT_PLATFORM = "rack"
 NODE_PREFIX = "node-"
 
-SAVE_FILE = "twonodes"
+SAVE_FILE = "threenodes"
 JUPYTER_SAVE_FILE = "8flat"
 PCAP_SAVE_FILE = "8flat"
 

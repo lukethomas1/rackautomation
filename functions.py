@@ -136,30 +136,30 @@ def choose_alphabetic_path(paths, index=-1):
     return chosen_path
 
 
-def clean_node_data(ip_file):
+def clean_node_data(ip_file, user_name):
     command = (
         "cd ~/test/emane/gvine/node/ && rm -rf gvine.msg* gvine.frag* " +
         "gvine.sub* delay.txt ack.txt *.cer SeqNbr.txt send.txt received.txt " +
         "statistic.db log* eventlogs/* dbs/* data/*"
     )
     print("Cleaning data on nodes")
-    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command], stdout=DEVNULL)
+    Popen(['parallel-ssh', '-h', ip_file, '-l', user_name, '-i', '-P', command], stdout=DEVNULL)
     sleep(1)
 
 
-def clean_more(ip_file):
+def clean_more(ip_file, user_name):
     command = (
         "cd ~/test/emane/gvine/node/ && rm -rf $(ls -I '*.jar' -I '*.json' -I '*.cer' -I '*pki.db*')"
     )
     print("Deleting all non .jar, .json files from nodes")
-    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command])
+    Popen(['parallel-ssh', '-h', ip_file, '-l', user_name, '-i', '-P', command])
     sleep(1)
 
 
-def clean_nodes(ip_file):
+def clean_nodes(ip_file, user_name):
     command = "cd ~/test/emane/gvine/node/ && rm -rf $(ls -I '*.jar' -I '*.json')"
     print("Deleting all non .jar, .json files from nodes")
-    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command])
+    Popen(['parallel-ssh', '-h', ip_file, '-l', user_name, '-i', '-P', command])
     sleep(1)
 
 
@@ -200,7 +200,7 @@ def create_file_from_list(file_path, contents):
     file = open(file_path, 'w')
     for line in contents:
         file.write(line + "\n")
-    file.close()
+    file.close()/PUB
 
 
 # Call rackspace API to create num_instances nodes with image_name image
@@ -224,9 +224,10 @@ def create_dir(folder_path):
     makedirs(folder_path, exist_ok=True)
 
 
-def delete_gvine_log_files(ip_file):
-    command = "cd /home/emane-01/test/emane/gvine/node/ && rm log_*"
-    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command],
+def delete_gvine_log_files(ip_file, user_name):
+    dir_path = path.expanduser("~/gvinetest/")
+    command = "cd " + dir_path + " && rm log_*"
+    Popen(['parallel-ssh', '-h', ip_file, '-l', user_name, '-i', '-P', command],
         stdout=DEVNULL)
 
 
@@ -431,10 +432,10 @@ def parallel_ssh(ip_file, command, user_name):
     Popen(['parallel-ssh', '-h', ip_file, '-l', user_name, '-i', '-P', command], stdout=DEVNULL)
 
 
-def push_file(ip_file, src_path, dest_path):
+def push_file(ip_file, src_path, dest_path, user_name):
     print("Pushing file " + src_path + " to " + dest_path)
     command = (
-        "parallel-scp -h " + ip_file + " -l emane-01 " + src_path + " " + dest_path
+        "parallel-scp -h " + ip_file + " -l " + user_name + " " + src_path + " " + dest_path
     )
     call(command, shell=True, stdout=DEVNULL)
 
@@ -568,44 +569,6 @@ def remote_start_console(user, terminal, jar, iplist, gvine_dir):
         call(terminal)
 
 
-def setup_grapevine(save_file, ip_file):
-    command = "if [ ! -d /home/emane-01/test/emane/gvine/node/ ]\n then mkdir -p  /home/emane-01/test/emane/gvine/node\n fi"
-    
-    print("\nMaking /home/emane-01/test/emane/gvine/node/ directory")
-    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
-    sleep(2)
-
-    command = "if [ ! -f /home/emane-01/test/emane/gvine/node/gvine.conf.json ]\n then cp /home/emane-01/gvine/trunk/source_gvine/gvine.conf.json /home/emane-01/test/emane/gvine/node/\n fi"
-
-    print("\nCopying gvine.conf.json")
-    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
-    sleep(2)
-
-    command = "if [ ! -f /home/emane-01/test/emane/gvine/node/jvine.jar ]\n then cp /home/emane-01/gvine/trunk/source_gvine/jvine.jar /home/emane-01/test/emane/gvine/node/\n fi"
-
-    print("\nCopying jvine.jar")
-    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
-    sleep(2)
-
-    command = "if [ ! -f /home/emane-01/test/emane/gvine/node/gvapp.jar ]\n then cp /home/emane-01/gvine/trunk/source_gvine/gvapp.jar /home/emane-01/test/emane/gvine/node/\n fi"
-
-    print("\nCopying gvapp.jar")
-    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
-    sleep(2)
-
-    command = "cd /home/emane-01/test/emane/gvine/node/ && rm -r data"
-
-    print("\nRemoving data folder")
-    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
-    sleep(2)
-
-    command = "cd /home/emane-01/test/emane/gvine/node/ && rm delay.txt"
-
-    print("\nRemoving delay.txt")
-    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P', command ])
-    sleep(2)
-
-
 # Sort iplist to have node 1 at beginning and the last node at the end
 def sort_iplist(iplist, sort_term):
     sortlist = []
@@ -677,7 +640,7 @@ def write_platform_xmls(subnets, nodes, topo_path, blacklist):
 ##### EMANE SCENARIOS #####
 
 # Write scenario.eel, currently sets pathloss from each node to all the others
-def write_scenario(subnets, nodes, topo_path):
+def write_scenario(subnets, nodes, topo_path, pathloss_value):
     scenario_file = open(topo_path + "scenario.eel", 'w')
     for subnet in subnets:
         num_members = len(subnet['memberids'])
@@ -688,7 +651,6 @@ def write_scenario(subnets, nodes, topo_path):
                 for y in range(num_members):
                     if(x != y):
                         to_nemid = str(subnet['number'] * 100 + subnet['memberids'][y])
-                        pathloss_value = 0
                         scenario_file.write(" nem:" + str(to_nemid) + "," + str(pathloss_value))
                 scenario_file.write("\n")
     scenario_file.close()

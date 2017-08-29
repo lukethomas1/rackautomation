@@ -17,8 +17,8 @@ SUCCESS = '\033[92m'
 FAIL = '\033[91m'
 ENDCOLOR = '\033[0m'
     
-def ping_network():
-    network_file = open("./tests/pingtest/network", "r")
+def ping_network(prefix, user_name):
+    network_file = open("./iplists/" + prefix + "hosts", "r")
     connections = network_file.readlines()
     network_file.close()
 
@@ -36,7 +36,7 @@ def ping_network():
         key = RSAKey.from_private_key_file(loc)
         ssh = SSHClient()
         ssh.set_missing_host_key_policy(AutoAddPolicy())
-        ssh.connect(node_ip, username="emane-01", pkey=key)
+        ssh.connect(node_ip, username=user_name, pkey=key)
 
         print("---------- Pinging from " + node_ip + " ----------")
 
@@ -56,7 +56,7 @@ def message_test_gvine(iplist, message_name, file_size, user_name):
     send_gvine_message(sender_ip, message_name, file_size, "1", "", user_name)
 
 
-def check_network_receiving(iplist, sender_node):
+def check_network_receiving(iplist, sender_node, user_name):
     loc = path.expanduser("~/.ssh/id_rsa")
     key = RSAKey.from_private_key_file(loc)
     ssh = SSHClient()
@@ -66,11 +66,11 @@ def check_network_receiving(iplist, sender_node):
     for ip_index in range(len(iplist)):
         ip = iplist[ip_index]
         if(ip_index != sender_index):
-            check_message_receiving(ip, ssh, key)
+            check_message_receiving(ip, ssh, key, user_name)
 
 
-def check_message_receiving(ip, ssh, key):
-    ssh.connect(ip, username="emane-01", pkey=key)
+def check_message_receiving(ip, ssh, key, user_name):
+    ssh.connect(ip, username=user_name, pkey=key)
     command = "tail -c 100000 ~/test/emane/gvine/node/log_* | grep -F 'Beacon\":[{'"
     stdin, stdout, stderr = ssh.exec_command(command)
     exit_status = stdout.channel.recv_exit_status()
@@ -142,7 +142,7 @@ def send_gvine_message(sender_ip, message_name, file_size_kb, send_node_num, rec
     key = RSAKey.from_private_key_file(loc)
     ssh = SSHClient()
     ssh.set_missing_host_key_policy(AutoAddPolicy())
-    ssh.connect(sender_ip, username="emane-01", pkey=key)
+    ssh.connect(sender_ip, username=user_name, pkey=key)
 
     # Make the text file to be sent
     command = "cd ~/test/"

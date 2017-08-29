@@ -1,3 +1,9 @@
+
+
+# System Imports
+from os import path
+
+# Local Imports
 import config
 import commands
 import functions
@@ -307,7 +313,8 @@ def necessary_setup():
 def node_certs(iplist):
     # Generate cert on each node
     print("Generating certs")
-    path_to_jar = "/home/emane-01/test/emane/gvine/node/"
+
+    path_to_jar = path.expanduser("~/test/emane/gvine/node/")
     functions.generate_certs(iplist, path_to_jar)
     sleep(3)
     # Pull cert down from each node
@@ -403,7 +410,7 @@ def gather_data(param_indices):
 
     print("Copying Sqlite3 Event databases to this computer")
     statsuite.clear_node_event_data(SAVE_FILE)
-    path_to_db = "/home/emane-01/test/emane/gvine/node/dbs/eventsql_copy.db"
+    path_to_db = path.expanduser("~/test/emane/gvine/node/dbs/eventsql_copy.db")
     statsuite.copy_event_dbs(iplist, path_to_db, "./stats/events/" + SAVE_FILE + "/nodedata/")
     sleep(3)
 
