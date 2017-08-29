@@ -28,6 +28,7 @@ import autotest
 import packetsuite
 import graphsuite
 import config
+from classes.racknode import RackNode
 
 # Constants defined in config.py
 NODE_PREFIX = config.NODE_PREFIX
@@ -78,6 +79,20 @@ def initialize(save_file, num_nodes):
     print("Done.")
 
 
+def assign_nodes(subnets, nodes):
+    platform = input("Input Platform : ")
+    nodes = []
+    if platform == "rack":
+        functions.set_topology(SAVE_FILE, NODE_PREFIX)
+        configuration = functions.load_data()
+        for index in range(len(nodes)):
+            ips = configuration['iplist']
+            this_node = RackNode(NODE_PREFIX + str(index + 1), "emane-01", index + 1, ips[index],
+                                 platform, "/home/emane-01/test/")
+            nodes.append(this_node)
+    return nodes
+
+
 def make_iplist(num_nodes, iplist):
     functions.generate_iplist(num_nodes, NODE_PREFIX)
     functions.edit_ssh_config()
@@ -99,24 +114,16 @@ def configure(save_file, subnets, nodes):
 
 # Runs configure() to create topology locally, 
 # then distributes topology to rackspace nodes
-def setup(save_file, subnets, nodes, iplist):
+def setup(save_file, subnets, nodes, iplist, node_objects):
     # Write configuration files (configure() method) before sending to nodes
     if(not path.isdir("./topologies/" + save_file)):
         configure(save_file, subnets, nodes)
     else:
         print(save_file + " already configured")
 
-    print("Editing ssh config")
-    functions.edit_ssh_config()
-    sleep(2)
-
     # Add all rackspace node ip addresses to this computer's known_hosts file
-    functions.add_known_hosts(iplist)
-
-    # Create topology directory on each rackspace node
-    print("Creating remote directories with ipfile: " + IP_FILE)
-    functions.remote_create_dirs(save_file, IP_FILE)
-    sleep(2)
+    for node in node_objects:
+        node.add_to_known_hosts()
 
     # Copy the default config to each rackspace node
     print("Copying default config")

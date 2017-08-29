@@ -379,7 +379,6 @@ def get_all_saves():
     return saves
 
 
-
 # Returns a filled out nem template given the subnet, node, and device_num
 # device_num represents how many subnets the node is in
 # This method is run once for each subnet that the node is in
@@ -968,15 +967,15 @@ def generate_error_rate_commands(subnets, nodes):
 
 def remote_set_error_rate(ip, error_rate, command_template):
     command = command_template.format(action="-A", rate=str(error_rate))
-    remote_execute_command(command, ip, "emane-01", False, False)
+    remote_execute(command, ip, "emane-01", False, False)
 
 
 def remote_remove_error_rate(ip, error_rate, command_template):
     command = command_template.format(action="-D", rate=str(error_rate))
-    remote_execute_command(command, ip, "emane-01", False, False)
+    remote_execute(command, ip, "emane-01", False, False)
 
 
-def remote_execute_command(command, ip, remote_username, print_stdout, print_stderr):
+def remote_execute(command, ip, remote_username, print_stdout=False, print_stderr=False):
     loc = path.expanduser("~/.ssh/id_rsa")
     key = RSAKey.from_private_key_file(loc)
     ssh = SSHClient()
@@ -988,9 +987,11 @@ def remote_execute_command(command, ip, remote_username, print_stdout, print_std
     if(print_stderr):
         print(stderr.read().decode())
     ssh.close()
+    return stdout.channel.recv_exit_status()
 
 
-def remote_execute_commands(commands, ip, remote_username, print_stdout, print_stderr, print_exit):
+def remote_execute_commands(commands, ip, remote_username, print_stdout=False, print_stderr=False,
+                            print_exit=False):
     loc = path.expanduser("~/.ssh/id_rsa")
     key = RSAKey.from_private_key_file(loc)
     ssh = SSHClient()
@@ -1085,9 +1086,7 @@ def estimate_hop_time(txrate, msg_size_bytes, fragment_size):
 def member_subnets(memberid, subnets):
     return [subnet['name'] for subnet in subnets if memberid in subnet['memberids']]
 
-
 ##### TCPDUMP #####
-
 
 def subnet_tcpdump(nodes, subnets, node_prefix, node_to_ip_dict):
     for node_index in range(0, len(nodes)):
