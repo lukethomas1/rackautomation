@@ -23,14 +23,12 @@ class Node:
         self.ip = ip
         self.platform = platform
         self.gvine_path = gvine_path
-        self.interfaces =
-
 
     def add_to_known_hosts(self):
         loc = path.expanduser("~/.ssh/known_hosts")
         command = "ssh-keygen -R " + self.ip
         call(command, shell=True, stdout=DEVNULL)
-        command = "ssh-keyscan -H " + host + " >> " + loc
+        command = "ssh-keyscan -H " + self.ip + " >> " + loc
         call(command, shell=True, stdout=DEVNULL)
         sleep(1)
 
@@ -81,7 +79,7 @@ class Node:
 
     # Use parallel-scp to push certs in parallel
     def push_certs(self, path_to_certs):
-        command = "scp " + path_to_certs + "/* " + self.user_name + "@" + self.ip + ":" + \
+        command = "scp " + path_to_certs + " " + self.user_name + "@" + self.ip + ":" + \
                   self.gvine_path
         call(command, shell=True, stdout=DEVNULL)
 

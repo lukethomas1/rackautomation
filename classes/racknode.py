@@ -14,7 +14,7 @@ from time import sleep
 
 # Local Imports
 import functions
-from node import Node
+from classes.node import Node
 
 class RackNode(Node):
     def __init__(self, name, user_name, id, ip, platform, gvine_path):

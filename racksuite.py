@@ -27,7 +27,10 @@ while(loop):
 
     ##### SETUP COMMANDS #####
 
-    if(arg == "init"):
+    if(arg == "assign"):
+        node_objects = commands.assign_nodes(subnets, nodes)
+        commands.setup(save, subnets, nodes, node_objects)
+    elif(arg == "init"):
         commands.initialize(save, len(nodes))
     elif(arg == "iplist"):
         commands.make_iplist(len(nodes), iplist)

@@ -114,7 +114,7 @@ def configure(save_file, subnets, nodes):
 
 # Runs configure() to create topology locally, 
 # then distributes topology to rackspace nodes
-def setup(save_file, subnets, nodes, iplist, node_objects):
+def setup(save_file, subnets, nodes, node_objects):
     # Write configuration files (configure() method) before sending to nodes
     if(not path.isdir("./topologies/" + save_file)):
         configure(save_file, subnets, nodes)
@@ -127,30 +127,30 @@ def setup(save_file, subnets, nodes, iplist, node_objects):
 
     # Copy the default config to each rackspace node
     print("Copying default config")
-    functions.remote_copy_default_config(save_file, IP_FILE)
+    for node in node_objects:
+        node.remote_copy_default_config(save_file)
     sleep(2)
 
-    if(len(iplist) == 0):
-        print("IPLIST IS EMPTY")
+    if(len(node_objects) == 0):
+        print("NO NODES")
 
     # Copy the scenario.eel file to each rackspace node
     print("Copying scenario.eel")
-    functions.remote_copy_scenario(save_file, iplist)
+    for node in node_objects:
+        node.remote_copy_scenario(save_file)
 
     # Copy corresponding platform file to each rackspace node
     print("Copying platform xmls")
-    functions.remote_copy_platform_xmls(save_file, iplist)
+    for node in node_objects:
+        node.remote_copy_platform_xmls(save_file)
 
     # Copy emane_start and emane_stop scripts to each rackspace node
     print("Copying emane scripts")
-    functions.remote_copy_emane_scripts(save_file, iplist)
-
-    # Move grapevine files from svn folder to test folder on each rack instance
-    print("Preparing GrapeVine test")
-    functions.setup_grapevine(save_file, IP_FILE)
+    for node in node_objects:
+        node.remote_copy_emane_scripts(save_file)
 
     # Do node certifications
-    gvpki(iplist)
+    gvpki(node_objects)
     print("Done.")
 
 
@@ -185,24 +185,17 @@ def push_file():
     functions.push_file(IP_FILE, src_path, dest_path)
 
 
-def gvpki(iplist):
+def gvpki(node_objects):
     # Generate cert on each node
-    print("Generating certs")
-    path_to_jar = "/home/emane-01/test/emane/gvine/node/"
-    functions.generate_certs(iplist, path_to_jar)
-    sleep(3)
-    # Pull cert down from each node
-    print("Pulling certs")
-    functions.pull_certs(iplist)
-    sleep(2)
-    # Push all certs to each node
-    print("Pushing certs")
-    path_to_certs = "./keystore/*"
-    functions.push_certs(IP_FILE, path_to_certs, path_to_jar)
-    sleep(2)
-    # Load all certs on each node
-    print("Loading certs")
-    functions.load_certs(path_to_jar, iplist)
+    print("Doing gvpki")
+    for node in node_objects:
+        node.generate_cert()
+    for node in node_objects:
+        node.pull_cert()
+    for node in node_objects:
+        node.push_certs("./keystore/*")
+    for node in node_objects:
+        node.load_certs(len(node_objects))
 
 
 def set_error_rate(subnets, nodes, iplist):
