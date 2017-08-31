@@ -67,7 +67,7 @@ while(loop):
     ##### START COMMANDS #####
 
     elif(arg == "start"):
-        commands.start(save, iplist)
+        commands.start(save, iplist, PLATFORM)
     elif(arg == "start_debug"):
         commands.start_debug(save, iplist, nodes, subnets, nodeipdict)
     elif(arg == "start_console"):
@@ -101,7 +101,7 @@ while(loop):
         commands.norm_message(iplist)
     elif(arg == "testmessage"):
         inv_ipdict = functions.invert_dict(nodeipdict)
-        commands.test_message(iplist, inv_ipdict, nodes)
+        commands.test_message(iplist, inv_ipdict, nodes, PLATFORM)
     elif(arg == "checkreceiving"):
         sender_node = int(input("Sender node? : "))
         testsuite.check_network_receiving(iplist, sender_node)

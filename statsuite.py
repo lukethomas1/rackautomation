@@ -1013,15 +1013,15 @@ def check_packet_sent_timestamps(path_to_input):
         print("Earliest time for " + sender_node + ": " + str(nodes_dict[sender_node]))
 
 
-def copy_dump_files(iplist, output_dir, user_name):
+def copy_dump_files(iplist, output_dir):
     date_time = strftime("%Y-%m-%d_%H:%M:%S", gmtime())
     folder_name = output_dir + "/" + date_time
     create_dir(folder_name)
 
     for index in range(len(iplist)):
         ip = iplist[index]
-        command = "scp " + user_name + "@" + ip + ":" + "~/test/emane/gvine/node/*.pcap " + \
-                  folder_name + "/node" + str(index + 1) + ".cap"
+        command = "scp emane-01@" + ip + ":" + "~/test/emane/gvine/node/*.pcap " + folder_name + \
+                  "/node" + str(index + 1) + ".cap"
         system(command)
     return folder_name
 

@@ -1,5 +1,5 @@
 # Used for rackspace node naming and some other naming, will break things if changed
-DEFAULT_PLATFORM = "rack"
+DEFAULT_PLATFORM = "pi"
 NODE_PREFIX = "node-"
 
 SAVE_FILE = "threenodes"

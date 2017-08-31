@@ -200,7 +200,7 @@ def create_file_from_list(file_path, contents):
     file = open(file_path, 'w')
     for line in contents:
         file.write(line + "\n")
-    file.close()/PUB
+    file.close() #/PUB
 
 
 # Call rackspace API to create num_instances nodes with image_name image
