@@ -8,7 +8,7 @@
 # System Imports
 from os import path
 from subprocess import call, Popen, DEVNULL
-from time import sleep
+from time import sleep, time
 
 # Third Party Imports
 
@@ -49,10 +49,6 @@ class Node:
     def delete_gvine_log_file(self):
         command = "cd " + self.gvine_path + " && rm log_*"
         functions.remote_execute(command, self.ip, self.user_name)
-
-    def push_file(self, src_path, dest_path):
-        command = "scp " + src_path + " " + self.user_name + "@" + self.ip + ":" + dest_path
-        call(command, shell=True, stdout=DEVNULL)
 
     def remote_delete_events(self):
         command = "cd " + self.gvine_path + " && rm ./dbs/*"
@@ -99,3 +95,54 @@ class Node:
     def remote_remove_error_rate(self, error_rate, command_template):
         command = command_template.format(action="-D", rate=str(error_rate))
         functions.remote_execute(command, self.ip, self.user_name)
+
+    ##### BASIC FUNCTIONALITY #####
+
+    def push_file(self, src_path, dest_path):
+        command = "scp " + src_path + " " + self.user_name + "@" + self.ip + ":" + dest_path
+        call(command, shell=True, stdout=DEVNULL)
+
+    def remote_create_dir(self, path_to_folder):
+        command = "mkdir " + path_to_folder
+        functions.remote_execute(command, self.ip, self.user_name)
+
+    def remote_delete_path(self, path_to_delete, is_dir=False):
+        if not is_dir:
+            command = "rm " + path_to_delete
+        else:
+            command = "rm -r " + path_to_delete
+        functions.remote_execute(command, self.ip, self.user_name)
+
+    ##### TESTING #####
+
+    def make_test_file(self, msg_name, size_kb):
+        command = (
+            "cd " + self.gvine_path + " && dd if=/dev/urandom of=" + msg_name + " bs=" +
+            size_kb + "k count=1"
+        )
+        functions.remote_execute(command, self.ip, self.user_name)
+
+        exit_status = 1
+        timer = time()
+        while(exit_status == 1 and time() - timer < 25):
+            print("Sleeping 5 seconds to wait for " + msg_name + " to be created")
+            sleep(5)
+            command = "ls " + self.gvine_path + msg_name
+            exit_status = functions.remote_execute(command, self.ip, self.user_name)
+
+    def send_gvine_file(self, msg_name, receive_node_num=None):
+        print("Sending message on GrapeVine from " + self.name)
+        command = "cd " + self.gvine_path
+        if(not receive_node_num):
+            command += " && java -jar gvapp.jar file " + msg_name + " " + str(self.id)
+        else:
+            command += (" && java -jar gvapp.jar file " + msg_name + " " +
+                        str(self.id) + " " + receive_node_num)
+        functions.remote_execute(command, self.ip, self.user_name)
+        print("Message sent.\n")
+
+    def check_msg_received(self, file_name):
+        command = "ls " + self.gvine_path + "data/" + file_name
+        exit_status = functions.remote_execute(command, self.ip, self.user_name)
+        functions.print_success_fail(not exit_status, self.name + " ")
+        return exit_status

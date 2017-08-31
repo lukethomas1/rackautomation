@@ -22,6 +22,9 @@ while(loop):
     nodes = config_result['nodes']
     iplist = config_result['iplist']
     nodeipdict = config_result['nodeipdict']
+    if "node_objects" in config_result.keys():
+        node_objects = config_result["node_objects"]
+        print(str(len(node_objects)) + " assigned")
 
     arg = input("Command: ")
 
@@ -29,7 +32,9 @@ while(loop):
 
     if(arg == "assign"):
         node_objects = commands.assign_nodes(subnets, nodes)
-        commands.setup(save, subnets, nodes, node_objects)
+        functions.update_topology("node_objects", node_objects)
+    elif(arg == "unassign"):
+        functions.update_topology("node_objects", [])
     elif(arg == "init"):
         commands.initialize(save, len(nodes))
     elif(arg == "iplist"):
@@ -39,7 +44,7 @@ while(loop):
     elif(arg == "configure"):
         commands.configure(save, subnets, nodes)
     elif(arg == "setup"):
-        commands.setup(save, subnets, nodes, iplist)
+        commands.setup(save, subnets, nodes, node_objects)
     elif(arg == "push_scenario"):
         functions.remote_copy_scenario(save, iplist)
     elif(arg == "pushconfig"):
@@ -51,7 +56,7 @@ while(loop):
     elif(arg == "fragsize"):
         commands.change_frag_size()
     elif(arg == "gvpki"):
-        commands.gvpki(iplist)
+        commands.gvpki(node_objects)
     elif(arg == "seterrorrate"):
         commands.set_error_rate(subnets, nodes, iplist)
     elif(arg == "removeerrorrate"):
@@ -60,7 +65,7 @@ while(loop):
     ##### START COMMANDS #####
 
     elif(arg == "start"):
-        commands.start(save, iplist)
+        commands.start(save, node_objects)
     elif(arg == "start_debug"):
         commands.start_debug(save, iplist, nodes, subnets, nodeipdict)
     elif(arg == "start_console"):
@@ -94,7 +99,7 @@ while(loop):
         commands.norm_message(iplist)
     elif(arg == "testmessage"):
         inv_ipdict = functions.invert_dict(nodeipdict)
-        commands.test_message(iplist, inv_ipdict, nodes)
+        commands.test_message(node_objects)
     elif(arg == "checkreceiving"):
         sender_node = int(input("Sender node? : "))
         testsuite.check_network_receiving(iplist, sender_node)
@@ -153,7 +158,7 @@ while(loop):
     ##### STOP COMMANDS #####
 
     elif(arg == "stop"):
-        commands.stop(save)
+        commands.stop(node_objects)
     elif(arg == "stop_gvine"):
         commands.stop_gvine()
     elif(arg == "stop_norm"):

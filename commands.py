@@ -81,16 +81,17 @@ def initialize(save_file, num_nodes):
 
 def assign_nodes(subnets, nodes):
     platform = input("Input Platform : ")
-    nodes = []
+    node_objects = []
     if platform == "rack":
         functions.set_topology(SAVE_FILE, NODE_PREFIX)
         configuration = functions.load_data()
         for index in range(len(nodes)):
             ips = configuration['iplist']
             this_node = RackNode(NODE_PREFIX + str(index + 1), "emane-01", index + 1, ips[index],
-                                 platform, "/home/emane-01/test/")
-            nodes.append(this_node)
-    return nodes
+                                 platform, "/home/emane-01/gvinetest/",
+                                 "/home/emane-01/emane/topologies/")
+            node_objects.append(this_node)
+    return node_objects
 
 
 def make_iplist(num_nodes, iplist):
@@ -121,33 +122,8 @@ def setup(save_file, subnets, nodes, node_objects):
     else:
         print(save_file + " already configured")
 
-    # Add all rackspace node ip addresses to this computer's known_hosts file
     for node in node_objects:
-        node.add_to_known_hosts()
-
-    # Copy the default config to each rackspace node
-    print("Copying default config")
-    for node in node_objects:
-        node.remote_copy_default_config(save_file)
-    sleep(2)
-
-    if(len(node_objects) == 0):
-        print("NO NODES")
-
-    # Copy the scenario.eel file to each rackspace node
-    print("Copying scenario.eel")
-    for node in node_objects:
-        node.remote_copy_scenario(save_file)
-
-    # Copy corresponding platform file to each rackspace node
-    print("Copying platform xmls")
-    for node in node_objects:
-        node.remote_copy_platform_xmls(save_file)
-
-    # Copy emane_start and emane_stop scripts to each rackspace node
-    print("Copying emane scripts")
-    for node in node_objects:
-        node.remote_copy_emane_scripts(save_file)
+        node.setup_gvine(save_file)
 
     # Do node certifications
     gvpki(node_objects)
@@ -190,10 +166,13 @@ def gvpki(node_objects):
     print("Doing gvpki")
     for node in node_objects:
         node.generate_cert()
+    sleep(2)
     for node in node_objects:
         node.pull_cert()
+    sleep(2)
     for node in node_objects:
         node.push_certs("./keystore/*")
+    sleep(2)
     for node in node_objects:
         node.load_certs(len(node_objects))
 
@@ -222,20 +201,23 @@ def remove_error_rate(subnets, nodes, iplist):
 
 # Synchronizes rackspace nodes (not sure what it does, soroush had it),
 # then runs emane_start.sh on each rackspace node in the topology
-def start(save_file, iplist):
-    functions.synchronize(IP_FILE)
+def start(save_file, node_objects):
+    functions.synchronize(node_objects)
 
     print("Starting emane")
     script_name = 'emane_start.sh'
-    functions.remote_emane(save_file, IP_FILE, script_name)
+    for node in node_objects:
+        node.remote_emane(save_file, script_name)
     sleep(2)
 
     print("Deleting previous gvine log files")
-    functions.delete_gvine_log_files(IP_FILE)
+    for node in node_objects:
+        node.remote_delete_path(node.gvine_path + "log*")
     sleep(2)
 
     print("Starting GrapeVine jar: " + JAR_FILE)
-    functions.remote_start_gvine(iplist, JAR_FILE)
+    for node in node_objects:
+        node.remote_start_gvine(JAR_FILE)
     print("Done.")
 
 
@@ -287,28 +269,20 @@ def start_norm(iplist, subnets, nodes):
 
 
 # Runs emane_stop.sh on each rackspace node in the topology
-def stop(save_file):
-    # Stop GrapeVine
-    functions.parallel_ssh(IP_FILE, "sudo pkill java")
-    # Stop Norm
-    functions.parallel_ssh(IP_FILE, "sudo pkill norm")
-    # Stop tcpdump
-    functions.parallel_ssh(IP_FILE, "sudo pkill tcpdump")
-    # Stop EMANE
-    script_file = 'emane_stop.sh'
-    functions.remote_emane(save_file, IP_FILE, script_file)
-    sleep(2)
+def stop(node_objects):
+    for node in node_objects:
+        node.stop_all(SAVE_FILE)
     print("Done.")
 
 
-def stop_gvine():
-    print("Stopping gvine")
-    functions.parallel_ssh(IP_FILE, "sudo pkill java")
+def stop_gvine(node_objects):
+    for node in node_objects:
+        functions.remote_execute("sudo pkill java", node.ip, node.user_name)
 
 
-def stop_norm():
-    print("Stopping norm")
-    functions.parallel_ssh(IP_FILE, "sudo pkill norm")
+def stop_norm(node_objects):
+    for node in node_objects:
+        functions.remote_execute("sudo pkill norm", node.ip, node.user_name)
 
 
 def start_basic_tcpdump(nodes, subnets, nodeipdict):
@@ -469,11 +443,12 @@ def norm_message(iplist):
     testsuite.send_norm_message(iplist[0], message_name, file_size)
     
 
-def test_message(iplist, inv_ipdict, nodes):
+def test_message(node_objects):
     message_name = input("Choose message file name: ")
     file_size = input("Choose file size (kilobytes): ")
-    testsuite.message_test_gvine(iplist, message_name, file_size)
-    testsuite.wait_for_message_received(message_name, 1, iplist, inv_ipdict, nodes, 9999)
+    node_objects[0].make_test_file(message_name, file_size)
+    node_objects[0].send_gvine_file(message_name)
+    testsuite.wait_for_message_received(message_name, node_objects, 1, 9999)
 
 
 def stats_directories(save_file):

@@ -85,6 +85,14 @@ def set_topology(save_file, node_prefix):
     with open('.data.pickle', 'wb') as file:
         dump(data, file)
 
+
+def update_topology(key, value):
+    with open(".data.pickle", "rb") as file:
+        data = load(file)
+    data[key] = value
+    with open(".data.pickle", "wb") as file:
+        dump(data, file)
+
 ##### TOPOLOGY CONFIGURATION #####
 
 def add_known_hosts(iplist):
@@ -617,15 +625,15 @@ def sort_iplist(iplist, sort_term):
 
 
 # Synchronize rackspace nodes, necessary for accurate stats gathering
-def synchronize(ip_file):
-    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
-        'sudo service ntp stop'], stdout=DEVNULL)
-    sleep(1)
-    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
-        'sudo ntpd -gq'], stdout=DEVNULL)
-    sleep(1)
-    Popen(['parallel-ssh', '-h', ip_file, '-l', 'emane-01', '-i', '-P',
-        'sudo service ntp start'], stdout=DEVNULL)
+def synchronize(node_objects):
+    for node in node_objects:
+        remote_execute("sudo service ntp stop", node.ip, node.user_name)
+    sleep(2)
+    for node in node_objects:
+        remote_execute("sudo ntpd -gq", node.ip, node.user_name)
+    sleep(2)
+    for node in node_objects:
+        remote_execute("sudo service ntp start", node.ip, node.user_name)
 
 
 # Write emane_start.sh and emane_stop.sh on this computer
@@ -1102,3 +1110,9 @@ def subnet_tcpdump(nodes, subnets, node_prefix, node_to_ip_dict):
             node_commands.append(command)
         remote_execute_commands(node_commands, node_to_ip_dict[node_name], "emane-01", False,
                                 False, False)
+
+def print_success_fail(success, string):
+    if(success):
+        print(SUCCESS + string + " SUCCESS" + ENDCOLOR)
+    else:
+        print(FAIL + string + " FAILED" + ENDCOLOR)

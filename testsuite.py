@@ -79,39 +79,30 @@ def check_message_receiving(ip, ssh, key):
     return not exit_status
 
 
-def wait_for_message_received(file_name, sender_node, iplist, inv_ipdict, nodes, wait_time):
+def wait_for_message_received(file_name, node_objects, sender_id, wait_time):
     sleep_time = 5
     start_time = time()
     received = False
-    topodict = generate_rack_to_topo_dict(iplist, inv_ipdict, nodes)
     try:
         while(not received and (time() - start_time) < wait_time):
             sleep(sleep_time)
             elapsed_time = time() - start_time
             print("\nChecking if message was received: " + str(elapsed_time) + " seconds")
-            received = check_network_received(file_name, iplist, inv_ipdict, topodict, sender_node)
+            received = check_network_received(file_name, node_objects, sender_id)
     except KeyboardInterrupt:
         pass
     return received
 
 
-def check_network_received(file_name, iplist, inv_ipdict, topodict, sender_node):
-    loc = path.expanduser("~/.ssh/id_rsa")
-    key = RSAKey.from_private_key_file(loc)
-    ssh = SSHClient()
-    ssh.set_missing_host_key_policy(AutoAddPolicy())
-    sender_index = sender_node - 1
-    success = True
+def check_network_received(file_name, node_objects, sender_id):
+    total_success = True
 
-    for ip_index in range(len(iplist)):
-        ip = iplist[ip_index]
-        node_name = inv_ipdict[ip]
-        node_label = topodict[node_name]
-        if(ip_index != sender_index):
-            rtnVal = check_message_received(file_name, ip, node_name, node_label, ssh, key)
-            if(not rtnVal):
-                success = False
-    return success
+    for node in node_objects:
+        if node.id != sender_id:
+            node_success = node.check_msg_received(file_name)
+            if not node_success:
+                total_success = False
+    return total_success
 
 
 def check_message_received(file_name, ip, node_name, node_label, ssh, key):
