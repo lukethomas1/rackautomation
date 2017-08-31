@@ -1,4 +1,5 @@
 # Used for rackspace node naming and some other naming, will break things if changed
+DEFAULT_PLATFORM = "pi"
 NODE_PREFIX = "node-"
 
 SAVE_FILE = "threenodes"
@@ -7,12 +8,24 @@ PCAP_SAVE_FILE = "8flat"
 
 IMAGE_NAME = "dirchange"
 
+# User input variable
+PI_USERNAME = "pi"
+RACK_USERNAME = "emane-01"
+
+REMOTE_GVINE_DIR = "~/test/emane/gvine/node/"
+REMOTE_EMANE_DIR = "~/GrapeVine/topologies/" + SAVE_FILE + "/"
+
 RACK_KEY = "mykey"
 
 JAR_FILE = "gvine-fast.jar"
 
 # Where to find the ip file for all the rackspace nodes
-IP_FILE = "./iplists/" + NODE_PREFIX + "hosts"
+RACK_IP_FILE = "./iplists/" + NODE_PREFIX + "hosts"
+PI_IP_FILE = "./iplists/pi-ipfile"
+
+PI_IP_LIST = ["192.168.1.31", "192.168.1.32", "192.168.1.33", "192.168.1.34", "192.168.1.35",
+              "192.168.1.36", "192.168.1.37", "192.168.1.38", "192.168.1.39", "192.168.1.40",
+              "192.168.1.41", "192.168.1.42", "192.168.1.43"]
 
 # Subnet Ip Blacklist
 IP_BLACK_LIST = [

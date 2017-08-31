@@ -11,6 +11,10 @@ import commands
 import functions
 import testsuite
 import packetsuite
+import config
+
+PI_IP_LIST = config.PI_IP_LIST
+PLATFORM = config.DEFAULT_PLATFORM
 
 loop = True
 while(loop):
@@ -20,7 +24,7 @@ while(loop):
     json = config_result['json']
     subnets = config_result['subnets']
     nodes = config_result['nodes']
-    iplist = config_result['iplist']
+    rack_iplist = config_result['iplist']
     nodeipdict = config_result['nodeipdict']
     if "node_objects" in config_result.keys():
         node_objects = config_result["node_objects"]
@@ -37,7 +41,7 @@ while(loop):
         functions.update_topology("node_objects", [])
     elif(arg == "init"):
         commands.initialize(save, len(nodes))
-    elif(arg == "iplist"):
+    elif(arg == "iplist"and PLATFORM == "rack"):
         commands.make_iplist(len(nodes), iplist)
     elif(arg == "reset"):
         commands.reset_topology()
@@ -132,7 +136,7 @@ while(loop):
     elif(arg == "stats_events"):
         commands.stats_events(save, iplist)
     elif(arg == "stats_tcpdump"):
-        commands.stats_tcpdump(iplist)
+        commands.stats_tcpdump(iplist, PLATFORM)
     elif(arg == "txpackets"):
         commands.stats_sent_packets()
     elif(arg == "rxpackets"):

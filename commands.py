@@ -35,7 +35,11 @@ NODE_PREFIX = config.NODE_PREFIX
 SAVE_FILE = config.SAVE_FILE
 JUPYTER_SAVE_FILE = config.JUPYTER_SAVE_FILE
 IMAGE_NAME = config.IMAGE_NAME
-IP_FILE = config.IP_FILE
+RACK_USERNAME = config.RACK_USERNAME
+PI_USERNAME = config.PI_USERNAME
+RACK_IP_FILE = config.RACK_IP_FILE
+PI_IP_FILE = config.PI_IP_FILE
+PI_IP_LIST = config.PI_IP_LIST
 IP_BLACK_LIST = config.IP_BLACK_LIST
 JAR_FILE = config.JAR_FILE
 RACK_KEY = config.RACK_KEY
@@ -110,7 +114,8 @@ def configure(save_file, subnets, nodes):
     functions.create_dir(topo_path)
     functions.write_platform_xmls(subnets, nodes, topo_path, IP_BLACK_LIST)
     functions.write_emane_start_stop_scripts(save_file, len(nodes))
-    functions.write_scenario(subnets, nodes, topo_path)
+    pathloss_value = int(input("Input pathloss value : "))
+    functions.write_scenario(subnets, nodes, topo_path, pathloss_value)
 
 
 # Runs configure() to create topology locally, 
@@ -144,7 +149,7 @@ def change_frag_size():
 
 def push_config():
     path_to_conf = "./autotestfiles/gvine.conf.json"
-    functions.push_gvine_conf(IP_FILE, path_to_conf)
+    functions.push_gvine_conf(RACK_IP_FILE, path_to_conf)
 
 
 def push_file():
@@ -158,7 +163,7 @@ def push_file():
     else:
         dest_path = path.expanduser(dest_path)
     src_path = path.expanduser(src_path)
-    functions.push_file(IP_FILE, src_path, dest_path)
+    functions.push_file(RACK_IP_FILE, src_path, dest_path)
 
 
 def gvpki(node_objects):
@@ -222,18 +227,18 @@ def start(save_file, node_objects):
 
 
 def start_debug(save_file, iplist, nodes, subnets, nodeipdict):
-    functions.synchronize(IP_FILE)
+    functions.synchronize(RACK_IP_FILE)
 
     print("Starting emane")
     script_name = 'emane_start.sh'
-    functions.remote_emane(save_file, IP_FILE, script_name)
+    functions.remote_emane(save_file, RACK_IP_FILE, script_name)
     sleep(2)
 
     print("Logging subnet traffic with tcpdump")
     functions.subnet_tcpdump(nodes, subnets, NODE_PREFIX, nodeipdict)
 
     print("Deleting previous gvine log files")
-    functions.delete_gvine_log_files(IP_FILE)
+    functions.delete_gvine_log_files(RACK_IP_FILE)
     sleep(2)
 
     print("Starting GrapeVine jar: " + JAR_FILE)
@@ -252,7 +257,7 @@ def start_console(iplist):
 def start_emane(save_file):
     print("Starting emane")
     script_name = 'emane_start.sh'
-    functions.remote_emane(save_file, IP_FILE, script_name)
+    functions.remote_emane(save_file, RACK_IP_FILE, script_name)
 
 
 def start_gvine(iplist):
@@ -291,17 +296,19 @@ def start_basic_tcpdump(nodes, subnets, nodeipdict):
 
 
 def stop_all_tcpdump():
-    functions.parallel_ssh(IP_FILE, "sudo pkill tcpdump")
+    functions.parallel_ssh(RACK_IP_FILE, "sudo pkill tcpdump")
 
 
-def ping(subnets, nodes):
+def ping(subnets, nodes, platform):
     print("Setting up")
-    functions.generate_network_ping_list(subnets, nodes, IP_FILE, IP_BLACK_LIST)
-    testsuite.ping_network()
+    # functions.generate_network_ping_list(subnets, nodes, RACK_IP_FILE, IP_BLACK_LIST)
+    prefix = NODE_PREFIX if platform == "rack" else "pi-"
+    user_name = RACK_USERNAME if platform == "rack" else PI_USERNAME
+    testsuite.ping_network(prefix, user_name)
     print("Done.")
 
 
-def run_auto_test():
+def run_auto_test(platform):
     # Set the test parameters and variables
     num_indices = NUM_INDICES
     max_tx_rate = MAX_TX_RATE
@@ -326,8 +333,13 @@ def run_auto_test():
         initial_indices = [0, 0, 0, 0]
 
     # Initialize the test and start running test
-    autotest.initialize_parameters(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates,
-                                   msg_interval, initial_indices)
+    if platform == "rack":
+        autotest.initialize_parameters(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates,
+                                       msg_interval, initial_indices, RACK_IP_FILE)
+    elif platform == "pi":
+        autotest.initialize_parameters(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates,
+                                       msg_interval, initial_indices, PI_IP_FILE)
+
     need_setup = bool(input("Need Setup? (Leave blank for no): "))
     need_configure = False
     if(need_setup):
@@ -526,11 +538,12 @@ def stats_events(save_file, iplist):
     statsuite.combine_event_dbs(input_dir, output_dir)
 
 
-def stats_tcpdump(iplist):
+def stats_tcpdump(iplist, platform):
     functions.create_dir("./stats/")
     functions.create_dir("./stats/dumps/")
     functions.create_dir("./stats/dumps/" + SAVE_FILE)
-    dump_folder = statsuite.copy_dump_files(iplist, "./stats/dumps/" + SAVE_FILE + "/")
+    user_name = RACK_USERNAME if platform == "rack" else PI_USERNAME
+    dump_folder = statsuite.copy_dump_files(iplist, "./stats/dumps/" + SAVE_FILE + "/", user_name)
     return dump_folder
 
 
@@ -625,7 +638,6 @@ def stats_type_packets(chosen_save=None):
     graphsuite.plot_type_direction(seconds_dict, "rx", bucket_size, True, False, "rx_cumulative")
     graphsuite.plot_type_direction(seconds_dict, "tx", bucket_size, False, True, "tx_average")
     graphsuite.plot_type_direction(seconds_dict, "rx", bucket_size, False, True, "rx_average")
-
 
 
 def stats_stop_beacons():
@@ -733,11 +745,11 @@ def stats_delays(save_file, num_nodes):
 def clean():
     clean_amount = input("Clean 1) Data 2) Non certs 3) All non .jar : ")
     if(clean_amount == "1"):
-        functions.clean_node_data(IP_FILE)
+        functions.clean_node_data(RACK_IP_FILE)
     elif(clean_amount == "2"):
-        functions.clean_more(IP_FILE)
+        functions.clean_more(RACK_IP_FILE)
     elif(clean_amount == "3"):
-        functions.clean_nodes(IP_FILE)
+        functions.clean_nodes(RACK_IP_FILE)
 
 
 # Deletes the topologies/<topology-name>/ folder on each rackspace node
