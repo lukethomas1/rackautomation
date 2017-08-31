@@ -26,9 +26,9 @@ while(loop):
     nodes = config_result['nodes']
     rack_iplist = config_result['iplist']
     nodeipdict = config_result['nodeipdict']
-    if "node_objects" in config_result.keys():
-        node_objects = config_result["node_objects"]
-        print(str(len(node_objects)) + " assigned")
+
+    node_objects = commands.get_assigned_nodes()
+    print(str(len(node_objects)) + " assigned")
 
     arg = input("Command: ")
 
@@ -36,13 +36,15 @@ while(loop):
 
     if(arg == "assign"):
         node_objects = commands.assign_nodes(subnets, nodes)
-        functions.update_topology("node_objects", node_objects)
+        functions.update_pickle(".data.nodes", "nodes", node_objects)
     elif(arg == "unassign"):
-        functions.update_topology("node_objects", [])
+        functions.update_pickle(".data.nodes", "nodes", [])
     elif(arg == "init"):
         commands.initialize(save, len(nodes))
     elif(arg == "iplist"and PLATFORM == "rack"):
         commands.make_iplist(len(nodes), iplist)
+    elif(arg == "editssh"):
+        commands.edit_ssh()
     elif(arg == "reset"):
         commands.reset_topology()
     elif(arg == "configure"):
@@ -117,10 +119,7 @@ while(loop):
         sender_node = int(input("Sender node? : "))
         file_name = input("File Name? : ")
         wait_time = int(input("Wait time? : "))
-        inv_ipdict = functions.invert_dict(nodeipdict)
-        topodict = functions.generate_rack_to_topo_dict(iplist, inv_ipdict, nodes)
-        testsuite.wait_for_message_received(file_name, sender_node, iplist, inv_ipdict, nodes,
-                                            wait_time)
+        testsuite.wait_for_message_received(file_name, node_objects, sender_node, wait_time)
     elif(arg == "scapytest"):
         dump_dirs = packetsuite.get_dump_timestamp_dirs()
         node_dict = packetsuite.get_pcap_node_dict(dump_dirs[0], len(nodes))
@@ -136,7 +135,7 @@ while(loop):
     elif(arg == "stats_events"):
         commands.stats_events(save, iplist)
     elif(arg == "stats_tcpdump"):
-        commands.stats_tcpdump(iplist, PLATFORM)
+        commands.stats_tcpdump(node_objects)
     elif(arg == "txpackets"):
         commands.stats_sent_packets()
     elif(arg == "rxpackets"):
@@ -173,7 +172,7 @@ while(loop):
     ##### EXTRA COMMANDS #####
 
     elif(arg == "clean"):
-        commands.clean()
+        commands.clean(node_objects)
     elif(arg == "clean_norm"):
         functions.clean_norm(iplist)
     elif(arg == "delete"):

@@ -146,3 +146,11 @@ class Node:
         exit_status = functions.remote_execute(command, self.ip, self.user_name)
         functions.print_success_fail(not exit_status, self.name + " ")
         return exit_status
+
+    def start(self, jar_name, save=None):
+        self.remote_delete_path(self.gvine_path + "log*")
+        self.remote_start_gvine(jar_name)
+
+    def stop_all(self, save=None):
+        functions.remote_execute("sudo pkill java && sudo pkill norm && sudo pkill tcpdump",
+                                 self.ip, self.user_name)

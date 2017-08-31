@@ -18,6 +18,7 @@ from collections import OrderedDict
 from glob import glob
 from re import sub
 from plotly.offline import init_notebook_mode
+from pickle import load, dump
 import plotly
 
 # Local Imports
@@ -72,6 +73,17 @@ def update_config():
     return data
 
 
+def get_assigned_nodes():
+    if not path.isfile(".data.nodes"):
+        with open(".data.nodes", "wb") as file:
+            data = {"nodes": []}
+            dump(data, file)
+        return []
+    else:
+        with open(".data.nodes", "rb") as file:
+            return load(file)["nodes"]
+
+
 def reset_topology():
     functions.set_topology(SAVE_FILE, NODE_PREFIX)
     print("Topology reset, config updated")
@@ -103,6 +115,9 @@ def make_iplist(num_nodes, iplist):
     functions.edit_ssh_config()
     functions.add_known_hosts(iplist)
 
+
+def edit_ssh():
+    functions.edit_ssh_config()
 
 # Creates the configuration files for the desired topology on THIS COMPUTER
 # Creates platform xmls, emane_start.sh, emane_stop.sh, scenario.eel
@@ -207,22 +222,12 @@ def remove_error_rate(subnets, nodes, iplist):
 # Synchronizes rackspace nodes (not sure what it does, soroush had it),
 # then runs emane_start.sh on each rackspace node in the topology
 def start(save_file, node_objects):
+    print("Synchronizing nodes")
     functions.synchronize(node_objects)
 
-    print("Starting emane")
-    script_name = 'emane_start.sh'
     for node in node_objects:
-        node.remote_emane(save_file, script_name)
-    sleep(2)
-
-    print("Deleting previous gvine log files")
-    for node in node_objects:
-        node.remote_delete_path(node.gvine_path + "log*")
-    sleep(2)
-
-    print("Starting GrapeVine jar: " + JAR_FILE)
-    for node in node_objects:
-        node.remote_start_gvine(JAR_FILE)
+        print("Starting on " + node.name)
+        node.start(JAR_FILE, save_file)
     print("Done.")
 
 
@@ -538,12 +543,11 @@ def stats_events(save_file, iplist):
     statsuite.combine_event_dbs(input_dir, output_dir)
 
 
-def stats_tcpdump(iplist, platform):
+def stats_tcpdump(node_objects):
     functions.create_dir("./stats/")
     functions.create_dir("./stats/dumps/")
     functions.create_dir("./stats/dumps/" + SAVE_FILE)
-    user_name = RACK_USERNAME if platform == "rack" else PI_USERNAME
-    dump_folder = statsuite.copy_dump_files(iplist, "./stats/dumps/" + SAVE_FILE + "/", user_name)
+    dump_folder = statsuite.copy_dump_files(node_objects, "./stats/dumps/" + SAVE_FILE + "/")
     return dump_folder
 
 
@@ -742,14 +746,10 @@ def stats_delays(save_file, num_nodes):
     statsuite.plot_values(delays, "delay")
 
 
-def clean():
-    clean_amount = input("Clean 1) Data 2) Non certs 3) All non .jar : ")
-    if(clean_amount == "1"):
-        functions.clean_node_data(RACK_IP_FILE)
-    elif(clean_amount == "2"):
-        functions.clean_more(RACK_IP_FILE)
-    elif(clean_amount == "3"):
-        functions.clean_nodes(RACK_IP_FILE)
+def clean(node_objects):
+    clean_amount = int(input("Clean 1) Data 2) Non certs 3) All non .jar : "))
+    for node in node_objects:
+        node.clean_gvine(clean_amount)
 
 
 # Deletes the topologies/<topology-name>/ folder on each rackspace node

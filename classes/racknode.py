@@ -27,6 +27,10 @@ class RackNode(Node):
         self.topo_dir = topo_dir
         # super().__init__(name, user_name, id, ip, platform, gvine_path)
 
+    def start(self, jar_name, save=None):
+        self.remote_emane(save, "emane_start.sh")
+        super().start(jar_name)
+
     def setup_gvine(self, save):
         print("Setting up gvine for " + self.name)
         self.add_to_known_hosts()
@@ -76,7 +80,6 @@ class RackNode(Node):
         command = "cd ~/norm/bin/ && rm *log* outbox/*"
         functions.remote_execute(command, self.ip, self.user_name)
 
-    def stop_all(self, save):
-        functions.remote_execute("sudo pkill java && sudo pkill norm && sudo pkill tcpdump",
-                                 self.ip, self.user_name)
+    def stop_all(self, save=None):
         self.remote_emane(save, "emane_stop.sh")
+        super().stop_all()

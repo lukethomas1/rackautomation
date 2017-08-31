@@ -100,7 +100,7 @@ def check_network_received(file_name, node_objects, sender_id):
     for node in node_objects:
         if node.id != sender_id:
             node_success = node.check_msg_received(file_name)
-            if not node_success:
+            if node_success:
                 total_success = False
     return total_success
 

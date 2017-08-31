@@ -21,6 +21,10 @@ from paramiko import AutoAddPolicy, RSAKey, SSHClient
 from pickle import load, dump
 from pyrebase import initialize_app
 
+SUCCESS = '\033[92m'
+FAIL = '\033[91m'
+ENDCOLOR = '\033[0m'
+
 ##### LOCAL DATA PERSISTENCE #####
 
 def check_config(old_config):
@@ -86,11 +90,11 @@ def set_topology(save_file, node_prefix):
         dump(data, file)
 
 
-def update_topology(key, value):
-    with open(".data.pickle", "rb") as file:
+def update_pickle(file_name, key, value):
+    with open(file_name, "rb") as file:
         data = load(file)
     data[key] = value
-    with open(".data.pickle", "wb") as file:
+    with open(file_name, "wb") as file:
         dump(data, file)
 
 ##### TOPOLOGY CONFIGURATION #####
@@ -956,8 +960,9 @@ def remote_execute(command, ip, remote_username, print_stdout=False, print_stder
         print(stdout.read().decode())
     if(print_stderr):
         print(stderr.read().decode())
+    exit_status = stdout.channel.recv_exit_status()
     ssh.close()
-    return stdout.channel.recv_exit_status()
+    return exit_status
 
 
 def remote_execute_commands(commands, ip, remote_username, print_stdout=False, print_stderr=False,
