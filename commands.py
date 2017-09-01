@@ -104,17 +104,18 @@ def assign_nodes(subnets, nodes):
         configuration = functions.load_data()
         for index in range(len(nodes)):
             ips = configuration['iplist']
+            member_subnets = [subnet['name'] for subnet in subnets if index + 1 in subnet[
+                'memberids']]
             this_node = RackNode(NODE_PREFIX + str(index + 1), "emane-01", index + 1, ips[index],
                                  platform, "/home/emane-01/gvinetest/",
-                                 "/home/emane-01/emane/topologies/")
+                                 "/home/emane-01/emane/topologies/", member_subnets)
             node_objects.append(this_node)
     elif platform == "pi":
         for index in range(len(nodes)):
             ips = PI_IP_LIST
-            this_node = PiNode(NODE_PREFIX + str(index + 1), "pi", index+1, ips[index], platform, "/home/pi/test/" )
+            this_node = PiNode(NODE_PREFIX + str(index + 1), "pi", index+1, ips[index], platform,
+                               "/home/pi/test/")
             node_objects.append(this_node)
-
-
     return node_objects
 
 

@@ -17,21 +17,17 @@ import functions
 from classes.node import Node
 
 class RackNode(Node):
-    def __init__(self, name, user_name, id, ip, platform, gvine_path, topo_dir):
-        self.name = name
-        self.user_name = user_name
-        self.id = id
-        self.ip = ip
-        self.platform = platform
-        self.gvine_path = gvine_path
+    def __init__(self, name, user_name, id, ip, platform, gvine_path, topo_dir, member_subnets):
         self.topo_dir = topo_dir
-        # super().__init__(name, user_name, id, ip, platform, gvine_path)
+        self.member_subnets = member_subnets
+        super().__init__(name, user_name, id, ip, platform, gvine_path)
 
     def start(self, jar_name, save=None):
         self.remote_emane(save, "emane_start.sh")
+        self.start_tcpdump()
         super().start(jar_name)
 
-    def setup_gvine(self, save):
+    def setup_gvine(self, save=None):
         print("Setting up gvine for " + self.name)
         self.add_to_known_hosts()
         self.remote_create_dir(self.topo_dir + save)
@@ -83,3 +79,14 @@ class RackNode(Node):
     def stop_all(self, save=None):
         self.remote_emane(save, "emane_stop.sh")
         super().stop_all()
+
+    def start_tcpdump(self):
+        commands = []
+        for index in range(len(self.member_subnets)):
+            iface = "emane" + str(index)
+            print("Starting tcpdump on " + self.name + " and iface " + iface)
+            command = "sudo nohup tcpdump -i " + iface + " -n udp -w " + self.gvine_path + iface \
+                      + ".pcap &>/dev/null &"
+            print(command)
+            commands.append(command)
+        functions.remote_execute_commands(commands, self.ip, self.user_name)
