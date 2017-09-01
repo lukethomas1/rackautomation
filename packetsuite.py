@@ -247,6 +247,9 @@ def make_type_packets_dict(chosen_dir=None):
                 packet_type = get_gvine_packet_type(packet)
             except IndexError:
                 continue
+            except AttributeError:
+                print("pass on bad packet")
+                continue
             second = int(packet.time - earliest_time)
             seconds_dict[direction][packet_type][node_name][str(second)] += len(packet)
     return seconds_dict
@@ -283,6 +286,7 @@ def get_earliest_latest_packet(packets_dict):
 
 def get_gvine_packet_type(packet):
     return PACKET_TYPES[packet.load[3] - 1]
+    
 
 
 def is_packet_sender(packet, node_index):

@@ -99,22 +99,22 @@ def initialize(save_file, num_nodes):
 def assign_nodes(subnets, nodes):
     platform = input("Input Platform : ")
     node_objects = []
-    if platform == "rack":
-        functions.set_topology(SAVE_FILE, NODE_PREFIX)
-        configuration = functions.load_data()
-        for index in range(len(nodes)):
+  
+    for index in range(len(nodes)):
+        member_subnets = [subnet['name'] for subnet in subnets if index + 1 in subnet[
+            'memberids']]
+        if platform == "rack":
+            functions.set_topology(SAVE_FILE, NODE_PREFIX)
+            configuration = functions.load_data()
             ips = configuration['iplist']
-            member_subnets = [subnet['name'] for subnet in subnets if index + 1 in subnet[
-                'memberids']]
             this_node = RackNode(NODE_PREFIX + str(index + 1), "emane-01", index + 1, ips[index],
-                                 platform, "/home/emane-01/gvinetest/",
-                                 "/home/emane-01/emane/topologies/", member_subnets)
+                                 platform, "/home/emane-01/gvinetest/", member_subnets, 
+                                 "/home/emane-01/emane/topologies/")
             node_objects.append(this_node)
-    elif platform == "pi":
-        for index in range(len(nodes)):
+        elif platform == "pi":
             ips = PI_IP_LIST
             this_node = PiNode(NODE_PREFIX + str(index + 1), "pi", index+1, ips[index], platform,
-                               "/home/pi/test/")
+                               "/home/pi/test/", member_subnets)
             node_objects.append(this_node)
     return node_objects
 

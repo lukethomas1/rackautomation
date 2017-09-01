@@ -16,13 +16,14 @@ from time import sleep, time
 import functions
 
 class Node:
-    def __init__(self, name, user_name, id, ip, platform, gvine_path):
+    def __init__(self, name, user_name, id, ip, platform, gvine_path, member_subnets):
         self.name = name
         self.user_name = user_name
         self.id = id
         self.ip = ip
         self.platform = platform
         self.gvine_path = gvine_path
+        self.member_subnets = member_subnets
 
     def setup_gvine(self, save=None):
         

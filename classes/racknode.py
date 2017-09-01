@@ -17,9 +17,8 @@ import functions
 from classes.node import Node
 
 class RackNode(Node):
-    def __init__(self, name, user_name, id, ip, platform, gvine_path, topo_dir, member_subnets):
+    def __init__(self, name, user_name, id, ip, platform, gvine_path, member_subnets, topo_dir):
         self.topo_dir = topo_dir
-        self.member_subnets = member_subnets
         super().__init__(name, user_name, id, ip, platform, gvine_path)
 
     def start(self, jar_name, save=None):
