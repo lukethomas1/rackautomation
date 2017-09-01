@@ -24,6 +24,10 @@ class Node:
         self.platform = platform
         self.gvine_path = gvine_path
 
+    def setup_gvine(self, save=None):
+        
+        return
+
     def add_to_known_hosts(self):
         loc = path.expanduser("~/.ssh/known_hosts")
         command = "ssh-keygen -R " + self.ip

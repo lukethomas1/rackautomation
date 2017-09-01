@@ -30,6 +30,7 @@ import packetsuite
 import graphsuite
 import config
 from classes.racknode import RackNode
+from classes.pinode import PiNode 
 
 # Constants defined in config.py
 NODE_PREFIX = config.NODE_PREFIX
@@ -107,6 +108,13 @@ def assign_nodes(subnets, nodes):
                                  platform, "/home/emane-01/gvinetest/",
                                  "/home/emane-01/emane/topologies/")
             node_objects.append(this_node)
+    elif platform == "pi":
+        for index in range(len(nodes)):
+            ips = PI_IP_LIST
+            this_node = PiNode(NODE_PREFIX + str(index + 1), "pi", index+1, ips[index], platform, "/home/pi/test/" )
+            node_objects.append(this_node)
+
+
     return node_objects
 
 
@@ -223,7 +231,8 @@ def remove_error_rate(subnets, nodes, iplist):
 # then runs emane_start.sh on each rackspace node in the topology
 def start(save_file, node_objects):
     print("Synchronizing nodes")
-    functions.synchronize(node_objects)
+    
+    #functions.synchronize(node_objects)
 
     for node in node_objects:
         print("Starting on " + node.name)
