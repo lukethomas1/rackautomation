@@ -243,6 +243,8 @@ def make_type_packets_dict(chosen_dir=None):
         for packet in packets_dict[node_name]:
             is_sender = is_packet_sender(packet, statsuite.get_trailing_number(node_name))
             direction = "tx" if is_sender else "rx"
+            if direction == "tx":
+                print("TX PACKET")
             try:
                 packet_type = get_gvine_packet_type(packet)
             except IndexError:
@@ -287,7 +289,6 @@ def get_earliest_latest_packet(packets_dict):
 def get_gvine_packet_type(packet):
     return PACKET_TYPES[packet.load[3] - 1]
     
-
 
 def is_packet_sender(packet, node_index):
     if(str(packet[IP].src.split(".")[-1]) == str(node_index)):

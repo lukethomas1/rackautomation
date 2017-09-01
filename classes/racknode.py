@@ -86,6 +86,5 @@ class RackNode(Node):
             print("Starting tcpdump on " + self.name + " and iface " + iface)
             command = "sudo nohup tcpdump -i " + iface + " -n udp -w " + self.gvine_path + iface \
                       + ".pcap &>/dev/null &"
-            print(command)
             commands.append(command)
         functions.remote_execute_commands(commands, self.ip, self.user_name)
