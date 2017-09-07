@@ -43,6 +43,8 @@ while(loop):
         commands.initialize(save, len(nodes))
     elif(arg == "iplist"and PLATFORM == "rack"):
         commands.make_iplist(len(nodes), iplist)
+    elif(arg == "ipfile"and PLATFORM == "rack"):
+        commands.make_ipfile(len(nodes))
     elif(arg == "editssh"):
         commands.edit_ssh()
     elif(arg == "reset"):
@@ -54,9 +56,9 @@ while(loop):
     elif(arg == "push_scenario"):
         functions.remote_copy_scenario(save, iplist)
     elif(arg == "pushconfig"):
-        commands.push_config()
+        commands.push_config(node_objects)
     elif(arg == "pushfile"):
-        commands.push_file()
+        commands.push_file(node_objects)
     elif(arg == "txrate"):
         commands.change_tx_rate()
     elif(arg == "fragsize"):
@@ -133,7 +135,7 @@ while(loop):
     elif(arg == "stats"):
         commands.stats(save, len(nodes), iplist)
     elif(arg == "stats_events"):
-        commands.stats_events(save, iplist)
+        commands.stats_events(save, node_objects)
     elif(arg == "stats_tcpdump"):
         commands.stats_tcpdump(node_objects)
     elif(arg == "txpackets"):

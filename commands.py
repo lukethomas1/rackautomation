@@ -125,6 +125,11 @@ def make_iplist(num_nodes, iplist):
     functions.add_known_hosts(iplist)
 
 
+def make_ipfile(num_nodes):
+    functions.generate_iplist(num_nodes, NODE_PREFIX)
+    functions.edit_ssh_config()
+
+
 def edit_ssh():
     functions.edit_ssh_config()
 
@@ -171,23 +176,25 @@ def change_frag_size():
     functions.change_gvine_frag_size(frag_size, path_to_conf)
 
 
-def push_config():
-    path_to_conf = "./autotestfiles/gvine.conf.json"
-    functions.push_gvine_conf(RACK_IP_FILE, path_to_conf)
+def push_config(node_objects):
+    path_to_conf = path.expanduser("./autotestfiles/gvine.conf.json")
+    for node in node_objects:
+        node.push_file(path_to_conf, node.gvine_path)
 
 
-def push_file():
+def push_file(node_objects):
     src_path = input("Input source file path: ")
     dest_path = input("Input destination file path (1: default gvine 2: default emane): ")
     file_name = input("Input file name (blank for unchanged): ")
-    if(dest_path == "1"):
-        dest_path = "/home/emane-01/test/emane/gvine/node/" + file_name
-    elif(dest_path == "2"):
-        dest_path = "/home/emane-01/GrapeVine/topologies/" + SAVE_FILE + "/" + file_name
-    else:
-        dest_path = path.expanduser(dest_path)
     src_path = path.expanduser(src_path)
-    functions.push_file(RACK_IP_FILE, src_path, dest_path)
+    for node in node_objects:
+        if(dest_path == "1"):
+            dest_path = node.gvine_path + file_name
+        elif(dest_path == "2"):
+            dest_path = node.topo_dir + file_name
+        else:
+            dest_path = path.expanduser(dest_path)
+        node.push_file(src_path, dest_path)
 
 
 def gvpki(node_objects):
@@ -531,7 +538,7 @@ def stats_emane(save_file, num_nodes, iplist):
     print("Done.")
 
 
-def stats_events(save_file, iplist):
+def stats_events(save_file, node_objects):
     print("Creating stats directories")
     functions.create_dir("./stats/")
     functions.create_dir("./stats/events")
@@ -539,13 +546,14 @@ def stats_events(save_file, iplist):
     functions.create_dir("./stats/events/" + save_file + "/nodedata/")
 
     print("\nGathering Event data")
-    statsuite.generate_event_dbs(iplist)
+    for node in node_objects:
+        node.generate_event_db()
     sleep(2)
 
     print("\nCopying Event data")
     statsuite.clear_node_event_data(save_file)
-    path_to_db = "/home/emane-01/test/emane/gvine/node/dbs/eventsql_copy.db"
-    statsuite.copy_event_dbs(iplist, path_to_db, "./stats/events/" + save_file + "/nodedata/")
+    for node in node_objects:
+        node.copy_event_db(save_file)
 
     print("\nCombining Event data")
     input_dir = "./stats/events/" + save_file + "/nodedata/"

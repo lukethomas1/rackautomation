@@ -10,7 +10,7 @@
 # System Imports
 from json import loads
 from math import asin, cos, sqrt
-from os import listdir, makedirs, path
+from os import listdir, makedirs, path, system
 from shutil import copy
 from subprocess import call, Popen, PIPE, DEVNULL
 from time import sleep, time
@@ -265,8 +265,8 @@ def edit_ssh_config():
 
 
 # Run script at script_path, must be shell/bash script
-def execute_bash_script(args):
-    call(args);
+def execute_shell(command):
+    system(command)
 
 
 # Replace placeholders in xml_string with the configuration details provided
@@ -443,10 +443,10 @@ def parallel_ssh(ip_file, command, user_name):
     Popen(['parallel-ssh', '-h', ip_file, '-l', user_name, '-i', '-P', command], stdout=DEVNULL)
 
 
-def push_file(ip_file, src_path, dest_path, user_name):
+def push_file(ip_file, src_path, dest_path):
     print("Pushing file " + src_path + " to " + dest_path)
     command = (
-        "parallel-scp -h " + ip_file + " -l " + user_name + " " + src_path + " " + dest_path
+        "parallel-scp -h " + ip_file + " -l emane-01 " + src_path + " " + dest_path
     )
     call(command, shell=True, stdout=DEVNULL)
 
@@ -963,6 +963,18 @@ def remote_execute(command, ip, remote_username, print_stdout=False, print_stder
     exit_status = stdout.channel.recv_exit_status()
     ssh.close()
     return exit_status
+
+
+def remote_execute_stdout(command, ip, username):
+    loc = path.expanduser("~/.ssh/id_rsa")
+    key = RSAKey.from_private_key_file(loc)
+    ssh = SSHClient()
+    ssh.set_missing_host_key_policy(AutoAddPolicy())
+    ssh.connect(ip, username=username, pkey=key)
+    stdin, stdout, stderr = ssh.exec_command(command)
+    stdout_read = stdout.read()
+    ssh.close()
+    return stdout_read
 
 
 def remote_execute_commands(commands, ip, remote_username, print_stdout=False, print_stderr=False,

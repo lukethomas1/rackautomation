@@ -243,8 +243,6 @@ def make_type_packets_dict(chosen_dir=None):
         for packet in packets_dict[node_name]:
             is_sender = is_packet_sender(packet, statsuite.get_trailing_number(node_name))
             direction = "tx" if is_sender else "rx"
-            if direction == "tx":
-                print("TX PACKET")
             try:
                 packet_type = get_gvine_packet_type(packet)
             except IndexError:

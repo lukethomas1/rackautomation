@@ -17,9 +17,10 @@ import functions
 from classes.node import Node
 
 class RackNode(Node):
-    def __init__(self, name, user_name, id, ip, platform, gvine_path, member_subnets, topo_dir):
+    def __init__(self, name, user_name, id, ip, platform, gvine_path, member_subnets,
+                 topo_dir=None):
         self.topo_dir = topo_dir
-        super().__init__(name, user_name, id, ip, platform, gvine_path)
+        super().__init__(name, user_name, id, ip, platform, gvine_path, member_subnets)
 
     def start(self, jar_name, save=None):
         self.remote_emane(save, "emane_start.sh")

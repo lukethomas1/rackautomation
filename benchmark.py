@@ -26,6 +26,8 @@ def forty_five_comparison():
     gvine403_path = functions.choose_alphabetic_path(dump_dirs)
     print("Gvine-v411")
     gvine411_path = functions.choose_alphabetic_path(dump_dirs)
+    print("Gvine-v424")
+    gvine424_path = functions.choose_alphabetic_path(dump_dirs)
     unicast_dict = packetsuite.make_basic_packets_dict(unicast_path)
     unicast_combined = packetsuite.make_basic_combined_dict(unicast_dict)
     norm_dict = packetsuite.make_basic_packets_dict(norm_path)
@@ -34,12 +36,15 @@ def forty_five_comparison():
     gvine403_combined = packetsuite.make_basic_combined_dict(gvine403_dict)
     gvine411_dict = packetsuite.make_basic_packets_dict(gvine411_path)
     gvine411_combined = packetsuite.make_basic_combined_dict(gvine411_dict)
+    gvine424_dict = packetsuite.make_basic_packets_dict(gvine424_path)
+    gvine424_combined = packetsuite.make_basic_combined_dict(gvine424_dict)
 
     colors = {
         "unicast": "#ff0000",
         "norm": "#00ff00",
         "gvine403": "#0000ff",
-        "gvine411": "#000000"
+        "gvine411": "#000000",
+        "gvine424": "#ff00ff"
     }
 
     traces = {}
@@ -55,6 +60,9 @@ def forty_five_comparison():
                                               "tx_average_gvine403", colors["gvine403"])
     traces["tx_average"]["gvine411"] = make45(gvine411_combined, "tx", False,
                                               "tx_average_gvine411", colors["gvine411"])
+    traces["tx_average"]["gvine424"] = make45(gvine424_combined, "tx", False,
+                                              "tx_average_gvine424", colors["gvine424"])
+
     traces["rx_average"]["unicast"] = make45(unicast_combined, "rx", False, "rx_average_unicast",
                                              colors["unicast"])
     traces["rx_average"]["norm"] = make45(norm_combined, "rx", False, "rx_average_norm",
@@ -63,6 +71,9 @@ def forty_five_comparison():
                                               "rx_average_gvine403", colors["gvine403"])
     traces["rx_average"]["gvine411"] = make45(gvine411_combined, "rx", False,
                                               "rx_average_gvine411", colors["gvine411"])
+    traces["rx_average"]["gvine424"] = make45(gvine424_combined, "rx", False,
+                                              "rx_average_gvine424", colors["gvine424"])
+
     traces["tx_cumulative"]["unicast"] = make45(unicast_combined, "tx", True, "tx_cumulative_unicast",
                                              colors["unicast"])
     traces["tx_cumulative"]["norm"] = make45(norm_combined, "tx", True, "tx_cumulative_norm",
@@ -71,6 +82,9 @@ def forty_five_comparison():
                                               "tx_cumulative_gvine403", colors["gvine403"])
     traces["tx_cumulative"]["gvine411"] = make45(gvine411_combined, "tx", True,
                                               "tx_cumulative_gvine411", colors["gvine411"])
+    traces["tx_cumulative"]["gvine424"] = make45(gvine424_combined, "tx", True,
+                                                 "tx_cumulative_gvine424", colors["gvine424"])
+
     traces["rx_cumulative"]["unicast"] = make45(unicast_combined, "rx", True, "rx_cumulative_unicast",
                                                 colors["unicast"])
     traces["rx_cumulative"]["norm"] = make45(norm_combined, "rx", True, "rx_cumulative_norm",
@@ -79,6 +93,8 @@ def forty_five_comparison():
                                                  "rx_cumulative_gvine403", colors["gvine403"])
     traces["rx_cumulative"]["gvine411"] = make45(gvine411_combined, "rx", True,
                                                  "rx_cumulative_gvine411", colors["gvine411"])
+    traces["rx_cumulative"]["gvine424"] = make45(gvine424_combined, "rx", True,
+                                                 "rx_cumulative_gvine424", colors["gvine424"])
 
     for graph_type in traces.keys():
         figure = plotly.tools.make_subplots(rows=1, cols=1, print_grid=False)

@@ -159,3 +159,19 @@ class Node:
     def stop_all(self, save=None):
         functions.remote_execute("sudo pkill java && sudo pkill norm && sudo pkill tcpdump",
                                  self.ip, self.user_name)
+
+    ##### LOGGABLE EVENTS #####
+
+    def generate_event_db(self):
+        command = "cd " + self.gvine_path + "eventlogs/ && ls -dlt */"
+        stdout_read = functions.remote_execute_stdout(command, self.ip, self.user_name)
+        target_dir = stdout_read.decode().splitlines()[0].split(" ")[-1]
+
+        command = "cd " + self.gvine_path + " && java -jar dbreader.jar eventlogs/" + target_dir \
+                  + " LaJollaCove eventsql"
+        functions.remote_execute(command, self.ip, self.user_name)
+
+    def copy_event_db(self, save_file):
+        src = self.user_name + "@" + self.ip + ":" + self.gvine_path + "dbs/eventsql_copy.db"
+        dest = "./stats/events/" + save_file + "/nodedata/eventsql" + str(self.id) + ".db"
+        functions.execute_shell("scp " + src + " " + dest)
