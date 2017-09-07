@@ -1,6 +1,8 @@
 from os import path
 from subprocess import call, Popen, DEVNULL
 from time import sleep
+import subprocess
+import os
 
 # Third Party Imports
 
@@ -11,10 +13,12 @@ from classes.node import Node
 class PiNode(Node):
     def __init__(self, name, user_name, id, ip, platform, gvine_path, member_subnets, topo_dir=None):
         super().__init__(name, user_name, id, ip, platform, gvine_path, member_subnets)
+        self.setup_gvine()
 
     def setup_gvine(self, save=None):
-
     	#do pi specific set up
+    	self.add_to_known_hosts()
+    	self.synchronize_time()
     	return
 
     def start(self, jar_name, save=None):
@@ -31,3 +35,14 @@ class PiNode(Node):
                       + ".pcap &>/dev/null &"
             commands.append(command)
         functions.remote_execute_commands(commands, self.ip, self.user_name)
+
+
+    def synchronize_time(self):
+    	print ("Syncrhonzing time on node "+self.ip)
+    	date = subprocess.check_output('date',shell=True)
+    	print (date)
+
+    	command = "sudo date -s '%s'" %(date)
+    	functions.remote_execute_commands(command, self.ip, self.user_name)
+
+ 
