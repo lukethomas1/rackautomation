@@ -624,13 +624,18 @@ def jupyter_pcap_graphs():
         graphsuite.plot_type_direction(seconds_dict, "received", bucket_size, True, "rx_cumulative")
 
 
-def stats_basic_packets():
+def stats_basic_packets(chosen_save=None):
+    chosen_dir = ""
+    if(chosen_save is not None):
+        dump_dirs = glob("./stats/dumps/" + chosen_save + "/*")
+        chosen_dir = functions.choose_alphabetic_path(dump_dirs)
+
     init_notebook_mode(connected=True)
-    seconds_dict = packetsuite.make_basic_packets_dict()
-    graphsuite.plot_basic_direction(seconds_dict, "sent", False, "Sent Cumulative")
-    graphsuite.plot_basic_direction(seconds_dict, "received", False, "Received Cumulative")
-    graphsuite.plot_basic_direction(seconds_dict, "sent", True, "Sent Average")
-    graphsuite.plot_basic_direction(seconds_dict, "received", True, "Received Average")
+    seconds_dict = packetsuite.make_type_packets_dict(chosen_dir)
+    graphsuite.plot_basic_direction(seconds_dict, "tx", False, "Sent Cumulative")
+    graphsuite.plot_basic_direction(seconds_dict, "rx", False, "Received Cumulative")
+    graphsuite.plot_basic_direction(seconds_dict, "tx", True, "Sent Average")
+    graphsuite.plot_basic_direction(seconds_dict, "rx", True, "Received Average")
 
 
 def stats_basic_packets_combined():

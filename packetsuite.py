@@ -6,8 +6,8 @@
 
 # System Imports
 from os import path
-from glob import glob
 import logging
+from glob import glob
 
 # Third Party Imports
 from re import sub

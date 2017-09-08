@@ -18,16 +18,19 @@ from graphsuite import make_45_combined_trace as make45
 def forty_five_comparison():
     init_notebook_mode(connected=True)
     dump_dirs = glob("./stats/dumps/45benchmark/*")
-    print("Unicast:")
-    unicast_path = functions.choose_alphabetic_path(dump_dirs)
-    print("Norm:")
-    norm_path = functions.choose_alphabetic_path(dump_dirs)
-    print("Gvine-v403")
-    gvine403_path = functions.choose_alphabetic_path(dump_dirs)
-    print("Gvine-v411")
-    gvine411_path = functions.choose_alphabetic_path(dump_dirs)
-    print("Gvine-v424")
-    gvine424_path = functions.choose_alphabetic_path(dump_dirs)
+    unicast_path = [loc for loc in dump_dirs if "20minutescpsequential" in loc][0]
+    norm_path = [loc for loc in dump_dirs if "20minnorm165kb" in loc][0]
+    gvine403_path = [loc for loc in dump_dirs if "403pro20min" in loc][0]
+    gvine411_path = [loc for loc in dump_dirs if "411pro20min" in loc][0]
+    gvine424_path = [loc for loc in dump_dirs if "424pro20min" in loc][0]
+    gvine424_path = [loc for loc in dump_dirs if "424pro_oldperiod20min" in loc][0]
+
+    print("Unicast: " + unicast_path)
+    print("Norm: " + norm_path)
+    print("Gvine403: " + gvine403_path)
+    print("Gvine411: " + gvine411_path)
+    print("Gvine424: " + gvine424_path)
+
     unicast_dict = packetsuite.make_basic_packets_dict(unicast_path)
     unicast_combined = packetsuite.make_basic_combined_dict(unicast_dict)
     norm_dict = packetsuite.make_basic_packets_dict(norm_path)
