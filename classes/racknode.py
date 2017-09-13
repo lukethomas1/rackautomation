@@ -17,10 +17,10 @@ import functions
 from classes.node import Node
 
 class RackNode(Node):
-    def __init__(self, name, user_name, id, ip, platform, gvine_path, member_subnets,
+    def __init__(self, name, user_name, id, ip, platform, gvine_path, member_subnets, iface_prefix,
                  topo_dir=None):
         self.topo_dir = topo_dir
-        super().__init__(name, user_name, id, ip, platform, gvine_path, member_subnets)
+        super().__init__(name, user_name, id, ip, platform, gvine_path, member_subnets, iface_prefix)
 
     def start(self, jar_name, save=None):
         self.remote_emane(save, "emane_start.sh")
@@ -80,12 +80,3 @@ class RackNode(Node):
         self.remote_emane(save, "emane_stop.sh")
         super().stop_all()
 
-    def start_tcpdump(self):
-        commands = []
-        for index in range(len(self.member_subnets)):
-            iface = "emane" + str(index)
-            print("Starting tcpdump on " + self.name + " and iface " + iface)
-            command = "sudo nohup tcpdump -i " + iface + " -n udp -w " + self.gvine_path + iface \
-                      + ".pcap &>/dev/null &"
-            commands.append(command)
-        functions.remote_execute_commands(commands, self.ip, self.user_name)

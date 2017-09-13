@@ -1,9 +1,9 @@
 {
    "ExcludeInterfaces" : [ "lo", "eth0", "lxcbr0", "eth1" ],
-   "InterfaceModes" : { "emane0":"Broadcast", "emane1":"Broadcast", "emane2":"Broadcast" }, 
+   "InterfaceModes" : { "emane0":"Broadcast", "emane1":"Broadcast", "emane2":"Broadcast", "wlan1":"Broadcast" }, 
    "FragmentSize" : 50000,
    "TargetTxRateBps" : 50000,
-   "PrintLogs" : "yes",
+   "PrintLogs" : "no",
    "LogEvents" : "yes",
    "EmulatePacketDrops" : "no",
    "SignalingMode" : "proactive",

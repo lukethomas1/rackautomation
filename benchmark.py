@@ -50,54 +50,56 @@ def forty_five_comparison():
         "gvine424": "#ff00ff"
     }
 
-    traces = {}
-    traces["tx_average"] = {}
-    traces["rx_average"] = {}
-    traces["tx_cumulative"] = {}
-    traces["rx_cumulative"] = {}
-    traces["tx_average"]["unicast"] = make45(unicast_combined, "tx", False, "tx_average_unicast",
-                                             colors["unicast"])
-    traces["tx_average"]["norm"] = make45(norm_combined, "tx", False, "tx_average_norm",
-                                          colors["norm"])
-    traces["tx_average"]["gvine403"] = make45(gvine403_combined, "tx", False,
-                                              "tx_average_gvine403", colors["gvine403"])
-    traces["tx_average"]["gvine411"] = make45(gvine411_combined, "tx", False,
-                                              "tx_average_gvine411", colors["gvine411"])
-    traces["tx_average"]["gvine424"] = make45(gvine424_combined, "tx", False,
-                                              "tx_average_gvine424", colors["gvine424"])
-
-    traces["rx_average"]["unicast"] = make45(unicast_combined, "rx", False, "rx_average_unicast",
-                                             colors["unicast"])
-    traces["rx_average"]["norm"] = make45(norm_combined, "rx", False, "rx_average_norm",
-                                          colors["norm"])
-    traces["rx_average"]["gvine403"] = make45(gvine403_combined, "rx", False,
-                                              "rx_average_gvine403", colors["gvine403"])
-    traces["rx_average"]["gvine411"] = make45(gvine411_combined, "rx", False,
-                                              "rx_average_gvine411", colors["gvine411"])
-    traces["rx_average"]["gvine424"] = make45(gvine424_combined, "rx", False,
-                                              "rx_average_gvine424", colors["gvine424"])
-
-    traces["tx_cumulative"]["unicast"] = make45(unicast_combined, "tx", True, "tx_cumulative_unicast",
-                                             colors["unicast"])
-    traces["tx_cumulative"]["norm"] = make45(norm_combined, "tx", True, "tx_cumulative_norm",
-                                          colors["norm"])
-    traces["tx_cumulative"]["gvine403"] = make45(gvine403_combined, "tx", True,
-                                              "tx_cumulative_gvine403", colors["gvine403"])
-    traces["tx_cumulative"]["gvine411"] = make45(gvine411_combined, "tx", True,
-                                              "tx_cumulative_gvine411", colors["gvine411"])
-    traces["tx_cumulative"]["gvine424"] = make45(gvine424_combined, "tx", True,
-                                                 "tx_cumulative_gvine424", colors["gvine424"])
-
-    traces["rx_cumulative"]["unicast"] = make45(unicast_combined, "rx", True, "rx_cumulative_unicast",
-                                                colors["unicast"])
-    traces["rx_cumulative"]["norm"] = make45(norm_combined, "rx", True, "rx_cumulative_norm",
-                                             colors["norm"])
-    traces["rx_cumulative"]["gvine403"] = make45(gvine403_combined, "rx", True,
-                                                 "rx_cumulative_gvine403", colors["gvine403"])
-    traces["rx_cumulative"]["gvine411"] = make45(gvine411_combined, "rx", True,
-                                                 "rx_cumulative_gvine411", colors["gvine411"])
-    traces["rx_cumulative"]["gvine424"] = make45(gvine424_combined, "rx", True,
-                                                 "rx_cumulative_gvine424", colors["gvine424"])
+    traces = {
+        "tx_average": {
+            "unicast": make45(unicast_combined, "tx", False, "tx_average_unicast",
+                              colors["unicast"]),
+            "norm": make45(norm_combined, "tx", False, "tx_average_norm",
+                                          colors["norm"]),
+            "gvine403": make45(gvine403_combined, "tx", False, "tx_average_gvine403",
+                               colors["gvine403"]),
+            "gvine411": make45(gvine411_combined, "tx", False, "tx_average_gvine411",
+                               colors["gvine411"]),
+            "gvine424": make45(gvine424_combined, "tx", False, "tx_average_gvine424",
+                               colors["gvine424"]),
+        },
+        "rx_average": {
+            "unicast": make45(unicast_combined, "rx", False, "rx_average_unicast",
+                              colors["unicast"]),
+            "norm": make45(norm_combined, "rx", False, "rx_average_norm",
+                           colors["norm"]),
+            "gvine403": make45(gvine403_combined, "rx", False, "rx_average_gvine403",
+                               colors["gvine403"]),
+            "gvine411": make45(gvine411_combined, "rx", False, "rx_average_gvine411",
+                               colors["gvine411"]),
+            "gvine424": make45(gvine424_combined, "rx", False, "rx_average_gvine424",
+                               colors["gvine424"]),
+        },
+        "tx_cumulative": {
+            "unicast": make45(unicast_combined, "tx", False, "tx_cumulative_unicast",
+                              colors["unicast"]),
+            "norm": make45(norm_combined, "tx", False, "tx_cumulative_norm",
+                           colors["norm"]),
+            "gvine403": make45(gvine403_combined, "tx", False, "tx_cumulative_gvine403",
+                               colors["gvine403"]),
+            "gvine411": make45(gvine411_combined, "tx", False, "tx_cumulative_gvine411",
+                               colors["gvine411"]),
+            "gvine424": make45(gvine424_combined, "tx", False, "tx_cumulative_gvine424",
+                               colors["gvine424"]),
+        },
+        "rx_cumulative": {
+            "unicast": make45(unicast_combined, "rx", False, "rx_cumulative_unicast",
+                              colors["unicast"]),
+            "norm": make45(norm_combined, "rx", False, "rx_cumulative_norm",
+                           colors["norm"]),
+            "gvine403": make45(gvine403_combined, "rx", False, "rx_cumulative_gvine403",
+                               colors["gvine403"]),
+            "gvine411": make45(gvine411_combined, "rx", False, "rx_cumulative_gvine411",
+                               colors["gvine411"]),
+            "gvine424": make45(gvine424_combined, "rx", False, "rx_cumulative_gvine424",
+                               colors["gvine424"]),
+        }
+    }
 
     for graph_type in traces.keys():
         figure = plotly.tools.make_subplots(rows=1, cols=1, print_grid=False)

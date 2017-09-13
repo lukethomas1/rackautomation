@@ -16,7 +16,7 @@ from time import sleep, time
 import functions
 
 class Node:
-    def __init__(self, name, user_name, id, ip, platform, gvine_path, member_subnets):
+    def __init__(self, name, user_name, id, ip, platform, gvine_path, member_subnets, iface_prefix):
         self.name = name
         self.user_name = user_name
         self.id = id
@@ -24,10 +24,7 @@ class Node:
         self.platform = platform
         self.gvine_path = gvine_path
         self.member_subnets = member_subnets
-
-    def setup_gvine(self, save=None):
-        
-        return
+        self.iface_prefix = iface_prefix
 
     def add_to_known_hosts(self):
         loc = path.expanduser("~/.ssh/known_hosts")
@@ -66,19 +63,16 @@ class Node:
 
     ##### GRAPEVINE GVPKI CERTS #####
 
-    # Use paramiko to generate the cert on each node
     def generate_cert(self):
         command = "cd " + self.gvine_path + " && java -jar gvpki.jar generate node" + str(self.id)
         functions.remote_execute(command, self.ip, self.user_name)
 
-    # Use scp to get the cert from each node
     def pull_cert(self):
         from_path = self.user_name + "@" + self.ip + ":" + self.gvine_path + "node" + str(
             self.id) + ".cer"
         to_path = "./keystore/"
         Popen(['scp', from_path, to_path])
 
-    # Use parallel-scp to push certs in parallel
     def push_certs(self, path_to_certs):
         command = "scp " + path_to_certs + " " + self.user_name + "@" + self.ip + ":" + \
                   self.gvine_path
@@ -165,7 +159,7 @@ class Node:
     def generate_event_db(self):
         command = "cd " + self.gvine_path + "eventlogs/ && ls -dlt */"
         stdout_read = functions.remote_execute_stdout(command, self.ip, self.user_name)
-        target_dir = stdout_read.decode().splitlines()[0].split(" ")[-1]
+        target_dir = stdout_read.splitlines()[0].split(" ")[-1]
 
         command = "cd " + self.gvine_path + " && java -jar dbreader.jar eventlogs/" + target_dir \
                   + " LaJollaCove eventsql"
@@ -175,3 +169,39 @@ class Node:
         src = self.user_name + "@" + self.ip + ":" + self.gvine_path + "dbs/eventsql_copy.db"
         dest = "./stats/events/" + save_file + "/nodedata/eventsql" + str(self.id) + ".db"
         functions.execute_shell("scp " + src + " " + dest)
+
+    ##### TCPDUMP #####
+
+    def start_tcpdump(self):
+        commands = []
+        for index in range(len(self.member_subnets)):
+            iface = self.iface_prefix + str(index + 1)
+            print("Starting tcpdump on " + self.name + " and iface " + iface)
+            command = "sudo nohup tcpdump -i " + iface + " -n udp -w " + self.gvine_path + iface \
+                      + ".pcap &>/dev/null &"
+            commands.append(command)
+        functions.remote_execute_commands(commands, self.ip, self.user_name)
+
+    def retrieve_pcaps(self, pcap_folder):
+        for index in range(1, len(self.member_subnets) + 1):
+            iface = self.iface_prefix + str(index)
+            command = "scp " + self.user_name + "@" + self.ip + ":" + self.gvine_path + \
+                      iface + ".pcap " + pcap_folder + self.name + "_" + iface + ".pcap"
+            functions.execute_shell(command)
+
+    def get_ipmap(self):
+        ipmap = {}
+        for index in range(1, len(self.member_subnets) + 1):
+            iface = self.iface_prefix + str(index)
+            iface_ip = self.get_iface_ip(iface)
+            if iface_ip != "":
+                ipmap[iface_ip] = self.id
+            else:
+                ip_guess = "10.0." + str(index) + "." + str(self.id)
+                ipmap[ip_guess] = self.id
+        return ipmap
+
+    def get_iface_ip(self, iface):
+        command = "ifconfig " + iface + " | grep 'inet addr:' | cut -d: -f2 | awk '{print $1}'"
+        output = functions.remote_execute_stdout(command, self.ip, self.user_name)
+        return output.strip("\n")

@@ -15,6 +15,7 @@ from time import gmtime, strftime, sleep
 # 3rd Party Imports
 from paramiko import AutoAddPolicy, RSAKey, SSHClient
 import plotly
+import pickle
 
 # Local imports
 from functions import create_dir
@@ -1015,14 +1016,28 @@ def check_packet_sent_timestamps(path_to_input):
 
 def copy_dump_files(node_objects, output_dir):
     date_time = strftime("%Y-%m-%d_%H:%M:%S", gmtime())
-    folder_name = output_dir + "/" + date_time
+    folder_name = output_dir + "/" + date_time + "/"
     create_dir(folder_name)
 
     for node in node_objects:
-        command = "scp " + node.user_name + "@" + node.ip + ":" + node.gvine_path + "*.pcap " + \
-                  folder_name + "/node" + str(node.id) + ".cap"
-        system(command)
+        node.retrieve_pcaps(folder_name)
     return folder_name
+
+
+def make_ipmap(node_objects, map_path):
+    ipmap = {}
+    for node in node_objects:
+        node_ipmap = node.get_ipmap()
+        ipmap.update(node_ipmap)
+    with open(map_path, "wb") as file:
+        pickle.dump(ipmap, file)
+
+
+def read_ipmap(map_path):
+    with open(map_path, "rb") as file:
+        ipmap = pickle.load(file)
+    print(str(ipmap))
+    return ipmap
 
 
 def read_params(folder_path):

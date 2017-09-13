@@ -11,6 +11,7 @@ from glob import glob
 
 # Third Party Imports
 from re import sub
+import pickle
 
 # Local Imports
 import config
@@ -288,7 +289,13 @@ def get_gvine_packet_type(packet):
     return PACKET_TYPES[packet.load[3] - 1]
     
 
-def is_packet_sender(packet, node_index):
-    if(str(packet[IP].src.split(".")[-1]) == str(node_index)):
+def is_packet_sender(packet, node_number):
+    if(str(packet[IP].src.split(".")[-1]) == str(node_number)):
         return True
     return False
+
+
+def get_ip_map(chosen_dir):
+    ipdir = pickle.load(chosen_dir + "/ipmap.pickle")
+    print(str(ipdir))
+

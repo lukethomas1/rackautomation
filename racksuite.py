@@ -79,7 +79,7 @@ while(loop):
     elif(arg == "start_console"):
         commands.start_console(iplist)
     elif(arg == "start_emane"):
-        commands.start_emane(save)
+        commands.start_emane(save, node_objects)
     elif(arg == "start_gvine"):
         commands.start_gvine(iplist)
     elif(arg == "start_norm"):

@@ -108,13 +108,13 @@ def assign_nodes(subnets, nodes):
             configuration = functions.load_data()
             ips = configuration['iplist']
             this_node = RackNode(NODE_PREFIX + str(index + 1), "emane-01", index + 1, ips[index],
-                                 platform, "/home/emane-01/gvinetest/", member_subnets, 
+                                 platform, "/home/emane-01/gvinetest/", member_subnets, "emane",
                                  "/home/emane-01/emane/topologies/")
             node_objects.append(this_node)
         elif platform == "pi":
             ips = PI_IP_LIST
             this_node = PiNode(NODE_PREFIX + str(index + 1), "pi", index+1, ips[index], platform,
-                               "/home/pi/test/", member_subnets)
+                               "/home/pi/test/", member_subnets, "wlan")
             node_objects.append(this_node)
     return node_objects
 
@@ -143,8 +143,9 @@ def configure(save_file, subnets, nodes):
     functions.create_dir(topo_path)
     functions.write_platform_xmls(subnets, nodes, topo_path, IP_BLACK_LIST)
     functions.write_emane_start_stop_scripts(save_file, len(nodes))
-    pathloss_value = int(input("Input pathloss value : "))
-    functions.write_scenario(subnets, nodes, topo_path, pathloss_value)
+    # pathloss_value = int(input("Input pathloss value : "))
+    # functions.write_scenario(subnets, nodes, topo_path, pathloss_value)
+    functions.write_scenario(subnets, nodes, topo_path, 0)
 
 
 # Runs configure() to create topology locally, 
@@ -203,6 +204,7 @@ def gvpki(node_objects):
     for node in node_objects:
         node.generate_cert()
     sleep(2)
+    functions.execute_shell("rm ./keystore/*")
     for node in node_objects:
         node.pull_cert()
     sleep(2)
@@ -276,10 +278,14 @@ def start_console(iplist):
     functions.remote_start_console(user, terminal, jar, iplist, gvine_dir)
 
 
-def start_emane(save_file):
+def start_emane(save_file, node_objects):
     print("Starting emane")
     script_name = 'emane_start.sh'
-    functions.remote_emane(save_file, RACK_IP_FILE, script_name)
+    for node in node_objects:
+        if isinstance(node, RackNode):
+            node.remote_emane(save_file, script_name)
+        else:
+            print("Trying to start EMANE on non-RackNode")
 
 
 def start_gvine(iplist):
@@ -390,9 +396,9 @@ def transfer_delay(num_nodes):
     # Input contains "-", parse indices in the range provided, inclusive
     elif("-" in user_input):
         indices = user_input.split("-")
-        start = int(indices[0])
+        start_index = int(indices[0])
         end = int(indices[1])
-        for ind in range(start, end + 1):
+        for ind in range(start_index, end + 1):
             path_to_input = sub(r"[\\]", '', paths[ind])
             print("Extracting from " + path_to_input)
             statsuite.extract_transfer_delays(path_to_input, path_to_output, SAVE_FILE, num_nodes)
@@ -565,7 +571,12 @@ def stats_tcpdump(node_objects):
     functions.create_dir("./stats/")
     functions.create_dir("./stats/dumps/")
     functions.create_dir("./stats/dumps/" + SAVE_FILE)
-    dump_folder = statsuite.copy_dump_files(node_objects, "./stats/dumps/" + SAVE_FILE + "/")
+    output_dir = "./stats/dumps/" + SAVE_FILE + "/"
+    dump_folder = statsuite.copy_dump_files(node_objects, output_dir)
+    map_path = dump_folder + "ipmap"
+    statsuite.make_ipmap(node_objects, map_path)
+    ipmap = statsuite.read_ipmap(map_path)
+    print("Read map: " + str(ipmap))
     return dump_folder
 
 

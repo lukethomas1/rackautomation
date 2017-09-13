@@ -638,7 +638,7 @@ def write_platform_xmls(subnets, nodes, topo_path, blacklist):
 
     for node in nodes:
         filled_nem = ""
-        device_num = 0
+        device_num = 1
         for subnet in subnets:
             if(node['number'] in subnet['memberids']):
                 filled_nem += get_nem_config(nem_template, subnet, node, str(device_num))
@@ -972,9 +972,9 @@ def remote_execute_stdout(command, ip, username):
     ssh.set_missing_host_key_policy(AutoAddPolicy())
     ssh.connect(ip, username=username, pkey=key)
     stdin, stdout, stderr = ssh.exec_command(command)
-    stdout_read = stdout.read()
+    stdout_decoded = stdout.read().decode()
     ssh.close()
-    return stdout_read
+    return stdout_decoded
 
 
 def remote_execute_commands(commands, ip, remote_username, print_stdout=False, print_stderr=False,
