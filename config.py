@@ -2,7 +2,7 @@
 DEFAULT_PLATFORM = "rack"
 NODE_PREFIX = "node-"
 
-SAVE_FILE = "multisubnet"
+SAVE_FILE = "threenodes"
 JUPYTER_SAVE_FILE = "threenodes"
 PCAP_SAVE_FILE = "threenodes"
 

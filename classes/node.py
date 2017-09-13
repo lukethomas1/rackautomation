@@ -9,6 +9,7 @@
 from os import path
 from subprocess import call, Popen, DEVNULL
 from time import sleep, time
+from re import search
 
 # Third Party Imports
 
@@ -204,6 +205,7 @@ class Node:
         return ipmap
 
     def get_iface_ip(self, iface):
-        command = "ifconfig " + iface + " | grep 'inet addr:' | cut -d: -f2 | awk '{print $1}'"
+        command = "ifconfig " + iface + " | grep 'inet '"
         output = functions.remote_execute_stdout(command, self.ip, self.user_name)
-        return output.strip("\n")
+        output = search(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', output).group()
+        return output

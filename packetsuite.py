@@ -243,12 +243,11 @@ def make_type_packets_dict(chosen_dir=None):
     packets_dict = {}
 
     for pcap_path in pcap_files:
-        node_name = pcap_path.split("/")[-1].split(".")[0]
+        node_name = pcap_path.split("/")[-1].split("_")[0]
         if node_name not in packets_dict.keys():
             packets_dict[node_name] = rdpcap(pcap_path)
         else:
             packets_dict[node_name] += rdpcap(pcap_path)
-        print(node_name + " length: " + str(len(packets_dict[node_name])))
     earliest_time, latest_time = get_earliest_latest_packet(packets_dict)
     seconds_dict = make_bucket_template(packets_dict.keys(), earliest_time, latest_time)
     for node_name in packets_dict.keys():
@@ -301,12 +300,10 @@ def get_gvine_packet_type(packet):
     
 
 def is_packet_sender(packet, node_number, ipmap):
-    if(ipmap[str(packet[IP].src)] == str(node_number)):
+    if(str(ipmap[str(packet[IP].src)]) == str(node_number)):
+        return True
+    elif(str(packet[IP].src.split(".")[-1]) == str(node_number)):
+        print("Was packet sender when ipmap said: " + str(ipmap[str(packet[IP].src)]) +
+              " and node_number is " + str(node_number))
         return True
     return False
-
-
-def get_ip_map(chosen_dir):
-    ipdir = pickle.load(chosen_dir + "/ipmap.pickle")
-    print(str(ipdir))
-

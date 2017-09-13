@@ -103,7 +103,6 @@ def assign_nodes(subnets, nodes):
     for index in range(len(nodes)):
         member_subnets = [subnets.index(subnet) + 1 for subnet in subnets if index + 1 in subnet[
             'memberids']]
-        print(str(member_subnets))
         if platform == "rack":
             functions.set_topology(SAVE_FILE, NODE_PREFIX)
             configuration = functions.load_data()
@@ -669,7 +668,6 @@ def stats_type_packets(chosen_save=None):
     init_notebook_mode(connected=True)
     bucket_size = int(input("Bucket Size? : "))
     seconds_dict = packetsuite.make_type_packets_dict(chosen_dir)
-    print(str(seconds_dict))
     graphsuite.plot_type_direction(seconds_dict, "tx", bucket_size, False, False, "tx_each_second")
     graphsuite.plot_type_direction(seconds_dict, "rx", bucket_size, False, False, "rx_each_second")
     graphsuite.plot_type_direction(seconds_dict, "tx", bucket_size, True, False, "tx_cumulative")
