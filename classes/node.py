@@ -9,11 +9,13 @@
 from os import path
 from subprocess import call, Popen, DEVNULL
 from time import sleep, time
+from re import search
 
 # Third Party Imports
 
 # Local Imports
 import functions
+from config import IP_BLACK_LIST
 
 class Node:
     def __init__(self, name, user_name, id, ip, platform, gvine_path, member_subnets, iface_prefix):
@@ -197,11 +199,13 @@ class Node:
             if iface_ip != "":
                 ipmap[iface_ip] = self.id
             else:
-                ip_guess = "10.0." + str(index) + "." + str(self.id)
+                number = self.member_subnets[index - 1]
+                ip_guess = "11.0." + str(number) + "." + str(self.id)
                 ipmap[ip_guess] = self.id
         return ipmap
 
     def get_iface_ip(self, iface):
-        command = "ifconfig " + iface + " | grep 'inet addr:' | cut -d: -f2 | awk '{print $1}'"
+        command = "ifconfig " + iface + " | grep 'inet '"
         output = functions.remote_execute_stdout(command, self.ip, self.user_name)
-        return output.strip("\n")
+        output = search(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', output).group()
+        return output
