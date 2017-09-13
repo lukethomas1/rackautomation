@@ -240,6 +240,7 @@ def make_type_packets_dict(chosen_dir=None):
         chosen_dir = choose_timestamp_path(dump_dirs)
     pcap_files = glob(chosen_dir + "/*.pcap")
     ipmap = statsuite.read_ipmap(chosen_dir + "/ipmap")
+    print(str(ipmap))
     packets_dict = {}
 
     for pcap_path in pcap_files:
@@ -300,10 +301,13 @@ def get_gvine_packet_type(packet):
     
 
 def is_packet_sender(packet, node_number, ipmap):
-    if(str(ipmap[str(packet[IP].src)]) == str(node_number)):
-        return True
-    elif(str(packet[IP].src.split(".")[-1]) == str(node_number)):
-        print("Was packet sender when ipmap said: " + str(ipmap[str(packet[IP].src)]) +
-              " and node_number is " + str(node_number))
-        return True
+    if str(packet[IP].src) in ipmap.keys():
+        if(str(ipmap[str(packet[IP].src)]) == str(node_number)):
+            return True
+        elif(str(packet[IP].src.split(".")[-1]) == str(node_number)):
+            print("Was packet sender when ipmap said: " + str(ipmap[str(packet[IP].src)]) +
+                  " and node_number is " + str(node_number))
+            return True
+    else:
+        print(str(packet[IP].src) + " is not in ipmap.keys()")
     return False
