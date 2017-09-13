@@ -14,6 +14,7 @@ from time import sleep, time
 
 # Local Imports
 import functions
+from config import IP_BLACK_LIST
 
 class Node:
     def __init__(self, name, user_name, id, ip, platform, gvine_path, member_subnets, iface_prefix):
@@ -197,7 +198,8 @@ class Node:
             if iface_ip != "":
                 ipmap[iface_ip] = self.id
             else:
-                ip_guess = "10.0." + str(index) + "." + str(self.id)
+                number = self.member_subnets[index - 1]
+                ip_guess = "11.0." + str(number) + "." + str(self.id)
                 ipmap[ip_guess] = self.id
         return ipmap
 

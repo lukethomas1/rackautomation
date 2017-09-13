@@ -101,8 +101,9 @@ def assign_nodes(subnets, nodes):
     node_objects = []
   
     for index in range(len(nodes)):
-        member_subnets = [subnet['name'] for subnet in subnets if index + 1 in subnet[
+        member_subnets = [subnets.index(subnet) + 1 for subnet in subnets if index + 1 in subnet[
             'memberids']]
+        print(str(member_subnets))
         if platform == "rack":
             functions.set_topology(SAVE_FILE, NODE_PREFIX)
             configuration = functions.load_data()
@@ -575,8 +576,6 @@ def stats_tcpdump(node_objects):
     dump_folder = statsuite.copy_dump_files(node_objects, output_dir)
     map_path = dump_folder + "ipmap"
     statsuite.make_ipmap(node_objects, map_path)
-    ipmap = statsuite.read_ipmap(map_path)
-    print("Read map: " + str(ipmap))
     return dump_folder
 
 

@@ -119,7 +119,7 @@ def assign_subnet_addresses(subnets, blacklist):
         else:
             counter = subnet['number']
             while(not subaddr or subaddr in taken_addresses or subaddr in blacklist):
-                subaddr = "10.0." + str(counter)
+                subaddr = "11.0." + str(counter)
                 counter += 1
             subnet['addr'] = subaddr
             taken_addresses.append(subaddr)
@@ -400,7 +400,7 @@ def get_nem_config(nem_template, subnet, node, device_num):
     device_name = "emane" + device_num
     subaddr = subnet['addr']
     if(not subaddr):
-        subaddr = "10.0." + str(subnet['number'])
+        subaddr = "11.0." + str(subnet['number'])
     node_num = str(node['number'])
     mask = "255.255.255.0"
     freq = ".4G"
