@@ -187,11 +187,16 @@ def make_basic_packets_dict(chosen_dir=""):
     if not chosen_dir:
         dump_dirs = get_dump_timestamp_dirs()
         chosen_dir = choose_timestamp_path(dump_dirs)
-    pcap_files = glob(chosen_dir + "/*.cap")
+    pcap_files = glob(chosen_dir + "/*.pcap")
+    ipmap = statsuite.read_ipmap(chosen_dir + "/ipmap")
     packets_dict = {}
+
     for pcap_path in pcap_files:
         node_name = pcap_path.split("/")[-1].split(".")[0]
-        packets_dict[node_name] = rdpcap(pcap_path)
+        if node_name not in packets_dict.keys():
+            packets_dict[node_name] = rdpcap(pcap_path)
+        else:
+            packets_dict[node_name] += rdpcap(pcap_path)
     earliest_time, latest_time = get_earliest_latest_packet(packets_dict)
     seconds_dict = {}
     for node_name in packets_dict.keys():
@@ -204,7 +209,7 @@ def make_basic_packets_dict(chosen_dir=""):
         for packet in packets_dict[node_name]:
             second = int(packet.time - earliest_time)
             if(second < latest_time - earliest_time):
-                if(is_packet_sender(packet, statsuite.get_trailing_number(node_name))):
+                if(is_packet_sender(packet, statsuite.get_trailing_number(node_name), ipmap)):
                     seconds_dict[node_name]["tx"][str(second)] += len(packet)
                 else:
                     seconds_dict[node_name]["rx"][str(second)] += len(packet)
@@ -233,16 +238,22 @@ def make_type_packets_dict(chosen_dir=None):
     if(chosen_dir is None):
         dump_dirs = get_dump_timestamp_dirs()
         chosen_dir = choose_timestamp_path(dump_dirs)
-    pcap_files = glob(chosen_dir + "/*.cap")
+    pcap_files = glob(chosen_dir + "/*.pcap")
+    ipmap = statsuite.read_ipmap(chosen_dir + "/ipmap")
     packets_dict = {}
+
     for pcap_path in pcap_files:
         node_name = pcap_path.split("/")[-1].split(".")[0]
-        packets_dict[node_name] = rdpcap(pcap_path)
+        if node_name not in packets_dict.keys():
+            packets_dict[node_name] = rdpcap(pcap_path)
+        else:
+            packets_dict[node_name] += rdpcap(pcap_path)
+        print(node_name + " length: " + str(len(packets_dict[node_name])))
     earliest_time, latest_time = get_earliest_latest_packet(packets_dict)
     seconds_dict = make_bucket_template(packets_dict.keys(), earliest_time, latest_time)
     for node_name in packets_dict.keys():
         for packet in packets_dict[node_name]:
-            is_sender = is_packet_sender(packet, statsuite.get_trailing_number(node_name))
+            is_sender = is_packet_sender(packet, statsuite.get_trailing_number(node_name), ipmap)
             direction = "tx" if is_sender else "rx"
             try:
                 packet_type = get_gvine_packet_type(packet)
@@ -289,8 +300,8 @@ def get_gvine_packet_type(packet):
     return PACKET_TYPES[packet.load[3] - 1]
     
 
-def is_packet_sender(packet, node_number):
-    if(str(packet[IP].src.split(".")[-1]) == str(node_number)):
+def is_packet_sender(packet, node_number, ipmap):
+    if(ipmap[str(packet[IP].src)] == str(node_number)):
         return True
     return False
 

@@ -669,6 +669,7 @@ def stats_type_packets(chosen_save=None):
     init_notebook_mode(connected=True)
     bucket_size = int(input("Bucket Size? : "))
     seconds_dict = packetsuite.make_type_packets_dict(chosen_dir)
+    print(str(seconds_dict))
     graphsuite.plot_type_direction(seconds_dict, "tx", bucket_size, False, False, "tx_each_second")
     graphsuite.plot_type_direction(seconds_dict, "rx", bucket_size, False, False, "rx_each_second")
     graphsuite.plot_type_direction(seconds_dict, "tx", bucket_size, True, False, "tx_cumulative")

@@ -1036,7 +1036,6 @@ def make_ipmap(node_objects, map_path):
 def read_ipmap(map_path):
     with open(map_path, "rb") as file:
         ipmap = pickle.load(file)
-    print(str(ipmap))
     return ipmap
 
 
