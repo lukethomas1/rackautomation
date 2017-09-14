@@ -31,6 +31,7 @@ PACKET_GVINE = 2
 PACKET_HANDSHAKE = 3
 PACKET_BABEL = 4
 PACKET_TYPES = constants.PACKET_TYPES
+derpderpderp = False
 
 ##### TCPDUMP ANALYSIS #####
 
@@ -112,6 +113,20 @@ def useful_functions(pkt):
     pkt.display()
     print()
     print("Time: " + str(pkt.time))
+
+
+def test_packet_functions(pkt):
+    print(str(pkt.haslayer(UDP)))
+    print(str(pkt.haslayer(DNS)))
+
+def test_list_of_packets(packet_list):
+    for pkt in packet_list:
+        if pkt.haslayer(DNS):
+            print("DNS")
+        if pkt.haslayer(NTP):
+            print("NTP")
+        # if pkt.haslayer(UDP):
+        #     print("UDP")
 
 ##### SQLITE ANALYSIS #####
 
@@ -209,10 +224,14 @@ def make_basic_packets_dict(chosen_dir=""):
         for packet in packets_dict[node_name]:
             second = int(packet.time - earliest_time)
             if(second < latest_time - earliest_time):
-                if(is_packet_sender(packet, statsuite.get_trailing_number(node_name), ipmap)):
-                    seconds_dict[node_name]["tx"][str(second)] += len(packet)
-                else:
-                    seconds_dict[node_name]["rx"][str(second)] += len(packet)
+                is_sender = is_packet_sender(packet, statsuite.get_trailing_number(node_name), ipmap)
+                if is_sender == "NOTVALID":
+                    continue
+                elif not packet.haslayer(UDP):
+                    print("passing non-UDP packet")
+                    continue
+                direction = "tx" if is_sender else "rx"
+                seconds_dict[node_name][direction][str(second)] += len(packet)
     return seconds_dict
 
 
@@ -240,7 +259,6 @@ def make_type_packets_dict(chosen_dir=None):
         chosen_dir = choose_timestamp_path(dump_dirs)
     pcap_files = glob(chosen_dir + "/*.pcap")
     ipmap = statsuite.read_ipmap(chosen_dir + "/ipmap")
-    print(str(ipmap))
     packets_dict = {}
 
     for pcap_path in pcap_files:
@@ -254,6 +272,11 @@ def make_type_packets_dict(chosen_dir=None):
     for node_name in packets_dict.keys():
         for packet in packets_dict[node_name]:
             is_sender = is_packet_sender(packet, statsuite.get_trailing_number(node_name), ipmap)
+            if is_sender == "NOTVALID":
+                continue
+            elif not packet.haslayer(UDP):
+                print("passing non-UDP packet")
+                continue
             direction = "tx" if is_sender else "rx"
             try:
                 packet_type = get_gvine_packet_type(packet)
@@ -309,5 +332,5 @@ def is_packet_sender(packet, node_number, ipmap):
                   " and node_number is " + str(node_number))
             return True
     else:
-        print(str(packet[IP].src) + " is not in ipmap.keys()")
+        return "NOTVALID"
     return False

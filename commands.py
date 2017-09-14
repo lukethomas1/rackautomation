@@ -13,6 +13,7 @@
 from time import sleep
 from os import path
 from collections import OrderedDict
+import logging
 
 # Third Party Imports
 from glob import glob
@@ -30,7 +31,11 @@ import packetsuite
 import graphsuite
 import config
 from classes.racknode import RackNode
-from classes.pinode import PiNode 
+from classes.pinode import PiNode
+
+# This suppresses warning messages produced by scapy on module load
+logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
+from scapy.all import rdpcap
 
 # Constants defined in config.py
 NODE_PREFIX = config.NODE_PREFIX
@@ -576,6 +581,20 @@ def stats_tcpdump(node_objects):
     map_path = dump_folder + "ipmap"
     statsuite.make_ipmap(node_objects, map_path)
     return dump_folder
+
+
+def print_scapy_packet(chosen_save):
+    dump_dirs = glob("./stats/dumps/" + chosen_save + "/*")
+    chosen_dir = functions.choose_alphabetic_path(dump_dirs)
+    pcap_files = glob(chosen_dir + "/*.pcap")
+    chosen_pcap = pcap_files[0]
+    packets = rdpcap(chosen_pcap)
+    chosen_packet = packets[0]
+    packetsuite.useful_functions(chosen_packet)
+    packetsuite.test_packet_functions(chosen_packet)
+    for pcap in pcap_files:
+        packet_list = rdpcap(pcap)
+        packetsuite.test_list_of_packets(packet_list)
 
 
 def jupyter_sql_graphs():
