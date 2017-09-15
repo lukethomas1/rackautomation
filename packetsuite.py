@@ -207,7 +207,9 @@ def make_basic_packets_dict(chosen_dir=""):
     packets_dict = {}
 
     for pcap_path in pcap_files:
-        node_name = pcap_path.split("/")[-1].split(".")[0]
+        node_name = pcap_path.split("/")[-1].split("_")[0]
+        if "." in node_name:
+            node_name = node_name.split(".")[0]
         if node_name not in packets_dict.keys():
             packets_dict[node_name] = rdpcap(pcap_path)
         else:
@@ -227,9 +229,9 @@ def make_basic_packets_dict(chosen_dir=""):
                 is_sender = is_packet_sender(packet, statsuite.get_trailing_number(node_name), ipmap)
                 if is_sender == "NOTVALID":
                     continue
-                elif not packet.haslayer(UDP):
-                    print("passing non-UDP packet")
-                    continue
+                # elif not packet.haslayer(UDP):
+                #     print("passing non-UDP packet")
+                #     continue
                 direction = "tx" if is_sender else "rx"
                 seconds_dict[node_name][direction][str(second)] += len(packet)
     return seconds_dict
@@ -324,13 +326,16 @@ def get_gvine_packet_type(packet):
     
 
 def is_packet_sender(packet, node_number, ipmap):
-    if str(packet[IP].src) in ipmap.keys():
-        if(str(ipmap[str(packet[IP].src)]) == str(node_number)):
+    if ipmap is None:
+        if(str(packet[IP].src.split(".")[-1]) == str(node_number)):
             return True
-        elif(str(packet[IP].src.split(".")[-1]) == str(node_number)):
-            print("Was packet sender when ipmap said: " + str(ipmap[str(packet[IP].src)]) +
-                  " and node_number is " + str(node_number))
-            return True
+    elif packet.haslayer(IP):
+        if str(packet[IP].src) in ipmap.keys():
+            if(str(ipmap[str(packet[IP].src)]) == str(node_number)):
+                return True
+        else:
+            return "NOTVALID"
     else:
+        print("No IP layer")
         return "NOTVALID"
     return False

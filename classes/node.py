@@ -83,7 +83,7 @@ class Node:
     def load_certs(self, num_nodes):
         command = (
             "cd {} && for((i=1; i<={}; i=i+1)); do java -jar gvpki.jar " +
-            "node node$i load node$i; done"
+            "node node" + self.id + " load node$i; done"
         ).format(self.gvine_path, num_nodes)
         functions.remote_execute(command, self.ip, self.user_name)
 
