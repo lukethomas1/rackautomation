@@ -65,10 +65,14 @@ while(loop):
         commands.change_frag_size()
     elif(arg == "gvpki"):
         commands.gvpki(node_objects)
+    elif(arg == "gvpkipush"):
+        commands.gvpki_push_load(node_objects)
     elif(arg == "seterrorrate"):
         commands.set_error_rate(subnets, nodes, iplist)
     elif(arg == "removeerrorrate"):
         commands.remove_error_rate(subnets, nodes, iplist)
+    elif(arg == "are_nodes_ready"):
+        commands.wait_for_nodes_init(len(nodes))
 
     ##### START COMMANDS #####
 

@@ -101,26 +101,39 @@ def initialize(save_file, num_nodes):
     print("Done.")
 
 
+def wait_for_nodes_init(num_nodes):
+    print("Checking if nodes are ready")
+    nodes_ready = functions.wait_until_nodes_ready(NODE_PREFIX, num_nodes, 9999)
+    if nodes_ready:
+        print(str(num_nodes) + " nodes are ready!")
+
+
 def assign_nodes(subnets, nodes):
     platform = input("Input Platform : ")
     node_objects = []
-  
+
+    # Get the list of ips
+    if platform == "rack":
+        functions.set_topology(SAVE_FILE, NODE_PREFIX)
+        configuration = functions.load_data()
+        ips = configuration['iplist']
+    elif platform == "pi":
+        ips = PI_IP_LIST
+
     for index in range(len(nodes)):
         member_subnets = [subnets.index(subnet) + 1 for subnet in subnets if index + 1 in subnet[
             'memberids']]
         if platform == "rack":
-            functions.set_topology(SAVE_FILE, NODE_PREFIX)
-            configuration = functions.load_data()
-            ips = configuration['iplist']
             this_node = RackNode(NODE_PREFIX + str(index + 1), "emane-01", index + 1, ips[index],
                                  platform, "/home/emane-01/gvinetest/", member_subnets, "emane",
                                  "/home/emane-01/emane/topologies/")
-            node_objects.append(this_node)
         elif platform == "pi":
-            ips = PI_IP_LIST
             this_node = PiNode(NODE_PREFIX + str(index + 1), "pi", index+1, ips[index], platform,
                                "/home/pi/test/", member_subnets, "wlan")
-            node_objects.append(this_node)
+        else:
+            print("Unknown platform: " + platform + ", exiting")
+            exit(-1)
+        node_objects.append(this_node)
     return node_objects
 
 
@@ -206,16 +219,30 @@ def push_file(node_objects):
 def gvpki(node_objects):
     # Generate cert on each node
     print("Doing gvpki")
+    print("Generating certs")
     for node in node_objects:
         node.generate_cert()
     sleep(2)
     functions.execute_shell("rm ./keystore/*")
+    print("Pulling certs")
     for node in node_objects:
         node.pull_cert()
     sleep(2)
+    print("Pushing certs")
     for node in node_objects:
         node.push_certs("./keystore/*")
     sleep(2)
+    print("Loading certs")
+    for node in node_objects:
+        node.load_certs(len(node_objects))
+
+
+def gvpki_push_load(node_objects):
+    print("Pushing certs")
+    for node in node_objects:
+        node.push_certs("./keystore/*")
+    sleep(2)
+    print("Loading certs")
     for node in node_objects:
         node.load_certs(len(node_objects))
 

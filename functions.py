@@ -792,13 +792,14 @@ def are_nodes_ready(node_prefix, num_nodes, rack_status_list):
     if(len(rack_list) < num_nodes):
         return False
     rack_list = natural_sort_tuple(rack_list, 0)
+    all_are_ready = True
     for node_index in range(1, num_nodes + 1):
         node_name = node_prefix + str(node_index)
         node_name = rack_list[node_index - 1][0]
         if(not rack_list[node_index - 1][1] == "ACTIVE"):
             print(node_name + " is not ready")
-            return False
-    return True
+            all_are_ready = False
+    return all_are_ready
 
 
 # Sort strings based on the numbers inside them, look up "natural sorting"
