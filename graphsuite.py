@@ -91,7 +91,7 @@ def plot_basic_combined_direction(combined_dict, direction, plot_average, plot_c
         sum_packets += combined_dict[direction][second]
         x.append(int(second))
         if(plot_average):
-            y.append(sum_packets / (int(second)))
+            y.append(sum_packets / (int(second) + 1))
         elif(plot_cumulative):
             y.append(sum_packets)
         else:

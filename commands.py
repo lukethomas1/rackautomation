@@ -272,14 +272,29 @@ def remove_error_rate(subnets, nodes, iplist):
 # Synchronizes rackspace nodes (not sure what it does, soroush had it),
 # then runs emane_start.sh on each rackspace node in the topology
 def start(save_file, node_objects):
-    print("Synchronizing nodes")
-    
-    #functions.synchronize(node_objects)
-
     for node in node_objects:
         print("Starting on " + node.name)
         node.start(JAR_FILE, save_file)
     print("Done.")
+
+
+def start_choose(save_file, node_objects):
+    node_input = input("Enter node number or range of numbers (e.g 13 or 13-23): ")
+    start_nodes = []
+    if "-" in node_input:
+        range = node_input.split("-")
+        start_range = int(range[0])
+        end_range = int(range[-1])
+        for index in range(start_range, end_range + 1):
+            start_nodes.append(node_objects[index])
+    else:
+        start_nodes.append(node_objects[int(node_input)])
+
+    for node in start_nodes:
+        print("Starting on " + node.name)
+        node.start(JAR_FILE, save_file)
+    print("Done.")
+
 
 
 def start_debug(save_file, iplist, nodes, subnets, nodeipdict):
@@ -327,6 +342,24 @@ def start_gvine(iplist):
     functions.remote_start_gvine(iplist, jar_name)
 
 
+def restart_gvine(node_objects):
+    node_input = input("Enter a node index or range of indices to restart (e.g 13 or 13-23): ")
+    chosen_nodes = []
+    if "-" in node_input:
+        node_range = node_input.split("-")
+        start_range = int(node_range[0])
+        end_range = int(node_range[-1])
+        for index in range(start_range, end_range + 1):
+            chosen_nodes.append(node_objects[index])
+    else:
+        chosen_nodes.append(node_objects[int(node_input)])
+
+    for node in chosen_nodes:
+        node.stop_gvine()
+        node.remote_start_gvine(JAR_FILE)
+
+
+
 def start_norm(iplist, subnets, nodes):
     send_bps = 50000
     receive_bps = 100000
@@ -359,12 +392,10 @@ def stop_all_tcpdump():
     functions.parallel_ssh(RACK_IP_FILE, "sudo pkill tcpdump")
 
 
-def ping(subnets, nodes, platform):
+def rack_ping(subnets):
     print("Setting up")
-    # functions.generate_network_ping_list(subnets, nodes, RACK_IP_FILE, IP_BLACK_LIST)
-    prefix = NODE_PREFIX if platform == "rack" else "pi-"
-    user_name = RACK_USERNAME if platform == "rack" else PI_USERNAME
-    testsuite.ping_network(prefix, user_name)
+    functions.generate_network_ping_list(subnets, RACK_IP_FILE, IP_BLACK_LIST)
+    testsuite.ping_network()
     print("Done.")
 
 
@@ -686,22 +717,27 @@ def stats_basic_packets(chosen_save=None):
         chosen_dir = functions.choose_alphabetic_path(dump_dirs)
 
     init_notebook_mode(connected=True)
-    seconds_dict = packetsuite.make_type_packets_dict(chosen_dir)
+    seconds_dict = packetsuite.make_basic_packets_dict(chosen_dir)
     graphsuite.plot_basic_direction(seconds_dict, "tx", False, "Sent Cumulative")
     graphsuite.plot_basic_direction(seconds_dict, "rx", False, "Received Cumulative")
     graphsuite.plot_basic_direction(seconds_dict, "tx", True, "Sent Average")
     graphsuite.plot_basic_direction(seconds_dict, "rx", True, "Received Average")
 
 
-def stats_basic_packets_combined():
+def stats_basic_packets_combined(chosen_save=None):
+    chosen_dir = ""
+    if(chosen_save is not None):
+        dump_dirs = glob("./stats/dumps/" + chosen_save + "/*")
+        chosen_dir = functions.choose_alphabetic_path(dump_dirs)
+
     init_notebook_mode(connected=True)
-    seconds_dict = packetsuite.make_basic_packets_dict()
+    seconds_dict = packetsuite.make_basic_packets_dict(chosen_dir)
     combined_dict = packetsuite.make_basic_combined_dict(seconds_dict)
-    graphsuite.plot_basic_combined_direction(combined_dict, "sent", True, False, "Unicast")
-    graphsuite.plot_basic_combined_direction(combined_dict, "sent", False, True, "Tx Cumulative")
+    graphsuite.plot_basic_combined_direction(combined_dict, "tx", True, False, "Unicast")
+    graphsuite.plot_basic_combined_direction(combined_dict, "tx", False, True, "Tx Cumulative")
     # graphsuite.plot_basic_combined_direction(combined_dict, "sent", False, False, "Tx Per Second")
-    graphsuite.plot_basic_combined_direction(combined_dict, "received", True, False, "Rx Average")
-    graphsuite.plot_basic_combined_direction(combined_dict, "received", False, True, "Rx Cumulative")
+    graphsuite.plot_basic_combined_direction(combined_dict, "rx", True, False, "Rx Average")
+    graphsuite.plot_basic_combined_direction(combined_dict, "rx", False, True, "Rx Cumulative")
     # graphsuite.plot_basic_combined_direction(combined_dict, "received", False, False, "Rx Per Second")
 
 

@@ -65,8 +65,11 @@ while(loop):
         commands.change_frag_size()
     elif(arg == "gvpki"):
         commands.gvpki(node_objects)
-    elif(arg == "gvpkipush"):
+    elif(arg == "gvpkipushload"):
         commands.gvpki_push_load(node_objects)
+    elif(arg == "gvpkiload"):
+        for node in node_objects:
+            node.load_certs(len(node_objects))
     elif(arg == "seterrorrate"):
         commands.set_error_rate(subnets, nodes, iplist)
     elif(arg == "removeerrorrate"):
@@ -78,6 +81,8 @@ while(loop):
 
     elif(arg == "start"):
         commands.start(save, node_objects)
+    elif(arg == "startchoose"):
+        commands.start_choose(save, node_objects)
     elif(arg == "start_debug"):
         commands.start_debug(save, iplist, nodes, subnets, nodeipdict)
     elif(arg == "start_console"):
@@ -86,6 +91,8 @@ while(loop):
         commands.start_emane(save, node_objects)
     elif(arg == "start_gvine"):
         commands.start_gvine(iplist)
+    elif(arg == "restart_gvine"):
+        commands.restart_gvine(node_objects)
     elif(arg == "start_norm"):
         commands.start_norm(iplist, subnets, nodes)
     elif(arg == "startlogpackets"):
@@ -93,8 +100,8 @@ while(loop):
 
     ##### TEST COMMANDS #####
 
-    elif(arg == "ping"):
-        commands.ping(subnets, nodes)
+    elif(arg == "rackping"):
+        commands.rack_ping(subnets)
     elif(arg == "autotest"):
         commands.run_auto_test()
     elif(arg == "transferdelay"):

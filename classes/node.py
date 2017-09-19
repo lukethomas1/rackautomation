@@ -66,25 +66,30 @@ class Node:
     ##### GRAPEVINE GVPKI CERTS #####
 
     def generate_cert(self):
+        print("Generating cert on " + self.name)
         command = "cd " + self.gvine_path + " && java -jar gvpki.jar generate node" + str(self.id)
         functions.remote_execute(command, self.ip, self.user_name)
 
     def pull_cert(self):
+        print("Pulling cert from " + self.name)
         from_path = self.user_name + "@" + self.ip + ":" + self.gvine_path + "node" + str(
             self.id) + ".cer"
         to_path = "./keystore/"
         Popen(['scp', from_path, to_path])
 
     def push_certs(self, path_to_certs):
+        print("Pushing cert to " + self.name)
         command = "scp " + path_to_certs + " " + self.user_name + "@" + self.ip + ":" + \
                   self.gvine_path
         call(command, shell=True, stdout=DEVNULL)
 
     def load_certs(self, num_nodes):
+        print("Loading certs on " + self.name)
         command = (
             "cd {} && for((i=1; i<={}; i=i+1)); do java -jar gvpki.jar " +
-            "node node" + self.id + " load node$i; done"
+            "node node" + str(self.id) + " load node$i; done"
         ).format(self.gvine_path, num_nodes)
+        print(command)
         functions.remote_execute(command, self.ip, self.user_name)
 
     ##### PARAMETERS FOR AUTOTEST #####
@@ -153,8 +158,14 @@ class Node:
         self.remote_start_gvine(jar_name)
 
     def stop_all(self, save=None):
-        functions.remote_execute("sudo pkill java && sudo pkill norm && sudo pkill tcpdump",
+        self.stop_gvine()
+        functions.remote_execute("sudo pkill norm && sudo pkill tcpdump",
                                  self.ip, self.user_name)
+
+    def stop_gvine(self):
+        jar_name = "gvapp.jar"
+        functions.remote_execute("java -jar " + jar_name + " node" + str(self.id), self.ip,
+                                 self.user_name)
 
     ##### LOGGABLE EVENTS #####
 
@@ -196,16 +207,18 @@ class Node:
         for index in range(1, len(self.member_subnets) + 1):
             iface = self.iface_prefix + str(index)
             iface_ip = self.get_iface_ip(iface)
-            if iface_ip != "":
-                ipmap[iface_ip] = self.id
-            else:
+            if iface_ip == "" or iface_ip is None:
                 number = self.member_subnets[index - 1]
                 ip_guess = "11.0." + str(number) + "." + str(self.id)
                 ipmap[ip_guess] = self.id
+            else:
+                ipmap[iface_ip] = self.id
         return ipmap
 
     def get_iface_ip(self, iface):
         command = "ifconfig " + iface + " | grep 'inet '"
         output = functions.remote_execute_stdout(command, self.ip, self.user_name)
-        output = search(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', output).group()
+        output = search(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', output)
+        if output is not None:
+            output = output.group()
         return output

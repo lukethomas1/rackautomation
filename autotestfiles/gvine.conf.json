@@ -4,7 +4,7 @@
    "FragmentSize" : 50000,
    "TargetTxRateBps" : 500000,
    "PrintLogs" : "yes",
-   "LogEvents" : "no",
+   "LogEvents" : "yes",
    "EmulatePacketDrops" : "no",
    "SignalingMode" : "proactive",
    "DestFileFolder" : "./data/",

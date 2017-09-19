@@ -328,14 +328,14 @@ def invert_dict(curr_dict):
     return inv_dict
 
 
-def generate_network_ping_list(subnets, nodes, ip_file, blacklist):
+def generate_network_ping_list(subnets, ip_file, blacklist):
     ip_process = open(ip_file, 'r')
     ip_list = ip_process.read().splitlines()
 
     assign_subnet_addresses(subnets, blacklist)
 
-    if(not path.isdir("./tests/pingtest/")):
-        makedirs("./tests/pingtest/")
+    create_dir("./tests/")
+    create_dir("./tests/pingtest/")
     file = open("./tests/pingtest/network", "w")
 
     for subnet in subnets:
