@@ -70,7 +70,7 @@ def plot_basic_direction(packets_dict, direction, plot_average, graph_title):
         row_num = index + 1
         col_num = 1
         figure.append_trace(traces[ordered_nodes[index]], row_num, col_num)
-    figure['layout'].update(height=300*num_rows, width=800, title=graph_title)
+    figure['layout'].update(height=600*num_rows, width=1000, title=graph_title)
     plotly.offline.iplot(figure)
 
 
@@ -99,7 +99,7 @@ def plot_basic_combined_direction(combined_dict, direction, plot_average, plot_c
     trace = make_trace(x, y, "lines", graph_title)
     figure = plotly.tools.make_subplots(rows=1, cols=1, print_grid=False)
     figure.append_trace(trace, 1, 1)
-    figure['layout'].update(height=300, width=800, title=graph_title)
+    figure['layout'].update(height=600, width=1000, title=graph_title)
     plotly.offline.iplot(figure)
 
 
@@ -147,7 +147,7 @@ def plot_type_direction(buckets_dict, direction, bucket_size, is_cumulative, is_
         col_num = 1
         for packet_type in packets_dict.keys():
             figure.append_trace(traces[packet_type][ordered_nodes[index]], row_num, col_num)
-    figure['layout'].update(height=300*num_rows, width=800, title=graph_title)
+    figure['layout'].update(height=600*num_rows, width=1000, title=graph_title)
     plotly.offline.iplot(figure)
 
 

@@ -164,8 +164,9 @@ class Node:
 
     def stop_gvine(self):
         jar_name = "gvapp.jar"
-        functions.remote_execute("java -jar " + jar_name + " node" + str(self.id), self.ip,
-                                 self.user_name)
+        command = "java -jar " + jar_name + " stop " + str(self.id)
+        print(command)
+        functions.remote_execute(command, self.ip, self.user_name)
 
     ##### LOGGABLE EVENTS #####
 

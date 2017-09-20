@@ -1,10 +1,10 @@
 {
    "ExcludeInterfaces" : [ "lo", "eth0", "lxcbr0", "eth1" ],
    "InterfaceModes" : { "emane1": "Broadcast", "emane2": "Broadcast", "emane3": "Broadcast", "emane4": "Broadcast", "emane5": "Broadcast", "wlan1": "Broadcast"}, 
-   "FragmentSize" : 50000,
+   "FragmentSize" : 150000,
    "TargetTxRateBps" : 500000,
    "PrintLogs" : "yes",
-   "LogEvents" : "yes",
+   "LogEvents" : "no",
    "EmulatePacketDrops" : "no",
    "SignalingMode" : "proactive",
    "DestFileFolder" : "./data/",
