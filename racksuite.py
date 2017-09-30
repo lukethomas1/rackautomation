@@ -26,6 +26,7 @@ while(loop):
     nodes = config_result['nodes']
     rack_iplist = config_result['iplist']
     nodeipdict = config_result['nodeipdict']
+    racknodes = config_result['racknodes']
 
     node_objects = commands.get_assigned_nodes()
     print(str(len(node_objects)) + " assigned")

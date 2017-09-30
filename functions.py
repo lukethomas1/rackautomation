@@ -217,18 +217,28 @@ def create_file_from_list(file_path, contents):
 
 # Call rackspace API to create num_instances nodes with image_name image
 def create_rackspace_instances(num_instances, image_name, ssh_key, save_file, node_prefix):
+    node_status_list = get_rack_status_list()
+    print(str(node_status_list))
+    node_list = [pair[0] for pair in node_status_list]
     print("Creating " + str(num_instances) + " Rackspace nodes with image '"
         + image_name + "', ssh_key '" + ssh_key + "', and save file '" + save_file + "'")
-    for index in range(1, num_instances + 1):
+    instances_made = 0
+    index = 1
+    while instances_made < num_instances:
         node_name = node_prefix + str(index)
-        print("Creating " + node_name)
-        # Long command, just a bunch of arguments, see 'rack -h' for more info
-        Popen(['rack', 'servers', 'instance',
-            'create', '--name', node_name, '--image-name',
-            image_name, '--flavor-name', '4 GB General Purpose v1',
-            '--region', 'DFW', '--keypair', ssh_key, '--networks',
-            '00000000-0000-0000-0000-000000000000,3a95350a-676c-4280-9f08-aeea40ffb32b'],
-            stdout=PIPE)
+        if node_name not in node_list:
+            instances_made += 1
+            print("Creating " + node_name)
+            # Long command, just a bunch of arguments, see 'rack -h' for more info
+            Popen(['rack', 'servers', 'instance',
+                'create', '--name', node_name, '--image-name',
+                image_name, '--flavor-name', '4 GB General Purpose v1',
+                '--region', 'DFW', '--keypair', ssh_key, '--networks',
+                '00000000-0000-0000-0000-000000000000,3a95350a-676c-4280-9f08-aeea40ffb32b'],
+                stdout=PIPE)
+        else:
+            print(node_name + " already exists!")
+        index += 1
 
 
 # Create directory at folder_path

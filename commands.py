@@ -114,26 +114,39 @@ def assign_nodes(subnets, nodes):
 
     # Get the list of ips
     if platform == "rack":
+        status_list = functions.get_rack_status_list()
+        active_node_list = [pair[0] for pair in status_list if pair[1] == "ACTIVE"]
         functions.set_topology(SAVE_FILE, NODE_PREFIX)
         configuration = functions.load_data()
         ips = configuration['iplist']
     elif platform == "pi":
         ips = PI_IP_LIST
 
-    for index in range(len(nodes)):
+    index = 0
+    added_nodes = 0
+    while added_nodes < len(nodes):
+        node_name = NODE_PREFIX + str(index + 1)
         member_subnets = [subnets.index(subnet) + 1 for subnet in subnets if index + 1 in subnet[
             'memberids']]
-        if platform == "rack":
-            this_node = RackNode(NODE_PREFIX + str(index + 1), "emane-01", index + 1, ips[index],
+        if platform == "rack" and node_name in active_node_list:
+            this_node = RackNode(node_name, "emane-01", index + 1, ips[index],
                                  platform, "/home/emane-01/gvinetest/", member_subnets, "emane",
                                  "/home/emane-01/emane/topologies/")
-        elif platform == "pi":
-            this_node = PiNode(NODE_PREFIX + str(index + 1), "pi", index+1, ips[index], platform,
-                               "/home/pi/test/", member_subnets, "wlan")
+            print("Adding rackspace node: " + node_name)
+            node_objects.append(this_node)
+            added_nodes += 1
         else:
+            print(node_name + " is not active")
+
+        if platform == "pi":
+            this_node = PiNode(node_name, "pi", index+1, ips[index], platform,
+                               "/home/pi/test/", member_subnets, "wlan")
+            node_objects.append(this_node)
+            added_nodes += 1
+        elif platform != "rack" and platform != "pi":
             print("Unknown platform: " + platform + ", exiting")
             exit(-1)
-        node_objects.append(this_node)
+        index += 1
     return node_objects
 
 

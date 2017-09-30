@@ -167,6 +167,7 @@ class Node:
         command = "java -jar " + jar_name + " stop " + str(self.id)
         print(command)
         functions.remote_execute(command, self.ip, self.user_name)
+        functions.remote_execute("sudo pkill java", self.ip, self.user_name)
 
     ##### LOGGABLE EVENTS #####
 
