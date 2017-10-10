@@ -258,7 +258,7 @@ def gvpki(node_objects):
         new_thread.start()
     for t in pull_threads:
         t.join()
-    sleep(10)
+    sleep(3)
 
     push_threads = []
     print("Pushing certs")
@@ -268,7 +268,7 @@ def gvpki(node_objects):
         new_thread.start()
     for t in push_threads:
         t.join()
-    sleep(10)
+    sleep(3)
 
     load_threads = []
     print("Loading certs")

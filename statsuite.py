@@ -11,6 +11,8 @@ from re import search, split
 from subprocess import Popen
 from sqlite3 import connect, IntegrityError, DatabaseError
 from time import gmtime, strftime, sleep
+import threading
+import queue
 
 # 3rd Party Imports
 from paramiko import AutoAddPolicy, RSAKey, SSHClient
@@ -1019,16 +1021,30 @@ def copy_dump_files(node_objects, output_dir):
     folder_name = output_dir + "/" + date_time + "/"
     create_dir(folder_name)
 
+    threads = []
     for node in node_objects:
-        node.retrieve_pcaps(folder_name)
+        new_thread = threading.Thread(target=node.retrieve_pcaps, args=(folder_name,))
+        threads.append(new_thread)
+        new_thread.start()
+    for t in threads:
+        t.join()
     return folder_name
 
 
 def make_ipmap(node_objects, map_path):
     ipmap = {}
+    threads = []
+    return_queue = queue.Queue()
     for node in node_objects:
-        node_ipmap = node.get_ipmap()
-        ipmap.update(node_ipmap)
+        new_thread = threading.Thread(target=lambda q: q.put(node.get_ipmap()),
+                                      args=(return_queue,))
+        threads.append(new_thread)
+        new_thread.start()
+    for t in threads:
+        t.join()
+    while not return_queue.empty():
+        rtn_val = return_queue.get()
+        ipmap.update(rtn_val)
     with open(map_path, "wb") as file:
         pickle.dump(ipmap, file)
 
