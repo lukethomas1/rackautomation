@@ -15,6 +15,7 @@ from shutil import copy
 from subprocess import call, Popen, PIPE, DEVNULL
 from time import sleep, time
 from re import compile, match, split, sub
+import threading
 
 # Third Party Imports
 from paramiko import AutoAddPolicy, RSAKey, SSHClient
@@ -1106,3 +1107,16 @@ def print_success_fail(success, string):
         print(SUCCESS + string + " SUCCESS" + ENDCOLOR)
     else:
         print(FAIL + string + " FAILED" + ENDCOLOR)
+
+##### MULTITHREADING #####
+
+def wait_for_threads_finish(threads):
+    done = False
+    while not done:
+        done = True
+        for curr_thread in threads:
+            if curr_thread.isAlive():
+                done = False
+            else:
+                threads.remove(curr_thread)
+

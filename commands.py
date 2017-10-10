@@ -14,6 +14,7 @@ from time import sleep
 from os import path
 from collections import OrderedDict
 import logging
+import threading
 
 # Third Party Imports
 from glob import glob
@@ -188,8 +189,14 @@ def setup(save_file, subnets, nodes, node_objects):
     else:
         print(save_file + " already configured")
 
+    # Multithreaded setup
+    threads = []
     for node in node_objects:
-        node.setup_gvine(save_file)
+        new_thread = threading.Thread(target=node.setup_gvine, args=(save_file,))
+        threads.append(new_thread)
+        new_thread.start()
+    for t in threads:
+        t.join()
 
     # Do node certifications
     gvpki(node_objects)
@@ -231,23 +238,47 @@ def push_file(node_objects):
 
 def gvpki(node_objects):
     # Generate cert on each node
-    print("Doing gvpki")
     print("Generating certs")
+    gen_threads = []
     for node in node_objects:
-        node.generate_cert()
-    sleep(2)
+        new_thread = threading.Thread(target=node.generate_cert)
+        gen_threads.append(new_thread)
+        new_thread.start()
+    for t in gen_threads:
+        t.join()
+
+    # Clear out old certs
     functions.execute_shell("rm ./keystore/*")
+
+    pull_threads = []
     print("Pulling certs")
     for node in node_objects:
-        node.pull_cert()
-    sleep(2)
+        new_thread = threading.Thread(target=node.pull_cert)
+        pull_threads.append(new_thread)
+        new_thread.start()
+    for t in pull_threads:
+        t.join()
+    sleep(10)
+
+    push_threads = []
     print("Pushing certs")
     for node in node_objects:
-        node.push_certs("./keystore/*")
-    sleep(2)
+        new_thread = threading.Thread(target=node.push_certs, args=("./keystore/*",))
+        push_threads.append(new_thread)
+        new_thread.start()
+    for t in push_threads:
+        t.join()
+    sleep(10)
+
+    load_threads = []
     print("Loading certs")
     for node in node_objects:
-        node.load_certs(len(node_objects))
+        new_thread = threading.Thread(target=node.load_certs, args=(len(node_objects),))
+        load_threads.append(new_thread)
+        new_thread.start()
+    for t in load_threads:
+        t.join()
+    print("Certs completed")
 
 
 def gvpki_push_load(node_objects):
@@ -285,9 +316,13 @@ def remove_error_rate(subnets, nodes, iplist):
 # Synchronizes rackspace nodes (not sure what it does, soroush had it),
 # then runs emane_start.sh on each rackspace node in the topology
 def start(save_file, node_objects):
+    threads = []
     for node in node_objects:
-        print("Starting on " + node.name)
-        node.start(JAR_FILE, save_file)
+        new_thread = threading.Thread(target=node.start, args=(JAR_FILE, save_file,))
+        threads.append(new_thread)
+        new_thread.start()
+    for t in threads:
+        t.join()
     print("Done.")
 
 
@@ -381,8 +416,13 @@ def start_norm(iplist, subnets, nodes):
 
 # Runs emane_stop.sh on each rackspace node in the topology
 def stop(node_objects):
+    threads = []
     for node in node_objects:
-        node.stop_all(SAVE_FILE)
+        new_thread = threading.Thread(target=node.stop_all, args=(SAVE_FILE,))
+        threads.append(new_thread)
+        new_thread.start()
+    for t in threads:
+        t.join()
     print("Done.")
 
 
@@ -875,8 +915,14 @@ def stats_delays(save_file, num_nodes):
 
 def clean(node_objects):
     clean_amount = int(input("Clean 1) Data 2) Non certs 3) All non .jar : "))
+    threads = []
     for node in node_objects:
-        node.clean_gvine(clean_amount)
+        new_thread = threading.Thread(target=node.clean_gvine, args=(clean_amount,))
+        threads.append(new_thread)
+        new_thread.start()
+    for t in threads:
+        t.join()
+    print("Cleaned.")
 
 
 # Deletes the topologies/<topology-name>/ folder on each rackspace node
