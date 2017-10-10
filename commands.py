@@ -217,8 +217,13 @@ def change_frag_size():
 
 def push_config(node_objects):
     path_to_conf = path.expanduser("./autotestfiles/gvine.conf.json")
+    threads = []
     for node in node_objects:
-        node.push_file(path_to_conf, node.gvine_path)
+        new_thread = threading.Thread(target=node.push_file, args=(path_to_conf, node.gvine_path,))
+        threads.append(new_thread)
+        new_thread.start()
+    for t in threads:
+        t.join()
 
 
 def push_file(node_objects):
