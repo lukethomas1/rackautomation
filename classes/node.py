@@ -89,7 +89,6 @@ class Node:
             "cd {} && for((i=1; i<={}; i=i+1)); do java -jar gvpki.jar " +
             "node node" + str(self.id) + " load node$i; done"
         ).format(self.gvine_path, num_nodes)
-        print(command)
         functions.remote_execute(command, self.ip, self.user_name)
 
     ##### PARAMETERS FOR AUTOTEST #####
@@ -150,7 +149,6 @@ class Node:
     def check_msg_received(self, file_name):
         command = "ls " + self.gvine_path + "data/" + file_name
         exit_status = functions.remote_execute(command, self.ip, self.user_name)
-        functions.print_success_fail(not exit_status, self.name + " ")
         return exit_status
 
     def start(self, jar_name, save=None):

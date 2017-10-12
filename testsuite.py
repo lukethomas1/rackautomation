@@ -6,12 +6,15 @@
 # System Imports
 from time import sleep, time
 from os import path
+import threading
+import queue
 
 # 3rd Party Imports
 from paramiko import SSHClient, AutoAddPolicy, RSAKey
 
 # Local Imports
-from functions import create_dir, generate_rack_to_topo_dict
+from functions import create_dir, generate_rack_to_topo_dict, print_success_fail
+from statsuite import get_trailing_number
 
 SUCCESS = '\033[92m'
 FAIL = '\033[91m'
@@ -95,14 +98,32 @@ def wait_for_message_received(file_name, node_objects, sender_id, wait_time):
 
 
 def check_network_received(file_name, node_objects, sender_id):
-    total_success = True
-
+    threads = []
+    return_queue = queue.Queue()
     for node in node_objects:
         if node.id != sender_id:
-            node_success = node.check_msg_received(file_name)
-            if node_success:
-                total_success = False
-    return total_success
+            new_thread = threading.Thread(target=lambda q: q.put(node.name + " " + str(
+                node.check_msg_received(file_name))), args=(return_queue,))
+            threads.append(new_thread)
+            new_thread.start()
+    for t in threads:
+        t.join()
+
+    received_dict = {}
+    while not return_queue.empty():
+        rtn_string = return_queue.get()
+        node_name = rtn_string.split(" ")[0]
+        not_received = rtn_string.split(" ")[1]
+        received = not int(not_received)
+        received_dict[node_name] = received
+
+    return_value = True
+    for node_name in sorted(received_dict.keys(), key=lambda n: get_trailing_number(n)):
+        received = received_dict[node_name]
+        print_success_fail(received, node_name + " ")
+        if not received:
+            return_value = False
+    return return_value
 
 
 def check_message_received(file_name, ip, node_name, node_label, ssh, key):
