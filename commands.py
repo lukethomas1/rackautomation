@@ -231,6 +231,8 @@ def push_file(node_objects):
     dest_path = input("Input destination file path (1: default gvine 2: default emane): ")
     file_name = input("Input file name (blank for unchanged): ")
     src_path = path.expanduser(src_path)
+
+    threads = []
     for node in node_objects:
         if(dest_path == "1"):
             dest_path = node.gvine_path + file_name
@@ -238,7 +240,11 @@ def push_file(node_objects):
             dest_path = node.topo_dir + file_name
         else:
             dest_path = path.expanduser(dest_path)
-        node.push_file(src_path, dest_path)
+        new_thread = threading.Thread(target=node.push_file, args=(src_path, dest_path,))
+        threads.append(new_thread)
+        new_thread.start()
+    for t in threads:
+        t.join()
 
 
 def gvpki(node_objects):

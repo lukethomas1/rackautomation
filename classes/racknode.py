@@ -30,6 +30,7 @@ class RackNode(Node):
     def setup_gvine(self, save=None):
         print("Setting up gvine for " + self.name)
         self.add_to_known_hosts()
+        self.remote_create_dir(self.topo_dir)
         self.remote_create_dir(self.topo_dir + save)
         self.remote_copy_default_config(save)
         self.remote_copy_scenario(save)

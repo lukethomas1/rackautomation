@@ -104,6 +104,7 @@ class Node:
     ##### BASIC FUNCTIONALITY #####
 
     def push_file(self, src_path, dest_path):
+        print("Pushing to " + self.name)
         command = "scp " + src_path + " " + self.user_name + "@" + self.ip + ":" + dest_path
         call(command, shell=True, stdout=DEVNULL)
 

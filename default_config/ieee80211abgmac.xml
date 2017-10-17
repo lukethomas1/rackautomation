@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mac SYSTEM "file:///usr/share/emane/dtd/mac.dtd">
 <mac library="ieee80211abgmaclayer">
-  <param name="mode"                  value="3"/>
+  <param name="mode"                  value="0"/>  <!-- 0|2 = DSS, 1 = OFDM -->
   <param name="enablepromiscuousmode" value="off"/>
   <param name="distance"              value="1000"/>
   <param name="unicastrate"           value="1"/>

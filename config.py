@@ -2,11 +2,11 @@
 DEFAULT_PLATFORM = "rack"
 NODE_PREFIX = "node"
 
-SAVE_FILE = "8flat"
+SAVE_FILE = "58topo"
 JUPYTER_SAVE_FILE = "threenodes"
 PCAP_SAVE_FILE = "threenodes"
 
-IMAGE_NAME = "v427"
+IMAGE_NAME = "v432"
 
 # User input variable
 PI_USERNAME = "pi"
