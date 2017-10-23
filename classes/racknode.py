@@ -81,3 +81,49 @@ class RackNode(Node):
         self.remote_emane(save, "emane_stop.sh")
         super().stop_all()
 
+    def generate_emane_stats(self, save):
+        command = (
+            "cd /home/emane-01/GrapeVine/topologies/" + save +
+            "/data/ && mkdir stats"
+        )
+        functions.remote_execute(command, self.ip, self.user_name)
+
+        command = (
+            "emanesh " + self.name +
+            " show > /home/emane-01/GrapeVine/topologies/" + save +
+            "/data/stats/emane.show"
+        )
+        functions.remote_execute(command, self.ip, self.user_name)
+
+        command = (
+            "emanesh " + self.name + " get stat '*' all"
+            " > /home/emane-01/GrapeVine/topologies/" + save +
+            "/data/stats/emane.stats"
+        )
+        functions.remote_execute(command, self.ip, self.user_name)
+
+        command = (
+            "emanesh " + self.name + " get table '*' all"
+            " > /home/emane-01/GrapeVine/topologies/" + save +
+            "/data/stats/emane.tables"
+        )
+        functions.remote_execute(command, self.ip, self.user_name)
+
+    def copy_emane_stats(self, save):
+        dest_dir = './stats/emane/' + save + "/" + self.name
+        from_dir = (
+            'root@' + self.ip + ':/home/emane-01/GrapeVine/topologies/'
+            + save + '/data/stats/.'
+        )
+        Popen(['scp', '-r', from_dir, dest_dir])
+
+
+
+
+
+
+
+
+
+
+

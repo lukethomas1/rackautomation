@@ -165,7 +165,7 @@ while(loop):
     elif(arg == "delays"):
         commands.stats_delays(save, len(nodes))
     elif(arg == "emane_stats"):
-        commands.stats_emane(save, len(nodes), iplist)
+        commands.stats_emane(save, node_objects)
     elif(arg == "parse"):
         parse_term = input("Enter parse term: ")
         commands.stats_parse(save, len(nodes), parse_term)

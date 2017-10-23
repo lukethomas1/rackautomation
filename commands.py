@@ -663,11 +663,26 @@ def stats(save_file, num_nodes, iplist):
     statsuite.plot_delays(dict)
 
 
-def stats_emane(save_file, num_nodes, iplist):
+def stats_emane(save_file, node_objects):
     print("\nGenerating EMANE statistics")
-    statsuite.generate_emane_stats(NODE_PREFIX, save_file, num_nodes, iplist)
+    threads = []
+    for node in node_objects:
+        if isinstance(node, RackNode):
+            new_thread = threading.Thread(target=node.generate_emane_stats, args=(save_file,))
+            threads.append(new_thread)
+            new_thread.start()
+    for t in threads:
+        t.join()
+
     print("\nCopying EMANE statistics to this computer")
-    statsuite.copy_emane_stats(save_file, num_nodes, iplist)
+    threads = []
+    for node in node_objects:
+        if isinstance(node, RackNode):
+            new_thread = threading.Thread(target=node.copy_emane_stats, args=(save_file,))
+            threads.append(new_thread)
+            new_thread.start()
+    for t in threads:
+        t.join()
     print("Done.")
 
 
