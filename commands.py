@@ -664,6 +664,9 @@ def stats(save_file, num_nodes, iplist):
 
 
 def stats_emane(save_file, node_objects):
+    # Create directory for stats to go in
+    functions.create_dir("./stats/emane/" + save_file)
+
     print("\nGenerating EMANE statistics")
     threads = []
     for node in node_objects:
