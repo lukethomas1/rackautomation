@@ -216,10 +216,21 @@ def change_frag_size():
 
 
 def push_config(node_objects):
-    path_to_conf = path.expanduser("./autotestfiles/gvine.conf.json")
+    file_name = input("Enter filename to push (blank for gvine.conf.json): ")
+    if not file_name:
+        file_name = "gvine.conf.json"
+    if path.isfile("./autotestfiles/" + file_name):
+        path_to_conf = path.expanduser("./autotestfiles/" + file_name)
+    else:
+        print("ERROR: Nonexistant config file")
+        return
+    dest_file_name = input("Enter filename to save as (blank for gvine.conf.json): ")
+    dest_file_name = dest_file_name if dest_file_name else "gvine.conf.json"
+    print("Pushing ./autotestfiles/" + file_name + " to nodes as ~/gvinetest/gvine.conf.json")
     threads = []
     for node in node_objects:
-        new_thread = threading.Thread(target=node.push_file, args=(path_to_conf, node.gvine_path,))
+        new_thread = threading.Thread(target=node.push_file, args=(path_to_conf, node.gvine_path,
+                                                                   dest_file_name))
         threads.append(new_thread)
         new_thread.start()
     for t in threads:

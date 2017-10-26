@@ -103,8 +103,13 @@ class Node:
 
     ##### BASIC FUNCTIONALITY #####
 
-    def push_file(self, src_path, dest_path):
-        print("Pushing to " + self.name)
+    def push_file(self, src_path, dest_path, dest_file_name=None):
+        if dest_file_name:
+            if dest_path[-1] == "/":
+                dest_path = dest_path + dest_file_name
+            else:
+                dest_path = dest_path + "/" + dest_file_name
+        print("Pushing " + src_path + " to " + self.name + " as " + dest_path)
         command = "scp " + src_path + " " + self.user_name + "@" + self.ip + ":" + dest_path
         call(command, shell=True, stdout=DEVNULL)
 
