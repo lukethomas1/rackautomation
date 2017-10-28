@@ -155,6 +155,7 @@ class Node:
     def check_msg_received(self, file_name):
         command = "ls " + self.gvine_path + "data/" + file_name
         exit_status = functions.remote_execute(command, self.ip, self.user_name)
+        print("exit status: " + str(exit_status))
         return exit_status
 
     def start(self, jar_name, save=None):

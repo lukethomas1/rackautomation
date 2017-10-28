@@ -40,7 +40,7 @@ def get_dump_timestamp_dirs():
 
 
 def get_pcap_node_dict(dump_dir, num_nodes):
-    cap_paths = glob(dump_dir + "/*.cap")
+    cap_paths = glob(dump_dir + "/*.cap") + glob(dump_dir + "/*.pcap")
     node_dict = make_empty_node_dict(num_nodes)
     for path in cap_paths:
         node_name = path.split("/")[-1].split(".")[0]
@@ -74,6 +74,10 @@ def read_pcap(path):
             direction = "tx"
         node_dict[direction][type].append(packet)
     return node_dict
+
+
+def get_pcap_packets(path):
+    return rdpcap(path)
 
 
 def get_packet_counts(node_dict):
