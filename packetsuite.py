@@ -8,6 +8,8 @@
 from os import path
 import logging
 from glob import glob
+from sqlite3 import connect, IntegrityError, DatabaseError
+from time import sleep
 
 # Third Party Imports
 from re import sub
@@ -48,13 +50,14 @@ def get_pcap_node_dict(dump_dir, num_nodes):
     return node_dict
 
 
-def read_pcap(path):
+def read_pcap(pcap_path):
     """Read GrapeVine pcap file and parse packets by direction and packet type
 
-    :param path: Path to the pcap file to be parsed
+    :param pcap_path: Path to the pcap file to be parsed
     :return: node_dict[direction][packet_type] = packets
     """
-    node_name = path.split("/")[-1].split(".")[0]
+    ipmap = statsuite.read_ipmap(chosen_dir + "/ipmap")
+    node_name = pcap_path.split("/")[-1].split(".")[0]
     node_dict = {}
     node_dict["tx"] = {}
     node_dict["rx"] = {}
@@ -62,7 +65,71 @@ def read_pcap(path):
         for packet_type in PACKET_TYPES:
             node_dict[direction][packet_type] = []
     # Fill dictionary
-    packets = rdpcap(path)
+    packets = rdpcap(pcap_path)
+    for packet in packets:
+        try:
+            type = get_gvine_packet_type(packet)
+        except:
+            print("ERROR: PACKET WITHOUT A PAYLOAD")
+            continue
+        direction = "rx"
+        if is_packet_sender(packet, statsuite.get_trailing_number(node_name), ipmap):
+            direction = "tx"
+        node_dict[direction][type].append(packet)
+    return node_dict
+
+
+def make_packets_database(dump_dir):
+    print(dump_dir)
+    db_path = dump_dir + "/packets.db"
+    if path.exists(db_path):
+        print(db_path + " already exists, returning")
+        return
+    connection = connect(db_path)
+
+    table_cmd = "CREATE TABLE IF NOT EXISTS packets (senderid TEXT, receiverid TEXT, " \
+                   "packettype INTEGER NOT NULL, bytesize INTEGER NOT NULL, timestamp INTEGER NOT NULL);"
+    connection.execute(table_cmd)
+    insert_template = "INSERT INTO packets (senderid, receiverid, packettype, bytesize, " \
+                      "timestamp) VALUES ("
+
+    ipmap = statsuite.read_ipmap(dump_dir + "/ipmap")
+    for pcap_path in glob(dump_dir + "/*.cap") + glob(dump_dir + "/*.pcap"):
+        node_name = pcap_path.split("/")[-1].split(".")[0].split("_")[0]
+        print("working on " + node_name)
+        node_number = statsuite.get_trailing_number(node_name)
+        packets = rdpcap(pcap_path)
+        for packet in packets:
+            is_sender = is_packet_sender(packet, node_number, ipmap)
+            senderid = "'" + node_name + "'" if is_sender else "NULL"
+            receiverid = "'" + node_name + "'" if not is_sender else "NULL"
+            packettype = packet.load[3]
+            if packettype < 1 or packettype > len(PACKET_TYPES):
+                continue # not a correct packet
+            bytesize = len(packet)
+            timestamp = int(packet.time)
+            insert_values = senderid + ", " + receiverid + ", " + str(packettype) +\
+                            ", " + str(bytesize) + ", " + str(timestamp)
+            insert_stmt = insert_template + insert_values + ");"
+            try:
+                connection.execute(insert_stmt)
+            except IntegrityError as error:
+                print(str(error))
+                pass
+    connection.commit()
+    connection.close()
+
+
+def read_pcap_bytes(pcap_path):
+    node_name = pcap_path.split("/")[-1].split(".")[0]
+    node_dict = {}
+    node_dict["tx"] = {}
+    node_dict["rx"] = {}
+    for direction in node_dict.keys():
+        for packet_type in PACKET_TYPES:
+            node_dict[direction][packet_type] = 0
+    # Fill dictionary
+    packets = rdpcap(pcap_path)
     for packet in packets:
         try:
             type = get_gvine_packet_type(packet)
@@ -73,7 +140,6 @@ def read_pcap(path):
         if(packet[IP].src.split(".")[-1] == str(statsuite.get_trailing_number(node_name))):
             direction = "tx"
         node_dict[direction][type].append(packet)
-    return node_dict
 
 
 def get_pcap_packets(path):
@@ -294,6 +360,30 @@ def make_type_packets_dict(chosen_dir=None):
             second = int(packet.time - earliest_time)
             seconds_dict[direction][packet_type][node_name][str(second)] += len(packet)
     return seconds_dict
+
+
+def make_single_dict(node_name, db_path):
+    conn = connect(db_path)
+    query = "SELECT * from packets where senderid='" + node_name + \
+            "' or receiverid='" + node_name + "';"
+    cursor = conn.execute(query)
+    table_data = cursor.fetchall()
+    earliest_time = conn.execute("select min(timestamp) from packets;").fetchall()[0][0]
+    latest_time = conn.execute("select max(timestamp) from packets;").fetchall()[0][0]
+
+    seconds_dict = make_bucket_template([node_name], earliest_time, latest_time)
+    for row in table_data:
+        senderid = row[0]
+        receiverid = row[1]
+        packet_type = PACKET_TYPES[row[2] - 1]
+        bytesize = row[3]
+        timestamp = row[4]
+
+        direction = "tx" if senderid else "rx"
+        second = int(timestamp - earliest_time)
+        seconds_dict[direction][packet_type][node_name][str(second)] += bytesize
+    return seconds_dict
+
 
 
 def make_bucket_template(node_names, earliest_time, latest_time):

@@ -887,24 +887,40 @@ def stats_type_packets(chosen_save=None):
     graphsuite.plot_type_direction(seconds_dict, "rx", bucket_size, False, True, "rx_average")
 
 
-def stats_packet_node(save):
+def stats_single_graph(save):
     dump_dirs = glob("./stats/dumps/" + save + "/*")
     chosen_dir = functions.choose_alphabetic_path(dump_dirs)
-    num_nodes = len(glob(chosen_dir + "/*")) - 1
-    node_id = input("Packet stats for which node id (1-" + str(num_nodes) + "): ")
-    pcap_paths = glob(chosen_dir + "/" + NODE_PREFIX + node_id + "_*")
-    print(str(pcap_paths))
-    for pcap_path in pcap_paths:
-        node_dict = packetsuite.read_pcap(pcap_path)
-        for direction in node_dict.keys():
-            print("  " + direction + ": ")
-            for packet_type in node_dict[direction].keys():
-                packet_list = node_dict[direction][packet_type]
-                sum = 0
-                for packet in packet_list:
-                    num_bytes = len(packet)
-                    sum += num_bytes
-                print("    " + packet_type + ": " + str(sum))
+    num_nodes = len(glob(chosen_dir + "/*.cap") + glob(chosen_dir + "/*.pcap"))
+    node_number = input("Graph for which node id (1-" + str(num_nodes) + "): ")
+    bucket_size = int(input("Bucket Size? : "))
+    db_path = chosen_dir + "/" + "packets.db"
+    node_name = NODE_PREFIX + node_number
+
+    packetsuite.make_packets_database(chosen_dir)
+
+    init_notebook_mode(connected=True)
+    seconds_dict = packetsuite.make_single_dict(node_name, db_path)
+    graphsuite.plot_type_direction(seconds_dict, "tx", bucket_size, False, False, "tx_each_second")
+    graphsuite.plot_type_direction(seconds_dict, "rx", bucket_size, False, False, "rx_each_second")
+    graphsuite.plot_type_direction(seconds_dict, "tx", bucket_size, True, False, "tx_cumulative")
+    graphsuite.plot_type_direction(seconds_dict, "rx", bucket_size, True, False, "rx_cumulative")
+    graphsuite.plot_type_direction(seconds_dict, "tx", bucket_size, False, True, "tx_average")
+    graphsuite.plot_type_direction(seconds_dict, "rx", bucket_size, False, True, "rx_average")
+
+
+def stats_packet_node(save):
+    pcap_path = functions.get_single_node_pcap(save, NODE_PREFIX)
+    node_dict = packetsuite.read_pcap(pcap_path)
+    print(pcap_path)
+    for direction in node_dict.keys():
+        print("  " + direction + ": ")
+        for packet_type in node_dict[direction].keys():
+            packet_list = node_dict[direction][packet_type]
+            sum = 0
+            for packet in packet_list:
+                num_bytes = len(packet)
+                sum += num_bytes
+            print("    " + packet_type + ": " + str(sum))
 
 
 def stats_packet_statistics(chosen_save=None):

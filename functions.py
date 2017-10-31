@@ -15,6 +15,7 @@ from shutil import copy
 from subprocess import call, Popen, PIPE, DEVNULL
 from time import sleep, time
 from re import compile, match, split, sub
+from glob import glob
 import threading
 
 # Third Party Imports
@@ -1119,4 +1120,15 @@ def wait_for_threads_finish(threads):
                 done = False
             else:
                 threads.remove(curr_thread)
+
+
+##### PCAP #####
+
+def get_single_node_pcap(save, prefix):
+    dump_dirs = glob("./stats/dumps/" + save + "/*")
+    chosen_dir = choose_alphabetic_path(dump_dirs)
+    num_nodes = len(glob(chosen_dir + "/*")) - 1
+    node_id = input("Packet stats for which node id (1-" + str(num_nodes) + "): ")
+    pcap_paths = glob(chosen_dir + "/" + prefix + node_id + "_*")
+    return pcap_paths[0]
 

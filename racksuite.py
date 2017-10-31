@@ -158,6 +158,8 @@ while(loop):
         commands.stats_packet_statistics(save)
     elif arg == "stats_packet_node":
         commands.stats_packet_node(save)
+    elif arg == "single_graph":
+        commands.stats_single_graph(save)
     elif(arg == "txpackets"):
         commands.stats_sent_packets()
     elif(arg == "rxpackets"):
