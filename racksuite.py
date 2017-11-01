@@ -28,6 +28,8 @@ while(loop):
     nodeipdict = config_result['nodeipdict']
     racknodes = config_result['racknodes']
 
+    randNodes = [1,5,19,24,45]
+
     node_objects = commands.get_assigned_nodes()
     print(str(len(node_objects)) + " assigned")
 
@@ -149,6 +151,8 @@ while(loop):
     elif(arg == "stats_events"):
         commands.stats_events(save, node_objects)
     elif(arg == "stats_tcpdump"):
+        node_objects = commands.assign_nodes(subnets, nodes)
+        #node_objects = commands.get_nodes(subnets, nodes)
         commands.stats_tcpdump(node_objects)
     elif(arg == "txpackets"):
         commands.stats_sent_packets()

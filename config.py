@@ -6,7 +6,7 @@ SAVE_FILE = "58flat"
 JUPYTER_SAVE_FILE = "threenodes"
 PCAP_SAVE_FILE = "threenodes"
 
-IMAGE_NAME = "linkrate"
+IMAGE_NAME = "10KbpsPCR"
 
 # User input variable
 PI_USERNAME = "pi"
