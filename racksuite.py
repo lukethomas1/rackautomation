@@ -56,6 +56,8 @@ while(loop):
         commands.configure(save, subnets, nodes)
     elif(arg == "setup"):
         commands.setup(save, subnets, nodes, node_objects)
+    elif(arg == "update_emane"):
+        commands.update_emane(save, subnets, nodes, node_objects)
     elif(arg == "push_scenario"):
         functions.remote_copy_scenario(save, iplist)
     elif(arg == "pushconfig"):
@@ -122,6 +124,8 @@ while(loop):
     elif(arg == "testmessage"):
         inv_ipdict = functions.invert_dict(nodeipdict)
         commands.test_message(node_objects)
+    elif(arg == "testmultiple"):
+        commands.test_multiple_messages(node_objects)
     elif(arg == "checkreceiving"):
         sender_node = int(input("Sender node? : "))
         testsuite.check_network_receiving(iplist, sender_node)
@@ -154,6 +158,12 @@ while(loop):
         node_objects = commands.assign_nodes(subnets, nodes)
         #node_objects = commands.get_nodes(subnets, nodes)
         commands.stats_tcpdump(node_objects)
+    elif arg == "stats_packet_statistics":
+        commands.stats_packet_statistics(save)
+    elif arg == "stats_packet_node":
+        commands.stats_packet_node(save)
+    elif arg == "single_graph":
+        commands.stats_single_graph(save)
     elif(arg == "txpackets"):
         commands.stats_sent_packets()
     elif(arg == "rxpackets"):

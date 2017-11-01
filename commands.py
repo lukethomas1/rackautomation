@@ -10,7 +10,7 @@
 # configuring a topology.
 
 # System Imports
-from time import sleep
+from time import sleep, time
 from os import path
 from collections import OrderedDict
 import logging
@@ -119,7 +119,7 @@ def assign_nodes(subnets, nodes):
         active_node_list = [pair[0] for pair in status_list if pair[1] == "ACTIVE"]
         functions.set_topology(SAVE_FILE, NODE_PREFIX)
         configuration = functions.load_data()
-        ips = configuration['iplist']
+        ip_dict = configuration['nodeipdict']
     elif platform == "pi":
         ips = PI_IP_LIST
 
@@ -135,7 +135,7 @@ def assign_nodes(subnets, nodes):
         member_subnets = [subnets.index(subnet) + 1 for subnet in subnets if index + 1 in subnet[
             'memberids']]
         if platform == "rack" and node_name in active_node_list:
-            this_node = RackNode(node_name, "emane-01", index + 1, ips[index],
+            this_node = RackNode(node_name, "emane-01", index + 1, ip_dict[node_name],
                                  platform, "/home/emane-01/gvinetest/", member_subnets, "emane",
                                  "/home/emane-01/emane/topologies/")
             print("Adding rackspace node: " + node_name)
@@ -252,6 +252,17 @@ def setup(save_file, subnets, nodes, node_objects):
     # Do node certifications
     gvpki(node_objects)
     print("Done.")
+
+
+def update_emane(save_file, subnets, nodes, node_objects):
+    configure(save_file, subnets, nodes)
+    threads = []
+    for node in node_objects:
+        new_thread = threading.Thread(target=node.setup_emane, args=(save_file,))
+        threads.append(new_thread)
+        new_thread.start()
+    for t in threads:
+        t.join()
 
 
 def change_tx_rate():
@@ -680,6 +691,31 @@ def test_message(node_objects):
     testsuite.wait_for_message_received(message_name, node_objects, 1, 9999)
 
 
+def test_multiple_messages(node_objects):
+    num_msgs = int(input("Number of messages: "))
+    msg_name = input("Input message prefix: ")
+    msg_size = input("Choose file size (kilobytes): ")
+    msg_sender_dict = {}
+    for msg_index in range(num_msgs):
+        sender_id = int(input("Input id of sender node for message #" +
+                              str(msg_index) + " (1-" + str(len(node_objects)) + "): "))
+        msg_sender_dict[msg_index] = sender_id
+    msg_interval = int(input("Interval between messages: "))
+
+    for msg_index in msg_sender_dict.keys():
+        sender_id = msg_sender_dict[msg_index]
+        curr_msg = msg_name + str(msg_index)
+        node_objects[sender_id - 1].make_test_file(curr_msg, msg_size)
+        last_time = time()
+        node_objects[sender_id - 1].send_gvine_file(curr_msg)
+        sleep(msg_interval - (time() - last_time))
+
+    for msg_index in range(num_msgs):
+        curr_msg = msg_name + str(msg_index)
+        sender_id = msg_sender_dict[msg_index]
+        testsuite.wait_for_message_received(curr_msg, node_objects, sender_id, 9999)
+
+
 def stats_directories(save_file):
     print("Creating stats directories")
     functions.create_dir("./stats/")
@@ -900,6 +936,88 @@ def stats_type_packets(chosen_save=None):
     graphsuite.plot_type_direction(seconds_dict, "rx", bucket_size, True, False, "rx_cumulative")
     graphsuite.plot_type_direction(seconds_dict, "tx", bucket_size, False, True, "tx_average")
     graphsuite.plot_type_direction(seconds_dict, "rx", bucket_size, False, True, "rx_average")
+
+
+def stats_single_graph(save):
+    dump_dirs = glob("./stats/dumps/" + save + "/*")
+    chosen_dir = functions.choose_alphabetic_path(dump_dirs)
+    num_nodes = len(glob(chosen_dir + "/*.cap") + glob(chosen_dir + "/*.pcap"))
+    node_number = input("Graph for which node id (1-" + str(num_nodes) + "): ")
+    bucket_size = int(input("Bucket Size? : "))
+    db_path = chosen_dir + "/" + "packets.db"
+    node_name = NODE_PREFIX + node_number
+
+    packetsuite.make_packets_database(chosen_dir)
+
+    init_notebook_mode(connected=True)
+    seconds_dict = packetsuite.make_single_dict(node_name, db_path)
+    graphsuite.plot_type_direction(seconds_dict, "tx", bucket_size, False, False, "tx_each_second")
+    graphsuite.plot_type_direction(seconds_dict, "rx", bucket_size, False, False, "rx_each_second")
+    graphsuite.plot_type_direction(seconds_dict, "tx", bucket_size, True, False, "tx_cumulative")
+    graphsuite.plot_type_direction(seconds_dict, "rx", bucket_size, True, False, "rx_cumulative")
+    graphsuite.plot_type_direction(seconds_dict, "tx", bucket_size, False, True, "tx_average")
+    graphsuite.plot_type_direction(seconds_dict, "rx", bucket_size, False, True, "rx_average")
+
+
+def stats_packet_node(save):
+    pcap_path = functions.get_single_node_pcap(save, NODE_PREFIX)
+    node_dict = packetsuite.read_pcap(pcap_path)
+    print(pcap_path)
+    for direction in node_dict.keys():
+        print("  " + direction + ": ")
+        for packet_type in node_dict[direction].keys():
+            packet_list = node_dict[direction][packet_type]
+            sum = 0
+            for packet in packet_list:
+                num_bytes = len(packet)
+                sum += num_bytes
+            print("    " + packet_type + ": " + str(sum))
+
+
+def stats_packet_statistics(chosen_save=None):
+    if(chosen_save is not None):
+        dump_dirs = glob("./stats/dumps/" + chosen_save + "/*")
+        chosen_dir = functions.choose_alphabetic_path(dump_dirs)
+    else:
+        dump_dirs = packetsuite.get_dump_timestamp_dirs()
+        chosen_dir = functions.choose_timestamp_path(dump_dirs)
+    num_nodes = len(glob(chosen_dir))
+    node_dict = packetsuite.get_pcap_node_dict(chosen_dir, num_nodes)
+
+    totals_dict = {
+        "tx": {
+            "beacon": 0,
+            "handshake": 0,
+            "babel": 0,
+            "payload": 0
+        },
+        "rx": {
+            "beacon": 0,
+            "handshake": 0,
+            "babel": 0,
+            "payload": 0
+        }
+    }
+
+    # individual byte amounts
+    for node_name in node_dict.keys():
+        print(node_name + ": ")
+        for direction in node_dict[node_name].keys():
+            print("  " + direction + ": ")
+            for packet_type in node_dict[node_name][direction].keys():
+                packet_list = node_dict[node_name][direction][packet_type]
+                sum = 0
+                for packet in packet_list:
+                    num_bytes = len(packet)
+                    sum += num_bytes
+                    totals_dict[node_name][direction][packet_type] += num_bytes
+                print("    " + packet_type + ": " + str(sum))
+
+    # total bytes amounts
+    for direction in totals_dict.keys():
+        for packet_type in totals_dict[direction].keys():
+            total_bytes = totals_dict[direction][packet_type]
+            print("Total " + direction + " " + packet_type + ": " + str(total_bytes))
 
 
 def stats_stop_beacons():

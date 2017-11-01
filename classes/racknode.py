@@ -37,6 +37,11 @@ class RackNode(Node):
         self.remote_copy_platform_xml(save)
         self.remote_copy_emane_scripts(save)
 
+    def setup_emane(self, save):
+        self.remote_copy_default_config(save)
+        self.remote_copy_scenario(save)
+        self.remote_copy_platform_xml(save)
+
     # Copy default config to topology directory
     def remote_copy_default_config(self, save_folder):
         command = (

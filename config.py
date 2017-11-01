@@ -2,11 +2,11 @@
 DEFAULT_PLATFORM = "rack"
 NODE_PREFIX = "node"
 
-SAVE_FILE = "58flat"
+SAVE_FILE = "20flat"
 JUPYTER_SAVE_FILE = "threenodes"
 PCAP_SAVE_FILE = "threenodes"
 
-IMAGE_NAME = "10KbpsPCR"
+IMAGE_NAME = "10kbpsverified"
 
 # User input variable
 PI_USERNAME = "pi"
