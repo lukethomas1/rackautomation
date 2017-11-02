@@ -887,6 +887,14 @@ def stats_type_packets(chosen_save=None):
     graphsuite.plot_type_direction(seconds_dict, "rx", bucket_size, False, True, "rx_average")
 
 
+def pcap_to_sql(save):
+    dump_dirs = glob("./stats/dumps/" + save + "/*")
+    chosen_dir = functions.choose_alphabetic_path(dump_dirs)
+    num_nodes = len(glob(chosen_dir + "/*.cap") + glob(chosen_dir + "/*.pcap"))
+    node_number = input("Graph for which node id (1-" + str(num_nodes) + "): ")
+    packetsuite.make_packets_database(chosen_dir)
+
+
 def stats_single_graph(save):
     dump_dirs = glob("./stats/dumps/" + save + "/*")
     chosen_dir = functions.choose_alphabetic_path(dump_dirs)

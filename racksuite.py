@@ -160,6 +160,8 @@ while(loop):
         commands.stats_packet_node(save)
     elif arg == "single_graph":
         commands.stats_single_graph(save)
+    elif arg == "pcap_to_sql":
+        commands.pcap_to_sql(save)
     elif(arg == "txpackets"):
         commands.stats_sent_packets()
     elif(arg == "rxpackets"):
