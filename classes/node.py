@@ -19,6 +19,18 @@ from config import IP_BLACK_LIST
 
 class Node:
     def __init__(self, name, user_name, id, ip, platform, gvine_path, member_subnets, iface_prefix):
+        """
+
+        :param name: name of the node as it shows on rackspace, default node#
+        :param user_name: username of the remote host
+        :param id: index number of the node
+        :param ip: ip of the remote host
+        :param platform: which platform the node is, pi or rack
+        :param gvine_path: path to the gvine test folder on the remote host, has "/" at the end
+        :param member_subnets: list of subnets the node is in
+        :param iface_prefix: prefix of the interfaces that gvine will run on, used when parsing
+        pcap files
+        """
         self.name = name
         self.user_name = user_name
         self.id = id
@@ -112,6 +124,11 @@ class Node:
         print("Pushing " + src_path + " to " + self.name + " as " + dest_path)
         command = "scp " + src_path + " " + self.user_name + "@" + self.ip + ":" + dest_path
         call(command, shell=True, stdout=DEVNULL)
+
+    def pull_file(self, remote_path, local_path):
+        command = "scp " + self.user_name + "@" + self.ip + ":" + remote_path +\
+                  " " + local_path
+        call(command, shell=True)
 
     def remote_create_dir(self, path_to_folder):
         command = "mkdir " + path_to_folder
@@ -228,3 +245,8 @@ class Node:
         if output is not None:
             output = output.group()
         return output
+
+    def pull_log_file(self):
+        remote_path = self.gvine_path + "log_node" + str(self.id) + ".txt"
+        local_path = "./logfiles/"
+        self.pull_file(remote_path, local_path)

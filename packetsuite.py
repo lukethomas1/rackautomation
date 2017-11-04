@@ -80,7 +80,6 @@ def read_pcap(pcap_path):
 
 
 def make_packets_database(dump_dir):
-    print(dump_dir)
     db_path = dump_dir + "/packets.db"
     if path.exists(db_path):
         print(db_path + " already exists, returning")
@@ -105,7 +104,7 @@ def make_packets_database(dump_dir):
             receiverid = "'" + node_name + "'" if not is_sender else "NULL"
             packettype = packet.load[3]
             if packettype < 1 or packettype > len(PACKET_TYPES):
-                continue # not a correct packet
+                continue  # not a correct packet
             bytesize = len(packet)
             timestamp = int(packet.time)
             insert_values = senderid + ", " + receiverid + ", " + str(packettype) +\

@@ -154,6 +154,8 @@ while(loop):
         commands.stats_events(save, node_objects)
     elif(arg == "stats_tcpdump"):
         commands.stats_tcpdump(node_objects)
+    elif arg == "pull_logs":
+        commands.pull_logfiles(node_objects)
     elif arg == "stats_packet_statistics":
         commands.stats_packet_statistics(save)
     elif arg == "stats_packet_node":

@@ -17,7 +17,7 @@ REMOTE_EMANE_DIR = "~/GrapeVine/topologies/" + SAVE_FILE + "/"
 
 RACK_KEY = "mykey"
 
-JAR_FILE = "gvine-fast.jar"
+JAR_FILE = "gvine-v435.jar"
 
 # Where to find the ip file for all the rackspace nodes
 RACK_IP_FILE = "./iplists/" + NODE_PREFIX + "hosts"

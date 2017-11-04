@@ -770,6 +770,33 @@ def stats_tcpdump(node_objects):
     return dump_folder
 
 
+def pull_logfiles(node_objects):
+    node_list = []
+    try:
+        user_input = input("Input node index to pull logs from (1-" + str(len(node_objects)) +
+                               "): ")
+        while user_input != "":
+            user_input = int(user_input)
+            if 1 <= user_input <= len(node_objects):
+                node_list.append(user_input)
+            else:
+                print("index out of range, try again")
+            user_input = input("Input another node index (1-" +
+                                   str(len(node_objects)) + ") to pull logs from (blank to "
+                                                            "continue): ")
+    except KeyboardInterrupt:
+        return
+
+    threads = []
+    for node_index in node_list:
+        node = node_objects[node_index - 1]
+        new_thread = threading.Thread(target=node.pull_log_file)
+        threads.append(new_thread)
+        new_thread.start()
+    for t in threads:
+        t.join()
+
+
 def print_scapy_packet(chosen_save):
     dump_dirs = glob("./stats/dumps/" + chosen_save + "/*")
     chosen_dir = functions.choose_alphabetic_path(dump_dirs)
@@ -890,8 +917,6 @@ def stats_type_packets(chosen_save=None):
 def pcap_to_sql(save):
     dump_dirs = glob("./stats/dumps/" + save + "/*")
     chosen_dir = functions.choose_alphabetic_path(dump_dirs)
-    num_nodes = len(glob(chosen_dir + "/*.cap") + glob(chosen_dir + "/*.pcap"))
-    node_number = input("Graph for which node id (1-" + str(num_nodes) + "): ")
     packetsuite.make_packets_database(chosen_dir)
 
 

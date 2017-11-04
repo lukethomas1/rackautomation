@@ -4,8 +4,8 @@
   <param name="mode"                  value="0"/>  <!-- 0|2 = DSS, 1 = OFDM -->
   <param name="enablepromiscuousmode" value="off"/>
   <param name="distance"              value="1000"/>
-  <param name="unicastrate"           value="2"/>
-  <param name="multicastrate"         value="2"/>
+  <param name="unicastrate"           value="3"/>
+  <param name="multicastrate"         value="3"/>
   <param name="pcrcurveuri"
     value="/home/emane-01/emane_src/src/models/mac/ieee80211abg/ieee80211pcr.xml"/>
   <param name="flowcontrolenable"     value="off"/>
