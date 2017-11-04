@@ -123,7 +123,7 @@ def make_packets_database(dump_dir):
 
 
 def get_sender_name(ip_address, ipmap):
-    return "node" + str(ipmap[ip_address])
+    return config.NODE_PREFIX + str(ipmap[ip_address])
 
 
 def read_pcap_bytes(pcap_path):
@@ -385,7 +385,7 @@ def make_single_dict(node_name, db_path):
         bytesize = row[3]
         timestamp = row[4]
 
-        direction = "tx" if senderid else "rx"
+        direction = "tx" if senderid == node_name else "rx"
         second = int(timestamp - earliest_time)
         seconds_dict[direction][packet_type][node_name][str(second)] += bytesize
     return seconds_dict
