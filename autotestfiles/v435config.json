@@ -16,7 +16,7 @@
    "BabelDeletePeriod" : 24,
    "HandshakeReactivePeriod" : 60000,
    "HandshakePeriod" : 15000,
-   "BeaconPeriod" : 3000,
+   "BeaconPeriod" : 15000,
    "DataPerishable" : "no",
    "DataPerishableTime" : 1,
    "GvineChecksums" : "no",

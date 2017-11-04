@@ -141,7 +141,7 @@ while(loop):
     elif(arg == "scapytest"):
         dump_dirs = packetsuite.get_dump_timestamp_dirs()
         node_dict = packetsuite.get_pcap_node_dict(dump_dirs[0], len(nodes))
-        pkt = node_dict["node1"]["sent"]["gvine"][10]
+        pkt = node_dict["node1"]["tx"]["gvine"][10]
         packetsuite.useful_functions(pkt)
 
     ##### DATA COMMANDS #####

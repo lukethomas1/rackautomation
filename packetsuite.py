@@ -101,6 +101,9 @@ def make_packets_database(dump_dir):
         for packet in packets:
             is_sender = is_packet_sender(packet, node_number, ipmap)
             senderid = "'" + node_name + "'" if is_sender else "NULL"
+            if senderid == "NULL":
+                sender_ip = packet.getlayer(IP).src
+                senderid = "'" + get_sender_name(sender_ip, ipmap) + "'"
             receiverid = "'" + node_name + "'" if not is_sender else "NULL"
             packettype = packet.load[3]
             if packettype < 1 or packettype > len(PACKET_TYPES):
@@ -117,6 +120,10 @@ def make_packets_database(dump_dir):
                 pass
     connection.commit()
     connection.close()
+
+
+def get_sender_name(ip_address, ipmap):
+    return "node" + str(ipmap[ip_address])
 
 
 def read_pcap_bytes(pcap_path):
