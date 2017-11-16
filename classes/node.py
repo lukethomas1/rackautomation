@@ -73,6 +73,7 @@ class Node:
     def remote_start_gvine(self, jar_name):
         command = "cd " + self.gvine_path + " && java -jar " + jar_name + " node" + str(self.id) \
                   + " 500 >> log_node" + str(self.id) + ".txt &"
+        print(command)
         functions.remote_execute(command, self.ip, self.user_name)
 
     ##### GRAPEVINE GVPKI CERTS #####
@@ -128,6 +129,7 @@ class Node:
     def pull_file(self, remote_path, local_path):
         command = "scp " + self.user_name + "@" + self.ip + ":" + remote_path +\
                   " " + local_path
+        print(command)
         call(command, shell=True)
 
     def remote_create_dir(self, path_to_folder):
@@ -246,7 +248,6 @@ class Node:
             output = output.group()
         return output
 
-    def pull_log_file(self):
+    def pull_log_file(self, folder_name):
         remote_path = self.gvine_path + "log_node" + str(self.id) + ".txt"
-        local_path = "./logfiles/"
-        self.pull_file(remote_path, local_path)
+        self.pull_file(remote_path, folder_name)

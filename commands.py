@@ -15,6 +15,7 @@ from os import path
 from collections import OrderedDict
 import logging
 import threading
+from subprocess import call
 
 # Third Party Imports
 from glob import glob
@@ -787,10 +788,28 @@ def pull_logfiles(node_objects):
     except KeyboardInterrupt:
         return
 
+    # Make a new log file folder for each run
+    folder_name = "./logfiles/logs_"
+    num_folders = glob(folder_name + "*")
+    print(str(num_folders))
+    folder_name = folder_name + str(len(num_folders)) + "/"
+    functions.create_dir(folder_name)
+
+    # Include the config used with the log files
+    config_input = input("Config file to include: ")
+    config_path = "./autotestfiles/" + config_input
+    exists = path.exists(config_path)
+    while not exists:
+        config_input = input("Doesn't exist, try again. Config file to include: ")
+        config_path = "./autotestfiles/" + config_input
+        exists = path.exists(config_path)
+    command = "cp " + config_path + " " + folder_name
+    call(command, shell=True)
+
     threads = []
     for node_index in node_list:
         node = node_objects[node_index - 1]
-        new_thread = threading.Thread(target=node.pull_log_file)
+        new_thread = threading.Thread(target=node.pull_log_file, args=[folder_name,])
         threads.append(new_thread)
         new_thread.start()
     for t in threads:

@@ -6,7 +6,7 @@ SAVE_FILE = "58flat"
 JUPYTER_SAVE_FILE = "threenodes"
 PCAP_SAVE_FILE = "threenodes"
 
-IMAGE_NAME = "10kbpsverified"
+IMAGE_NAME = "v439"
 
 # User input variable
 PI_USERNAME = "pi"
@@ -17,7 +17,7 @@ REMOTE_EMANE_DIR = "~/GrapeVine/topologies/" + SAVE_FILE + "/"
 
 RACK_KEY = "mykey"
 
-JAR_FILE = "gvine-v435.jar"
+JAR_FILE = "gvine-fast.jar"
 
 # Where to find the ip file for all the rackspace nodes
 RACK_IP_FILE = "./iplists/" + NODE_PREFIX + "hosts"
