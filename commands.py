@@ -791,7 +791,6 @@ def pull_logfiles(node_objects):
     # Make a new log file folder for each run
     folder_name = "./logfiles/logs_"
     num_folders = glob(folder_name + "*")
-    print(str(num_folders))
     folder_name = folder_name + str(len(num_folders)) + "/"
     functions.create_dir(folder_name)
 
