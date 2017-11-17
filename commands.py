@@ -967,6 +967,9 @@ def stats_single_graph(save, download=False):
     for cnfg in graph_configs:
         graphsuite.plot_type_direction(seconds_dict, cnfg[0], bucket_size, cnfg[1], cnfg[2], download)
 
+    if not download:
+        return
+
     # Move graphs to ~/GrapeVine/testwebsite/rackpython/graphs
     sleep(1)
     graph_folder = "~/GrapeVine/testwebsite/rackpython/graphs/"
