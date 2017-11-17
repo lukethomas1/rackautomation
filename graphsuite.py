@@ -103,13 +103,14 @@ def plot_basic_combined_direction(combined_dict, direction, plot_average, plot_c
     plotly.offline.iplot(figure)
 
 
-def plot_type_direction(buckets_dict, direction, bucket_size, is_cumulative, is_average,
-                        graph_title):
+def plot_type_direction(buckets_dict, direction, bucket_size, graph_type, graph_title,
+                                                                        download=False):
     """Graph packets sent by type each second.
 
     :param buckets_dict: buckets_dict[direction][packet_type][node][second] = bytes_sent
     :param direction: "sent" or "received"
     :param bucket_size: size of bucket
+    :param graph_type: 0 = each_second, 1 = cumulative, 2 = average
     :param is_cumulative: Graph cumulative packets sent or not
     :param is_average: Graph average if not cumulative
     :param graph_title: Title of graph
@@ -126,11 +127,11 @@ def plot_type_direction(buckets_dict, direction, bucket_size, is_cumulative, is_
                 sum_packets += packets_dict[packet_type][node_name][second]
                 if int(second) % bucket_size == 0:
                     x.append(int(second) / bucket_size)
-                    if(is_cumulative):
+                    if graph_type == 1:
                         y.append(sum_packets)
-                    elif(is_average):
+                    elif graph_type == 2:
                         y.append(sum_packets / ((int(second) / bucket_size) + 1))
-                    else:
+                    elif graph_type == 0:
                         y.append(packets_dict[packet_type][node_name][second])
             traces[packet_type][node_name] = make_trace(x, y, "line", node_name + "_" +
                                                         packet_type, line_color=PACKET_COLORS[packet_type])
@@ -148,7 +149,10 @@ def plot_type_direction(buckets_dict, direction, bucket_size, is_cumulative, is_
         for packet_type in packets_dict.keys():
             figure.append_trace(traces[packet_type][ordered_nodes[index]], row_num, col_num)
     figure['layout'].update(height=600*num_rows, width=1000, title=graph_title)
-    plotly.offline.iplot(figure)
+    if download:
+        plotly.offline.iplot(figure, image="png", filename=graph_title)
+    else:
+        plotly.offline.iplot(figure)
 
 
 def make_figure_same_graph(figure, row, col, traces_dict):

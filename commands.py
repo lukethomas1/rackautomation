@@ -23,6 +23,7 @@ from re import sub
 from plotly.offline import init_notebook_mode
 from pickle import load, dump
 import plotly
+import img2pdf
 
 # Local Imports
 import functions
@@ -938,7 +939,7 @@ def pcap_to_sql(save):
     packetsuite.make_packets_database(chosen_dir)
 
 
-def stats_single_graph(save):
+def stats_single_graph(save, download=False):
     dump_dirs = glob("./stats/dumps/" + save + "/*")
     chosen_dir = functions.choose_alphabetic_path(dump_dirs)
     num_nodes = len(glob(chosen_dir + "/*.cap") + glob(chosen_dir + "/*.pcap"))
@@ -949,14 +950,42 @@ def stats_single_graph(save):
 
     packetsuite.make_packets_database(chosen_dir)
 
+    # Setup to download graphs
+    functions.create_dir("./graphs")
+
+    graph_configs = [
+        ("tx", 0, "tx_each_second"),
+        ("rx", 0, "rx_each_second"),
+        ("tx", 1, "tx_cumulative"),
+        ("rx", 1, "rx_cumulative"),
+        ("tx", 2, "tx_average"),
+        ("rx", 2, "rx_average")
+    ]
+
     init_notebook_mode(connected=True)
     seconds_dict = packetsuite.make_single_dict(node_name, db_path)
-    graphsuite.plot_type_direction(seconds_dict, "tx", bucket_size, False, False, "tx_each_second")
-    graphsuite.plot_type_direction(seconds_dict, "rx", bucket_size, False, False, "rx_each_second")
-    graphsuite.plot_type_direction(seconds_dict, "tx", bucket_size, True, False, "tx_cumulative")
-    graphsuite.plot_type_direction(seconds_dict, "rx", bucket_size, True, False, "rx_cumulative")
-    graphsuite.plot_type_direction(seconds_dict, "tx", bucket_size, False, True, "tx_average")
-    graphsuite.plot_type_direction(seconds_dict, "rx", bucket_size, False, True, "rx_average")
+    for cnfg in graph_configs:
+        graphsuite.plot_type_direction(seconds_dict, cnfg[0], bucket_size, cnfg[1], cnfg[2], download)
+
+    # Move graphs to ~/GrapeVine/testwebsite/rackpython/graphs
+    sleep(1)
+    graph_folder = "~/GrapeVine/testwebsite/rackpython/graphs/"
+    for cnfg in graph_configs:
+        file_location = "~/Downloads/" + cnfg[2] + ".png"
+        move_location = graph_folder + cnfg[2] + ".png"
+        command = "mv " + file_location + " " + move_location
+        call(command, shell=True)
+
+    # Make pdf from graphs
+    sleep(1)
+    pdf_location = "./graphs/node" + str(node_number) + ".pdf"
+    img_graphs = []
+    for cnfg in graph_configs:
+        img_graphs.append("./graphs/" + cnfg[2] + ".png")
+    pdf_file = open(pdf_location, "wb")
+    print(str(img_graphs))
+    pdf_file.write(img2pdf.convert([i for i in img_graphs]))
+    pdf_file.close()
 
 
 def stats_packet_node(save):
