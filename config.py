@@ -1,12 +1,12 @@
 # Used for rackspace node naming and some other naming, will break things if changed
 DEFAULT_PLATFORM = "rack"
-NODE_PREFIX = "node-"
+NODE_PREFIX = "node"
 
 SAVE_FILE = "58flat"
 JUPYTER_SAVE_FILE = "threenodes"
 PCAP_SAVE_FILE = "threenodes"
 
-IMAGE_NAME = "v439"
+IMAGE_NAME = "v443"
 
 # User input variable
 PI_USERNAME = "pi"
@@ -34,6 +34,8 @@ IP_BLACK_LIST = [
     "192.168.3",
     "127.0.0"
 ]
+
+SUBNET_GROUP = "11.0."
 
 ##### AUTOMATIC TESTING #####
 

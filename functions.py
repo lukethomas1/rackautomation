@@ -23,6 +23,9 @@ from paramiko import AutoAddPolicy, RSAKey, SSHClient
 from pickle import load, dump
 from pyrebase import initialize_app
 
+# Local Imports
+import config
+
 SUCCESS = '\033[92m'
 FAIL = '\033[91m'
 ENDCOLOR = '\033[0m'
@@ -412,7 +415,7 @@ def get_nem_config(nem_template, subnet, node, device_num):
     device_name = "emane" + device_num
     subaddr = subnet['addr']
     if(not subaddr):
-        subaddr = "11.0." + str(subnet['number'])
+        subaddr = config.SUBNET_GROUP + str(subnet['number'])
     node_num = str(node['number'])
     mask = "255.255.255.0"
     freq = ".4G"
@@ -1131,4 +1134,21 @@ def get_single_node_pcap(save, prefix):
     node_id = input("Packet stats for which node id (1-" + str(num_nodes) + "): ")
     pcap_paths = glob(chosen_dir + "/" + prefix + node_id + "_*")
     return pcap_paths[0]
+
+
+def get_node_list(num_nodes):
+    node_list = []
+    try:
+        user_input = input("Input node index(1-" + str(num_nodes) + "): ")
+        while user_input != "":
+            user_input = int(user_input)
+            if 1 <= user_input <= num_nodes:
+                node_list.append(user_input)
+            else:
+                print("index out of range, try again")
+            user_input = input("Input another node index (1-" +
+                               str(num_nodes) + ")(blank to continue): ")
+    except KeyboardInterrupt:
+        pass
+    return node_list
 
