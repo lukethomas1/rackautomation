@@ -402,6 +402,7 @@ def remove_error_rate(subnets, nodes, iplist):
 def start(save_file, node_objects):
     threads = []
     for node in node_objects:
+        sleep(5)
         new_thread = threading.Thread(target=node.start, args=(JAR_FILE, save_file,))
         threads.append(new_thread)
         new_thread.start()
@@ -662,12 +663,14 @@ def norm_delay(iplist):
             print(NODE_PREFIX + str(index + 1) + ": " + str(int(norm_delays[index]) - sender_time))
 
 
-def message(iplist):
+def message(node_objects):
     message_name = input("Choose message file name: ")
     file_size = input("Choose file size (kilobytes): ")
     send_num = input("Node number to send from? : ")
-    testsuite.send_gvine_message(iplist[node_num - 1], message_name, file_size, send_num, "")
-
+    node_objects[int(send_num)-1].make_test_file(message_name, file_size)
+    node_objects[int(send_num)-1].send_gvine_file(message_name)
+   # testsuite.send_gvine_message(iplist[node_num - 1], message_name, file_size, send_num, "")
+    testsuite.wait_for_message_received(message_name, node_objects, 1, 9999)
 
 def message_gvine_unicast(iplist):
     message_name = input("Choose message file name: ")

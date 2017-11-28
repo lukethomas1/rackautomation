@@ -118,7 +118,7 @@ while(loop):
     elif(arg == "norm_delay"):
         commands.norm_delay(iplist)
     elif(arg == "message"):
-        commands.message(iplist)
+        commands.message(node_objects)
     elif(arg == "norm_message"):
         commands.norm_message(iplist)
     elif(arg == "testmessage"):
