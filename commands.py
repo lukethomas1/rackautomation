@@ -461,6 +461,20 @@ def stop(node_objects):
         t.join()
     print("Done.")
 
+def stop_nodes(node_objects):
+    node_list = functions.get_node_list(len(node_objects))
+
+    threads = []
+    for node_index in node_list:
+        index = node_index - 1
+        node = node_objects[index]
+        new_thread = threading.Thread(target=node.stop_all, args=(SAVE_FILE,))
+        threads.append(new_thread)
+        new_thread.start()
+    for t in threads:
+        t.join()
+    print("Done.")
+
 
 def stop_gvine(node_objects):
     for node in node_objects:

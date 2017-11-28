@@ -190,6 +190,8 @@ while(loop):
 
     elif(arg == "stop"):
         commands.stop(node_objects)
+    elif(arg == "stop_nodes"):
+        commands.stop_nodes(node_objects)
     elif(arg == "stop_gvine"):
         commands.stop_gvine()
     elif(arg == "stop_norm"):
