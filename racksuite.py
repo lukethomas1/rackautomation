@@ -84,6 +84,8 @@ while(loop):
 
     elif(arg == "start"):
         commands.start(save, node_objects)
+    elif(arg == "start_partial"):
+        commands.start_partial(node_objects)
     elif(arg == "startchoose"):
         commands.start_choose(save, node_objects)
     elif(arg == "start_debug"):
@@ -190,8 +192,8 @@ while(loop):
 
     elif(arg == "stop"):
         commands.stop(node_objects)
-    elif(arg == "stop_nodes"):
-        commands.stop_nodes(node_objects)
+    elif(arg == "stop_partial"):
+        commands.stop_partial(node_objects)
     elif(arg == "stop_gvine"):
         commands.stop_gvine()
     elif(arg == "stop_norm"):

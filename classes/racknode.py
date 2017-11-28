@@ -27,6 +27,14 @@ class RackNode(Node):
         self.start_tcpdump()
         super().start(jar_name)
 
+    def start_partial(self, jar_name, save=None):
+        self.remote_emane(save, "emane_start.sh")
+        super().remote_start_gvine(jar_name)
+
+    def stop_partial(self, save=None):
+        self.remote_emane(save, "emane_stop.sh")
+        super().stop_gvine()
+
     def setup_gvine(self, save=None):
         print("Setting up gvine for " + self.name)
         self.add_to_known_hosts()

@@ -461,14 +461,30 @@ def stop(node_objects):
         t.join()
     print("Done.")
 
-def stop_nodes(node_objects):
+
+def start_partial(node_objects):
     node_list = functions.get_node_list(len(node_objects))
 
     threads = []
     for node_index in node_list:
         index = node_index - 1
         node = node_objects[index]
-        new_thread = threading.Thread(target=node.stop_all, args=(SAVE_FILE,))
+        new_thread = threading.Thread(target=node.start_partial, args=(config.JAR_FILE,SAVE_FILE,))
+        threads.append(new_thread)
+        new_thread.start()
+    for t in threads:
+        t.join()
+    print("Done.")
+
+
+def stop_partial(node_objects):
+    node_list = functions.get_node_list(len(node_objects))
+
+    threads = []
+    for node_index in node_list:
+        index = node_index - 1
+        node = node_objects[index]
+        new_thread = threading.Thread(target=node.stop_partial, args=(SAVE_FILE,))
         threads.append(new_thread)
         new_thread.start()
     for t in threads:
