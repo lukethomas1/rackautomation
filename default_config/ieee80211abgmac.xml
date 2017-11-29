@@ -4,7 +4,7 @@
   <param name="mode"                  value="0"/>  <!-- 0|2 = DSS, 1 = OFDM -->
   <param name="enablepromiscuousmode" value="off"/>
   <param name="distance"              value="1000"/>
-  <param name="unicastrate"           value="3"/>
+  <param name="unicastrate"           value="3"/> <!-- 1: 10kbps, 2: 25kbps, 3: 50kbps, 8: 1mbps -->
   <param name="multicastrate"         value="3"/>
   <param name="pcrcurveuri"
     value="/home/emane-01/emane_src/src/models/mac/ieee80211abg/ieee80211pcr.xml"/>
