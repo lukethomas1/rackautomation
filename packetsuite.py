@@ -80,7 +80,6 @@ def read_pcap(pcap_path):
 
 
 def make_packets_database(dump_dir):
-    print(dump_dir)
     db_path = dump_dir + "/packets.db"
     if path.exists(db_path):
         print(db_path + " already exists, returning")
@@ -102,10 +101,14 @@ def make_packets_database(dump_dir):
         for packet in packets:
             is_sender = is_packet_sender(packet, node_number, ipmap)
             senderid = "'" + node_name + "'" if is_sender else "NULL"
+            # TODO the lines below were duplicating sent packets
+            # if senderid == "NULL":
+            #     sender_ip = packet.getlayer(IP).src
+            #     senderid = "'" + get_sender_name(sender_ip, ipmap) + "'"
             receiverid = "'" + node_name + "'" if not is_sender else "NULL"
             packettype = packet.load[3]
             if packettype < 1 or packettype > len(PACKET_TYPES):
-                continue # not a correct packet
+                continue  # not a correct packet
             bytesize = len(packet)
             timestamp = int(packet.time)
             insert_values = senderid + ", " + receiverid + ", " + str(packettype) +\
@@ -118,6 +121,10 @@ def make_packets_database(dump_dir):
                 pass
     connection.commit()
     connection.close()
+
+
+def get_sender_name(ip_address, ipmap):
+    return config.NODE_PREFIX + str(ipmap[ip_address])
 
 
 def read_pcap_bytes(pcap_path):
@@ -379,7 +386,7 @@ def make_single_dict(node_name, db_path):
         bytesize = row[3]
         timestamp = row[4]
 
-        direction = "tx" if senderid else "rx"
+        direction = "tx" if senderid == node_name else "rx"
         second = int(timestamp - earliest_time)
         seconds_dict[direction][packet_type][node_name][str(second)] += bytesize
     return seconds_dict

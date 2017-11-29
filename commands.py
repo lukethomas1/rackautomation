@@ -15,6 +15,7 @@ from os import path
 from collections import OrderedDict
 import logging
 import threading
+from subprocess import call
 
 # Third Party Imports
 from glob import glob
@@ -22,6 +23,7 @@ from re import sub
 from plotly.offline import init_notebook_mode
 from pickle import load, dump
 import plotly
+#import img2pdf
 
 # Local Imports
 import functions
@@ -31,6 +33,7 @@ import autotest
 import packetsuite
 import graphsuite
 import config
+import constants
 from classes.racknode import RackNode
 from classes.pinode import PiNode
 
@@ -705,13 +708,16 @@ def test_multiple_messages(node_objects):
         msg_sender_dict[msg_index] = sender_id
     msg_interval = int(input("Interval between messages: "))
 
+    num_sent = 0
     for msg_index in msg_sender_dict.keys():
+        num_sent += 1
         sender_id = msg_sender_dict[msg_index]
         curr_msg = msg_name + str(msg_index)
         node_objects[sender_id - 1].make_test_file(curr_msg, msg_size)
         last_time = time()
         node_objects[sender_id - 1].send_gvine_file(curr_msg)
-        sleep(msg_interval - (time() - last_time))
+        if num_sent != len(msg_sender_dict):
+            sleep(msg_interval - (time() - last_time))
 
     for msg_index in range(num_msgs):
         curr_msg = msg_name + str(msg_index)
@@ -822,6 +828,50 @@ def stats_tcpdump(node_objects):
     map_path = dump_folder + "ipmap"
     statsuite.make_ipmap(node_objects, map_path)
     return dump_folder
+
+
+def pull_logfiles(node_objects):
+    node_list = []
+    try:
+        user_input = input("Input node index to pull logs from (1-" + str(len(node_objects)) +
+                               "): ")
+        while user_input != "":
+            user_input = int(user_input)
+            if 1 <= user_input <= len(node_objects):
+                node_list.append(user_input)
+            else:
+                print("index out of range, try again")
+            user_input = input("Input another node index (1-" +
+                                   str(len(node_objects)) + ") to pull logs from (blank to "
+                                                            "continue): ")
+    except KeyboardInterrupt:
+        return
+
+    # Make a new log file folder for each run
+    folder_name = "./logfiles/logs_"
+    num_folders = glob(folder_name + "*")
+    folder_name = folder_name + str(len(num_folders)) + "/"
+    functions.create_dir(folder_name)
+
+    # Include the config used with the log files
+    config_input = input("Config file to include: ")
+    config_path = "./autotestfiles/" + config_input
+    exists = path.exists(config_path)
+    while not exists:
+        config_input = input("Doesn't exist, try again. Config file to include: ")
+        config_path = "./autotestfiles/" + config_input
+        exists = path.exists(config_path)
+    command = "cp " + config_path + " " + folder_name
+    call(command, shell=True)
+
+    threads = []
+    for node_index in node_list:
+        node = node_objects[node_index - 1]
+        new_thread = threading.Thread(target=node.pull_log_file, args=[folder_name,])
+        threads.append(new_thread)
+        new_thread.start()
+    for t in threads:
+        t.join()
 
 
 def print_scapy_packet(chosen_save):
@@ -941,7 +991,13 @@ def stats_type_packets(chosen_save=None):
     graphsuite.plot_type_direction(seconds_dict, "rx", bucket_size, False, True, "rx_average")
 
 
-def stats_single_graph(save):
+def pcap_to_sql(save):
+    dump_dirs = glob("./stats/dumps/" + save + "/*")
+    chosen_dir = functions.choose_alphabetic_path(dump_dirs)
+    packetsuite.make_packets_database(chosen_dir)
+
+
+def stats_single_graph(save, download=False):
     dump_dirs = glob("./stats/dumps/" + save + "/*")
     chosen_dir = functions.choose_alphabetic_path(dump_dirs)
     num_nodes = len(glob(chosen_dir + "/*.cap") + glob(chosen_dir + "/*.pcap"))
@@ -952,15 +1008,163 @@ def stats_single_graph(save):
 
     packetsuite.make_packets_database(chosen_dir)
 
+    # Setup to download graphs
+    functions.create_dir("./graphs")
+
+    graph_configs = [
+        ("tx", 0, "tx_each_second"),
+        ("rx", 0, "rx_each_second"),
+        ("tx", 1, "tx_cumulative"),
+        ("rx", 1, "rx_cumulative"),
+        ("tx", 2, "tx_average"),
+        ("rx", 2, "rx_average")
+    ]
+
     init_notebook_mode(connected=True)
     seconds_dict = packetsuite.make_single_dict(node_name, db_path)
-    graphsuite.plot_type_direction(seconds_dict, "tx", bucket_size, False, False, "tx_each_second")
-    graphsuite.plot_type_direction(seconds_dict, "rx", bucket_size, False, False, "rx_each_second")
-    graphsuite.plot_type_direction(seconds_dict, "tx", bucket_size, True, False, "tx_cumulative")
-    graphsuite.plot_type_direction(seconds_dict, "rx", bucket_size, True, False, "rx_cumulative")
-    graphsuite.plot_type_direction(seconds_dict, "tx", bucket_size, False, True, "tx_average")
-    graphsuite.plot_type_direction(seconds_dict, "rx", bucket_size, False, True, "rx_average")
+    for cnfg in graph_configs:
+        graphsuite.plot_type_direction(seconds_dict, cnfg[0], bucket_size, cnfg[1], cnfg[2], download)
 
+    if not download:
+        return
+
+    # Move graphs to ~/GrapeVine/testwebsite/rackpython/graphs
+    sleep(1)
+    graph_folder = "~/GrapeVine/testwebsite/rackpython/graphs/"
+    for cnfg in graph_configs:
+        file_location = "~/Downloads/" + cnfg[2] + ".png"
+        move_location = graph_folder + cnfg[2] + ".png"
+        command = "mv " + file_location + " " + move_location
+        call(command, shell=True)
+
+    # Make pdf from graphs
+    sleep(1)
+    pdf_location = "./graphs/node" + str(node_number) + ".pdf"
+    img_graphs = []
+    for cnfg in graph_configs:
+        img_graphs.append("./graphs/" + cnfg[2] + ".png")
+    pdf_file = open(pdf_location, "wb")
+    print(str(img_graphs))
+    pdf_file.write(img2pdf.convert([i for i in img_graphs]))
+    pdf_file.close()
+
+
+def stats_multiple_graphs(save, download=False):
+    dump_dirs = glob("./stats/dumps/" + save + "/*")
+    chosen_dir = functions.choose_alphabetic_path(dump_dirs)
+    num_nodes = len(glob(chosen_dir + "/*.cap") + glob(chosen_dir + "/*.pcap"))
+    node_list = functions.get_node_list(num_nodes)
+    bucket_size = int(input("Bucket Size? : "))
+    db_path = chosen_dir + "/" + "packets.db"
+
+    packetsuite.make_packets_database(chosen_dir)
+
+    # Setup to download graphs
+    functions.create_dir("./graphs")
+
+    graph_configs = [
+        ("tx", 0, "tx_each_second"),
+        ("rx", 0, "rx_each_second"),
+        ("tx", 1, "tx_cumulative"),
+        ("rx", 1, "rx_cumulative"),
+        ("tx", 2, "tx_average"),
+        ("rx", 2, "rx_average")
+    ]
+
+    init_notebook_mode(connected=True)
+
+    for node_number in node_list:
+        node_name = NODE_PREFIX + str(node_number)
+        seconds_dict = packetsuite.make_single_dict(node_name, db_path)
+        for cnfg in graph_configs:
+            graphsuite.plot_type_direction(seconds_dict, cnfg[0], bucket_size, cnfg[1], cnfg[2], download)
+
+        if not download:
+            return
+
+        # Move graphs to ~/GrapeVine/testwebsite/rackpython/graphs
+        sleep(1)
+        graph_folder = "~/GrapeVine/testwebsite/rackpython/graphs/"
+        for cnfg in graph_configs:
+            file_location = "~/Downloads/" + cnfg[2] + ".png"
+            move_location = graph_folder + cnfg[2] + ".png"
+            command = "mv " + file_location + " " + move_location
+            call(command, shell=True)
+
+        # Make pdf from graphs
+        sleep(1)
+        pdf_location = "./graphs/node" + str(node_number) + ".pdf"
+        img_graphs = []
+        for cnfg in graph_configs:
+            img_graphs.append("./graphs/" + cnfg[2] + ".png")
+        pdf_file = open(pdf_location, "wb")
+        print(str(img_graphs))
+        pdf_file.write(img2pdf.convert([i for i in img_graphs]))
+        pdf_file.close()
+
+
+def stats_type_comparison(save, download=False):
+    dump_dirs = glob("./stats/dumps/" + save + "/*")
+    dump_dirs.sort()
+    chosen_dirs = []
+    trace_names_dict = {}
+
+    num = str(len(dump_dirs) - 1)
+    user_input = input("Choose path (alphabetic a-z 0-" + num + ") : ")
+    while user_input != "":
+        index = int(user_input)
+        if 0 < index < len(dump_dirs):
+            chosen_path = sub(r"[\\]", '', dump_dirs[index])
+        if chosen_path not in chosen_dirs:
+            chosen_dirs.append(chosen_path)
+            trace_name = input("Give this path a trace_name : ")
+            trace_names_dict[chosen_path] = trace_name
+        user_input = input("Choose path (alphabetic a-z 0-" + num + ") (blank to end) : ")
+
+    num_nodes = len(glob(chosen_dirs[0] + "/*.cap") + glob(chosen_dirs[0] + "/*.pcap"))
+    node_number = input("Graph for which node id (1-" + str(num_nodes) + "): ")
+    bucket_size = int(input("Bucket Size? : "))
+    db_paths = [chosen_dir + "/packets.db" for chosen_dir in chosen_dirs]
+    trace_names_dict = {chosen_dir + "/packets.db": trace_name for chosen_dir, trace_name in
+                        trace_names_dict.items()}
+    node_name = NODE_PREFIX + node_number
+
+    for chosen_dir in chosen_dirs:
+        packetsuite.make_packets_database(chosen_dir)
+
+    # Setup to download graphs
+    functions.create_dir("./graphs")
+
+    graph_configs = [
+        ("tx", 0, "tx_each_second"),
+        ("rx", 0, "rx_each_second"),
+        ("tx", 1, "tx_cumulative"),
+        ("rx", 1, "rx_cumulative"),
+        ("tx", 2, "tx_average"),
+        ("rx", 2, "rx_average")
+    ]
+
+    init_notebook_mode(connected=True)
+
+    traces = {}
+    for packet_type in constants.PACKET_TYPES:
+        traces[packet_type] = {}
+        for cnfg in graph_configs:
+            traces[packet_type][cnfg[2]] = {}
+
+    color_index = -1
+    for db_path in db_paths:
+        color_index += 1
+        color_index = color_index % len(constants.GRAPH_COLORS)
+        graph_color = constants.GRAPH_COLORS[color_index]
+        seconds_dict = packetsuite.make_single_dict(node_name, db_path)
+        for packet_type in constants.PACKET_TYPES:
+            for cnfg in graph_configs:
+                traces[packet_type][cnfg[2]][db_path] = \
+                    graphsuite.make_type_trace(seconds_dict, cnfg[0], packet_type, node_name,
+                                               bucket_size, cnfg[1], graph_color, trace_names_dict[
+                                                   db_path])
+    graphsuite.plot_type_comparison(traces, graph_configs)
 
 def stats_packet_node(save):
     pcap_path = functions.get_single_node_pcap(save, NODE_PREFIX)

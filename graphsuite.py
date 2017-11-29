@@ -103,13 +103,14 @@ def plot_basic_combined_direction(combined_dict, direction, plot_average, plot_c
     plotly.offline.iplot(figure)
 
 
-def plot_type_direction(buckets_dict, direction, bucket_size, is_cumulative, is_average,
-                        graph_title):
+def plot_type_direction(buckets_dict, direction, bucket_size, graph_type, graph_title,
+                                                                        download=False):
     """Graph packets sent by type each second.
 
     :param buckets_dict: buckets_dict[direction][packet_type][node][second] = bytes_sent
     :param direction: "sent" or "received"
     :param bucket_size: size of bucket
+    :param graph_type: 0 = each_second, 1 = cumulative, 2 = average
     :param is_cumulative: Graph cumulative packets sent or not
     :param is_average: Graph average if not cumulative
     :param graph_title: Title of graph
@@ -126,11 +127,11 @@ def plot_type_direction(buckets_dict, direction, bucket_size, is_cumulative, is_
                 sum_packets += packets_dict[packet_type][node_name][second]
                 if int(second) % bucket_size == 0:
                     x.append(int(second) / bucket_size)
-                    if(is_cumulative):
+                    if graph_type == 1:
                         y.append(sum_packets)
-                    elif(is_average):
+                    elif graph_type == 2:
                         y.append(sum_packets / ((int(second) / bucket_size) + 1))
-                    else:
+                    elif graph_type == 0:
                         y.append(packets_dict[packet_type][node_name][second])
             traces[packet_type][node_name] = make_trace(x, y, "line", node_name + "_" +
                                                         packet_type, line_color=PACKET_COLORS[packet_type])
@@ -148,7 +149,10 @@ def plot_type_direction(buckets_dict, direction, bucket_size, is_cumulative, is_
         for packet_type in packets_dict.keys():
             figure.append_trace(traces[packet_type][ordered_nodes[index]], row_num, col_num)
     figure['layout'].update(height=600*num_rows, width=1000, title=graph_title)
-    plotly.offline.iplot(figure)
+    if download:
+        plotly.offline.iplot(figure, image="png", filename=graph_title)
+    else:
+        plotly.offline.iplot(figure)
 
 
 def make_figure_same_graph(figure, row, col, traces_dict):
@@ -213,3 +217,51 @@ def make_45_combined_trace(combined_dict, direction, plot_cumulative, trace_titl
                 else:
                     y.append(sum_packets)
     return make_trace(x, y, "lines", trace_title, line_color=color)
+
+def make_type_trace(seconds_dict, direction, packet_type, node_name, bucket_size, graph_type,
+                    color, trace_name, download=False):
+    """
+    Make a trace for packets sent in a direction of a certain type
+
+    :param seconds_dict:  seconds_dict[direction][packet_type][node][second] = bytes
+    :param direction: "tx" or "rx"
+    :param bucket_size: size of bucket
+    :param graph_type: 0 = each_second, 1 = cumulative, 2 = average
+    :param trace_name: label of trace in graph legend
+    :return:
+    """
+
+    packet_type_dict = seconds_dict[direction][packet_type][node_name]
+
+    x = []
+    y = []
+    sum_packets = 0
+    for second in sorted(packet_type_dict.keys(), key=int):
+        sum_packets += packet_type_dict[second]
+        if int(second) % bucket_size == 0:
+            x.append(int(second) / bucket_size)
+            if graph_type == 0:
+                y.append(packet_type_dict[second])
+            elif graph_type == 1:
+                y.append(sum_packets)
+            elif graph_type == 2:
+                y.append(sum_packets / ((int(second) / bucket_size) + 1))
+    trace = make_trace(x, y, "line", trace_name, line_color=color)
+    return trace
+
+def plot_type_comparison(trace_dict, graph_configs):
+    for packet_type in trace_dict.keys():
+        for cnfg in graph_configs:
+            graph_type = cnfg[2]
+            traces = []
+            for db_path in trace_dict[packet_type][graph_type].keys():
+                traces.append(trace_dict[packet_type][graph_type][db_path])
+            layout = dict(
+                title=packet_type + "-" + graph_type,
+                xaxis=dict(title="Time (Seconds)"),
+                yaxis=dict(title="Bytes"),
+                height=600,
+                width=1000
+            )
+            figure = dict(data=traces, layout=layout)
+            plotly.offline.iplot(figure)

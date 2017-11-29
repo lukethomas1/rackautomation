@@ -2,12 +2,13 @@
 DEFAULT_PLATFORM = "rack"
 NODE_PREFIX = "node="
 
-SAVE_FILE = "john8node"
+
+SAVE_FILE = "12flat"
 JUPYTER_SAVE_FILE = "threenodes"
 PCAP_SAVE_FILE = "threenodes"
 
-IMAGE_NAME = "10kbpsverified"
-#IMAGE_NAME = "10KbpsPCR"
+IMAGE_NAME = "v443"
+
 
 # User input variable
 PI_USERNAME = "pi"
@@ -35,6 +36,8 @@ IP_BLACK_LIST = [
     "192.168.3",
     "127.0.0"
 ]
+
+SUBNET_GROUP = "11.0."
 
 ##### AUTOMATIC TESTING #####
 
