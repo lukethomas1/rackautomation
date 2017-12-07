@@ -25,6 +25,7 @@ from pyrebase import initialize_app
 
 # Local Imports
 import config
+from constants import EMANE_FREQS
 
 SUCCESS = '\033[92m'
 FAIL = '\033[91m'
@@ -418,7 +419,9 @@ def get_nem_config(nem_template, subnet, node, device_num):
         subaddr = config.SUBNET_GROUP + str(subnet['number'])
     node_num = str(node['number'])
     mask = "255.255.255.0"
-    freq = ".4G"
+    subnet_num = subnet["number"]
+    print("Subnet " + str(subnet_num) + " is using frequency " + EMANE_FREQS[subnet_num])
+    freq = EMANE_FREQS[subnet_num] + "G"
     return fill_nem_template(nem_template, nemid, device_name, subaddr, node_num, mask, freq)
 
 

@@ -1,6 +1,6 @@
 {
    "ExcludeInterfaces" : [ "lo", "eth0", "lxcbr0" ],
-   "InterfaceModes" : { "emane1":"Multicast", "emane2":"Multicast", "emane3":"Multicast" }, 
+   "InterfaceModes" : { "emane1":"Broadcast", "emane2":"Broadcast", "emane3":"Broadcast" }, 
    "FragmentSize" : 500000,
    "TargetTxRateBps" : 25000,
    "PrintLogs" : "yes",
