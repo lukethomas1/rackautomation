@@ -717,7 +717,18 @@ def norm_message(iplist):
     message_name = input("Choose message file name: ")
     file_size = input("Choose file size (kilobytes): ")
     testsuite.send_norm_message(iplist[0], message_name, file_size)
-    
+
+
+def message(node_objects):
+    message_name = input("Choose message file name: ")
+    file_size = input("Choose file size (kilobytes): ")
+    send_num = int(input("Node number to send from? : "))
+    if 0 < send_num <= len(node_objects):
+        node_objects[send_num - 1].make_test_file(message_name, file_size)
+        node_objects[send_num - 1].send_gvine_file(message_name)
+    else:
+        print("failed to send message, node number outside valid range")
+
 
 def test_message(node_objects):
     message_name = input("Choose message file name: ")
