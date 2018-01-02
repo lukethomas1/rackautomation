@@ -419,9 +419,9 @@ def get_nem_config(nem_template, subnet, node, device_num):
         subaddr = config.SUBNET_GROUP + str(subnet['number'])
     node_num = str(node['number'])
     mask = "255.255.255.0"
-    subnet_num = subnet["number"]
-    print("Subnet " + str(subnet_num) + " is using frequency " + EMANE_FREQS[subnet_num])
-    freq = EMANE_FREQS[subnet_num] + "G"
+    subnet_index = subnet["number"] - 1
+    print("Subnet " + str(subnet_index) + " is using frequency " + EMANE_FREQS[subnet_index])
+    freq = EMANE_FREQS[subnet_index] + "G"
     return fill_nem_template(nem_template, nemid, device_name, subaddr, node_num, mask, freq)
 
 
