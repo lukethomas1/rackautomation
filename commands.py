@@ -23,7 +23,7 @@ from re import sub
 from plotly.offline import init_notebook_mode
 from pickle import load, dump
 import plotly
-import img2pdf
+#import img2pdf
 
 # Local Imports
 import functions
@@ -130,7 +130,12 @@ def assign_nodes(subnets, nodes):
 
     index = 0
     added_nodes = 0
+    count =0
     while added_nodes < len(nodes):
+        if count >= 10:
+            count += 1
+            print(count)
+            break;
         node_name = NODE_PREFIX + str(index + 1)
         member_subnets = [subnets.index(subnet) + 1 for subnet in subnets if index + 1 in subnet[
             'memberids']]
@@ -155,6 +160,52 @@ def assign_nodes(subnets, nodes):
         index += 1
     return node_objects
 
+def get_nodes(subnets, nodes):
+    platform = input("Input Platform : ")
+    node_objects = []
+
+    # Get the list of ips
+    if platform == "rack":
+        status_list = functions.get_rack_status_list()
+        active_node_list = [pair[0] for pair in status_list if pair[1] == "ACTIVE"]
+        functions.set_topology(SAVE_FILE, NODE_PREFIX)
+        configuration = functions.load_data()
+        ips = configuration['iplist']
+    elif platform == "pi":
+        ips = PI_IP_LIST
+
+    index = 0
+    added_nodes = 0
+   # sampleNodes = [1, 5, 15, 16, 34]
+    count = 0
+    while added_nodes in len(nodes):
+        if count >= 10:
+            count += 1
+            break;
+        node_name = NODE_PREFIX + str(index + 1)
+        member_subnets = [subnets.index(subnet) + 1 for subnet in subnets if index + 1 in subnet[
+            'memberids']]
+        if platform == "rack" and node_name in active_node_list:
+            this_node = RackNode(node_name, "emane-01", index + 1, ips[index],
+                                 platform, "/home/emane-01/gvinetest/", member_subnets, "emane",
+                                 "/home/emane-01/emane/topologies/")
+            print("Adding rackspace node: " + node_name)
+            node_objects.append(this_node)
+            added_nodes += 1
+        else:
+            print(node_name + " is not active")
+
+        if platform == "pi":
+            this_node = PiNode(node_name, "pi", index + 1, ips[index], platform,
+                               "/home/pi/test/", member_subnets, "wlan")
+            node_objects.append(this_node)
+            added_nodes += 1
+        elif platform != "rack" and platform != "pi":
+            print("Unknown platform: " + platform + ", exiting")
+            exit(-1)
+        index += 1
+
+    return node_objects
 
 def make_iplist(num_nodes, iplist):
     functions.generate_iplist(num_nodes, NODE_PREFIX)
@@ -356,6 +407,7 @@ def remove_error_rate(subnets, nodes, iplist):
 def start(save_file, node_objects):
     threads = []
     for node in node_objects:
+        sleep(5)
         new_thread = threading.Thread(target=node.start, args=(JAR_FILE, save_file,))
         threads.append(new_thread)
         new_thread.start()
@@ -656,6 +708,15 @@ def norm_delay(iplist):
         if index != sender_node - 1:
             print(NODE_PREFIX + str(index + 1) + ": " + str(int(norm_delays[index]) - sender_time))
 
+
+def message(node_objects):
+    message_name = input("Choose message file name: ")
+    file_size = input("Choose file size (kilobytes): ")
+    send_num = input("Node number to send from? : ")
+    node_objects[int(send_num)-1].make_test_file(message_name, file_size)
+    node_objects[int(send_num)-1].send_gvine_file(message_name)
+   # testsuite.send_gvine_message(iplist[node_num - 1], message_name, file_size, send_num, "")
+    testsuite.wait_for_message_received(message_name, node_objects, 1, 9999)
 
 def message_gvine_unicast(iplist):
     message_name = input("Choose message file name: ")
