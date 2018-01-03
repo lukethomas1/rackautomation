@@ -33,9 +33,17 @@ while(loop):
 
     arg = input("Command: ")
 
+    ##### REFACTOR COMMANDS #####
+    if(arg == "startre"):
+        commands.start_refactor(save, node_objects)
+    elif(arg == "testre"):
+        commands.test_refactor_message(node_objects)
+    elif(arg == "refactorapi"):
+        commands.refactor_api_command(node_objects)
+
     ##### SETUP COMMANDS #####
 
-    if(arg == "assign"):
+    elif(arg == "assign"):
         node_objects = commands.assign_nodes(subnets, nodes)
         functions.update_pickle(".data.nodes", "nodes", node_objects)
     elif(arg == "unassign"):

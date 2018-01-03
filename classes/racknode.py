@@ -27,6 +27,12 @@ class RackNode(Node):
         self.start_tcpdump()
         super().start(jar_name)
 
+    def start_refactor(self, jar_name, save=None):
+        self.remote_emane(save, "emane_start.sh")
+        self.start_tcpdump()
+        config = "good.json"
+        super().remote_start_refactor(jar_name, config)
+
     def start_partial(self, jar_name, save=None):
         self.remote_emane(save, "emane_start.sh")
         super().remote_start_gvine(jar_name)

@@ -75,6 +75,11 @@ class Node:
                   + " 500 >> log_node" + str(self.id) + ".txt &"
         functions.remote_execute(command, self.ip, self.user_name)
 
+    def remote_start_refactor(self, jar_name, config_name):
+        command = "cd " + self.gvine_path + " && java -jar " + jar_name + " node" + str(self.id) \
+                  + " " + config_name + " &> log_node" + str(self.id) + ".txt &"
+        functions.remote_execute(command, self.ip, self.user_name)
+
     ##### GRAPEVINE GVPKI CERTS #####
 
     def generate_cert(self):
@@ -169,6 +174,14 @@ class Node:
         functions.remote_execute(command, self.ip, self.user_name)
         print("Message sent.\n")
 
+    def send_refactor_file(self, msg_name, channel, port=22124):
+        print("Sending message on GrapeVine from " + self.name)
+        command = "cd " + self.gvine_path
+        command += " && java -jar GvineApiClient.jar -p " + str(port) + " sendfile " + channel + \
+                   " " + msg_name
+        functions.remote_execute(command, self.ip, self.user_name)
+        print("Message sent.\n")
+
     def check_msg_received(self, file_name):
         command = "ls " + self.gvine_path + "data/" + file_name
         exit_status = functions.remote_execute(command, self.ip, self.user_name)
@@ -186,9 +199,21 @@ class Node:
     def stop_gvine(self):
         jar_name = "gvapp.jar"
         command = "java -jar " + jar_name + " stop " + str(self.id)
-        print(command)
         functions.remote_execute(command, self.ip, self.user_name)
         functions.remote_execute("sudo pkill java", self.ip, self.user_name)
+
+    def refactor_api_command(self, api_command, client_jar, port=22124):
+        command = "cd " + self.gvine_path + " && java -jar " + client_jar + " -p " + str(port) + \
+                  " " + api_command
+        exit_status = functions.remote_execute(command, self.ip, self.user_name)
+        if (exit_status == 150):
+            print(self.name + " " + api_command + ", False")
+        elif (exit_status == 151):
+            print(self.name + " " + api_command + ", True")
+        elif (exit_status == 152):
+            print(self.name + " " + api_command + ", Invalid Command")
+        else:
+            print("Exit status: " + str(exit_status))
 
     ##### LOGGABLE EVENTS #####
 

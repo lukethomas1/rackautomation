@@ -53,6 +53,8 @@ PI_IP_FILE = config.PI_IP_FILE
 PI_IP_LIST = config.PI_IP_LIST
 IP_BLACK_LIST = config.IP_BLACK_LIST
 JAR_FILE = config.JAR_FILE
+REFACTOR_JAR = config.REFACTOR_JAR
+REFACTOR_API_JAR = config.REFACTOR_API_JAR
 RACK_KEY = config.RACK_KEY
 
 NUM_INDICES = config.NUM_INDICES
@@ -355,6 +357,17 @@ def start(save_file, node_objects):
     threads = []
     for node in node_objects:
         new_thread = threading.Thread(target=node.start, args=(JAR_FILE, save_file,))
+        threads.append(new_thread)
+        new_thread.start()
+    for t in threads:
+        t.join()
+    print("Done.")
+
+
+def start_refactor(save_file, node_objects):
+    threads = []
+    for node in node_objects:
+        new_thread = threading.Thread(target=node.start_refactor, args=(REFACTOR_JAR, save_file,))
         threads.append(new_thread)
         new_thread.start()
     for t in threads:
@@ -675,6 +688,36 @@ def test_message(node_objects):
     node_objects[0].make_test_file(message_name, file_size)
     node_objects[0].send_gvine_file(message_name)
     testsuite.wait_for_message_received(message_name, node_objects, 1, 9999)
+
+
+def test_refactor_message(node_objects):
+    message_name = input("Choose message file name: ")
+    file_size = input("Choose file size (kilobytes): ")
+    channel = input("Choose channel for file: ")
+    node_objects[0].make_test_file(message_name, file_size)
+    node_objects[0].send_refactor_file(message_name, channel)
+
+def refactor_api_command(node_objects):
+    all_nodes = input("Execute this command on all nodes (1) or not all (2): ")
+    if (all_nodes == "1"):
+        command_nodes = range(1, len(node_objects) + 1)
+    elif (all_nodes == "2"):
+        command_nodes = functions.get_node_list(len(node_objects))
+    else:
+        print("Invalid option, exiting")
+        return
+
+    command = input("Input command: ")
+
+    threads = []
+    for node_index in command_nodes:
+        node = node_objects[node_index - 1]
+        new_thread = threading.Thread(target=node.refactor_api_command, args=(command,
+                                                                              REFACTOR_API_JAR,))
+        threads.append(new_thread)
+        new_thread.start()
+    for thread in threads:
+        thread.join()
 
 
 def test_multiple_messages(node_objects):

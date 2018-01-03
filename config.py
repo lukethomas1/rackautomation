@@ -2,7 +2,7 @@
 DEFAULT_PLATFORM = "rack"
 NODE_PREFIX = "node"
 
-SAVE_FILE = "8flat"
+SAVE_FILE = "6flat"
 JUPYTER_SAVE_FILE = "threenodes"
 PCAP_SAVE_FILE = "threenodes"
 
@@ -18,6 +18,8 @@ REMOTE_EMANE_DIR = "~/GrapeVine/topologies/" + SAVE_FILE + "/"
 RACK_KEY = "mykey"
 
 JAR_FILE = "gvine-fast.jar"
+REFACTOR_JAR = "c2net.jar"
+REFACTOR_API_JAR = "GvineApiClient.jar"
 
 # Where to find the ip file for all the rackspace nodes
 RACK_IP_FILE = "./iplists/" + NODE_PREFIX + "hosts"
