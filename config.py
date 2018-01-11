@@ -1,12 +1,12 @@
 # Used for rackspace node naming and some other naming, will break things if changed
 DEFAULT_PLATFORM = "rack"
-NODE_PREFIX = "node="
+NODE_PREFIX = "node"
 
-SAVE_FILE = "6flat"
+SAVE_FILE = "8flat"
 JUPYTER_SAVE_FILE = "threenodes"
 PCAP_SAVE_FILE = "threenodes"
 
-IMAGE_NAME = "v443"
+IMAGE_NAME = "refactorsleep"
 
 
 # User input variable

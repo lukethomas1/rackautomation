@@ -120,8 +120,10 @@ def assign_subnet_addresses(subnets, blacklist):
     taken_addresses = []
     for subnet in subnets:
         subaddr = subnet['addr']
+        # If the subnet has an assigned address that isn't taken and not on the blacklist, use it
         if(subaddr and subaddr not in taken_addresses and subaddr not in blacklist):
             taken_addresses.append(subaddr)
+        # Otherwise, assign the next sequential address to the subnet
         else:
             counter = subnet['number']
             while(not subaddr or subaddr in taken_addresses or subaddr in blacklist):
@@ -129,6 +131,13 @@ def assign_subnet_addresses(subnets, blacklist):
                 counter += 1
             subnet['addr'] = subaddr
             taken_addresses.append(subaddr)
+
+
+def assign_subnet_numbers(subnets):
+    index = 0
+    for subnet in subnets:
+        index += 1
+        subnet["number"] = index
 
 
 def choose_timestamp_path(paths, index=-1):
@@ -645,12 +654,10 @@ def write_emane_start_stop_scripts(save_folder, num_instances):
 # Write platform.xml for each node, lots of configuration logic involved
 def write_platform_xmls(subnets, nodes, topo_path, blacklist):
     # Read templates
-    platform_template_file = open("./templates/platform_template.xml", 'r')
-    platform_template = platform_template_file.read()
-    platform_template_file.close()
-    nem_template_file = open("./templates/nem_template.xml", 'r')
-    nem_template = nem_template_file.read()
-    nem_template_file.close()
+    with open("./templates/platform_template.xml", "r") as platform_template_file:
+        platform_template = platform_template_file.read()
+    with open("./templates/nem_template.xml", "r") as nem_template_file:
+        nem_template = nem_template_file.read()
 
     assign_subnet_addresses(subnets, blacklist)
 
@@ -1154,4 +1161,23 @@ def get_node_list(num_nodes):
     except KeyboardInterrupt:
         pass
     return node_list
+
+
+##### IPTABLES #####
+
+
+def print_subnet_indices(subnets):
+    index = 0
+    for subnet in subnets:
+        print(str(index) + ": " + subnet["name"])
+        index += 1
+
+
+def get_block_subnet_input_command(subnets, node_index):
+    command = "sudo iptables -I INPUT -i {} -j DROP"
+
+
+def get_block_subnet_output_command(subnets, node_index):
+    command = "sudo iptables -I OUTPUT -o {} -j DROP"
+
 

@@ -23,7 +23,7 @@ from re import sub
 from plotly.offline import init_notebook_mode
 from pickle import load, dump
 import plotly
-#import img2pdf
+import img2pdf
 
 # Local Imports
 import functions
@@ -130,15 +130,9 @@ def assign_nodes(subnets, nodes):
 
     index = 0
     added_nodes = 0
-    count =0
-    while added_nodes < len(nodes):
-        if count >= 10:
-            count += 1
-            print(count)
-            break;
+    while added_nodes < len(nodes) and index < 10000:
         node_name = NODE_PREFIX + str(index + 1)
-        member_subnets = [subnets.index(subnet) + 1 for subnet in subnets if index + 1 in subnet[
-            'memberids']]
+        member_subnets = [subnet for subnet in subnets if index + 1 in subnet['memberids']]
         if platform == "rack" and node_name in active_node_list:
             this_node = RackNode(node_name, "emane-01", index + 1, ip_dict[node_name],
                                  platform, "/home/emane-01/gvinetest/", member_subnets, "emane",

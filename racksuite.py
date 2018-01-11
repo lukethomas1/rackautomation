@@ -12,6 +12,7 @@ import functions
 import testsuite
 import packetsuite
 import config
+import scenarios
 
 PI_IP_LIST = config.PI_IP_LIST
 PLATFORM = config.DEFAULT_PLATFORM
@@ -40,8 +41,10 @@ while(loop):
         commands.start_refactor(save, node_objects)
     elif(arg == "testre"):
         commands.test_refactor_message(node_objects)
-    elif(arg == "refactorapi"):
+    elif(arg == "reapi"):
         commands.refactor_api_command(node_objects)
+    elif(arg == "half_dtn"):
+        scenarios.half_flat_dtn_block(node_objects)
 
     ##### SETUP COMMANDS #####
 

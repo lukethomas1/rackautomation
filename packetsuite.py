@@ -107,7 +107,7 @@ def make_packets_database(dump_dir):
             #     senderid = "'" + get_sender_name(sender_ip, ipmap) + "'"
             receiverid = "'" + node_name + "'" if not is_sender else "NULL"
             packettype = packet.load[3]
-            if packettype < 1 or packettype > len(PACKET_TYPES):
+            if packettype < 0 or packettype > len(PACKET_TYPES) + 5:
                 continue  # not a correct packet
             bytesize = len(packet)
             timestamp = int(packet.time)
@@ -382,7 +382,7 @@ def make_single_dict(node_name, db_path):
     for row in table_data:
         senderid = row[0]
         receiverid = row[1]
-        packet_type = PACKET_TYPES[row[2] - 1]
+        packet_type = PACKET_TYPES[row[2]]
         bytesize = row[3]
         timestamp = row[4]
 

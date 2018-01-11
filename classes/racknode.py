@@ -136,13 +136,49 @@ class RackNode(Node):
         )
         Popen(['scp', '-r', from_dir, dest_dir])
 
+    ##### IPTABLES #####
 
+    def get_interface_name(self, subnet_name):
+        index = 0
+        for subnet in self.member_subnets:
+            index += 1
+            if (subnet["name"] == subnet_name):
+                return "emane" + str(index)
 
+    def get_block_subnet_command(self, subnet_name, block_input):
+        interface_name = self.get_interface_name(subnet_name)
+        if interface_name is None:
+            print("Failed to find subnet with name: " + subnet_name)
+            return
+        if block_input:
+            command = "sudo iptables -I INPUT -i {} -j DROP".format(interface_name)
+        else:
+            command = "sudo iptables -I OUTPUT -o {} -j DROP".format(interface_name)
+        return command
 
+    # Important note: we can't block output to this node because GrapeVine sends multicast,
+    # therefore must block input on both nodes
+    def get_block_node_input_commands(self, other_node_object):
+        commands = []
+        for subnet in self.member_subnets:
+            for other_subnet in other_node_object.member_subnets:
+                if subnet["number"] == other_subnet["number"]:
+                        interface_name = self.get_interface_name(subnet["name"])
+                        node_ip = subnet["addr"] + str(other_node_object.id)
+                        command = "sudo iptables -I INPUT -i {} -s {} -j DROP".format(interface_name, node_ip)
+                        commands.append(command)
+        return commands
 
+    def block_node(self, other_node_object):
+        commands = self.get_block_node_input_commands(other_node_object)
+        for command in commands:
+            print(self.name + ": " + command)
+            functions.remote_execute(command, self.ip, self.user_name)
 
-
-
-
-
-
+    def block_subnet(self, subnet_name):
+        input_command = self.get_block_subnet_command(subnet_name, True)
+        output_command = self.get_block_subnet_command(subnet_name, False)
+        print(self.name + ": " + input_command)
+        print(self.name + ": " + output_command)
+        functions.remote_execute(input_command, self.ip, self.user_name)
+        functions.remote_execute(output_command, self.ip, self.user_name)

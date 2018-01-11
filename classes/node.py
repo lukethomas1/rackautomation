@@ -256,7 +256,7 @@ class Node:
             iface = self.iface_prefix + str(index)
             iface_ip = self.get_iface_ip(iface)
             if iface_ip == "" or iface_ip is None:
-                number = self.member_subnets[index - 1]
+                number = self.member_subnets[index - 1]["number"]
                 ip_guess = "11.0." + str(number) + "." + str(self.id)
                 ipmap[ip_guess] = self.id
             else:
