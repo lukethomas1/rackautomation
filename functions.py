@@ -1146,6 +1146,20 @@ def get_single_node_pcap(save, prefix):
     return pcap_paths[0]
 
 
+def get_num_pcap_nodes(pcap_path):
+    largest_index = -1
+    files = glob(pcap_path + "/*")
+    for file_name in files:
+        file_name_offset = len(pcap_path)
+        file_name = file_name[file_name_offset:]
+        if "node" in file_name:
+            underscore_index = file_name.index("_")
+            offset = 5
+            node_index = int(file_name[offset:underscore_index])
+            if node_index > largest_index:
+                largest_index = node_index
+    return largest_index
+
 def get_node_list(num_nodes):
     node_list = []
     try:

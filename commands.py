@@ -117,6 +117,8 @@ def wait_for_nodes_init(num_nodes):
 def assign_nodes(subnets, nodes):
     platform = input("Input Platform : ")
     node_objects = []
+    functions.assign_subnet_addresses(subnets, IP_BLACK_LIST)
+    functions.assign_subnet_numbers(subnets)
 
     # Get the list of ips
     if platform == "rack":
@@ -130,7 +132,7 @@ def assign_nodes(subnets, nodes):
 
     index = 0
     added_nodes = 0
-    while added_nodes < len(nodes) and index < 10000:
+    while added_nodes < len(nodes) and index < 300:
         node_name = NODE_PREFIX + str(index + 1)
         member_subnets = [subnet for subnet in subnets if index + 1 in subnet['memberids']]
         if platform == "rack" and node_name in active_node_list:
@@ -396,12 +398,22 @@ def remove_error_rate(subnets, nodes, iplist):
             functions.remote_remove_error_rate(ip, error_rate, template)
 
 
+def reset_iptables(node_objects):
+    threads = []
+    for node in node_objects:
+        new_thread = threading.Thread(target=node.reset_iptables, args=())
+        threads.append(new_thread)
+        new_thread.start()
+    for t in threads:
+        t.join()
+    print("Done.")
+
+
 # Synchronizes rackspace nodes (not sure what it does, soroush had it),
 # then runs emane_start.sh on each rackspace node in the topology
 def start(save_file, node_objects):
     threads = []
     for node in node_objects:
-        sleep(5)
         new_thread = threading.Thread(target=node.start, args=(JAR_FILE, save_file,))
         threads.append(new_thread)
         new_thread.start()
@@ -1075,7 +1087,7 @@ def pcap_to_sql(save):
     packetsuite.make_packets_database(chosen_dir)
 
 
-def stats_single_graph(save, download=False):
+def stats_single_graph(save, download=False, refactor=False):
     dump_dirs = glob("./stats/dumps/" + save + "/*")
     chosen_dir = functions.choose_alphabetic_path(dump_dirs)
     num_nodes = len(glob(chosen_dir + "/*.cap") + glob(chosen_dir + "/*.pcap"))
@@ -1099,7 +1111,7 @@ def stats_single_graph(save, download=False):
     ]
 
     init_notebook_mode(connected=True)
-    seconds_dict = packetsuite.make_single_dict(node_name, db_path)
+    seconds_dict = packetsuite.make_single_dict(node_name, db_path, refactor)
     for cnfg in graph_configs:
         graphsuite.plot_type_direction(seconds_dict, cnfg[0], bucket_size, cnfg[1], cnfg[2], download)
 
@@ -1107,7 +1119,7 @@ def stats_single_graph(save, download=False):
         return
 
     # Move graphs to ~/GrapeVine/testwebsite/rackpython/graphs
-    sleep(1)
+    sleep(2)
     graph_folder = "~/GrapeVine/testwebsite/rackpython/graphs/"
     for cnfg in graph_configs:
         file_location = "~/Downloads/" + cnfg[2] + ".png"
@@ -1116,7 +1128,7 @@ def stats_single_graph(save, download=False):
         call(command, shell=True)
 
     # Make pdf from graphs
-    sleep(1)
+    sleep(2)
     pdf_location = "./graphs/node" + str(node_number) + ".pdf"
     img_graphs = []
     for cnfg in graph_configs:
@@ -1127,10 +1139,11 @@ def stats_single_graph(save, download=False):
     pdf_file.close()
 
 
-def stats_multiple_graphs(save, download=False):
+def stats_multiple_graphs(save, download=False, refactor=False):
     dump_dirs = glob("./stats/dumps/" + save + "/*")
     chosen_dir = functions.choose_alphabetic_path(dump_dirs)
     num_nodes = len(glob(chosen_dir + "/*.cap") + glob(chosen_dir + "/*.pcap"))
+    num_nodes = functions.get_num_pcap_nodes(chosen_dir)
     node_list = functions.get_node_list(num_nodes)
     bucket_size = int(input("Bucket Size? : "))
     db_path = chosen_dir + "/" + "packets.db"
@@ -1153,7 +1166,7 @@ def stats_multiple_graphs(save, download=False):
 
     for node_number in node_list:
         node_name = NODE_PREFIX + str(node_number)
-        seconds_dict = packetsuite.make_single_dict(node_name, db_path)
+        seconds_dict = packetsuite.make_single_dict(node_name, db_path, refactor)
         for cnfg in graph_configs:
             graphsuite.plot_type_direction(seconds_dict, cnfg[0], bucket_size, cnfg[1], cnfg[2], download)
 
@@ -1161,7 +1174,7 @@ def stats_multiple_graphs(save, download=False):
             return
 
         # Move graphs to ~/GrapeVine/testwebsite/rackpython/graphs
-        sleep(1)
+        sleep(2)
         graph_folder = "~/GrapeVine/testwebsite/rackpython/graphs/"
         for cnfg in graph_configs:
             file_location = "~/Downloads/" + cnfg[2] + ".png"
@@ -1170,7 +1183,7 @@ def stats_multiple_graphs(save, download=False):
             call(command, shell=True)
 
         # Make pdf from graphs
-        sleep(1)
+        sleep(2)
         pdf_location = "./graphs/node" + str(node_number) + ".pdf"
         img_graphs = []
         for cnfg in graph_configs:

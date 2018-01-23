@@ -45,6 +45,10 @@ while(loop):
         commands.refactor_api_command(node_objects)
     elif(arg == "half_dtn"):
         scenarios.half_flat_dtn_block(node_objects)
+    elif(arg == "block"):
+        scenarios.block_nodes(node_objects)
+    elif(arg == "reset_iptables"):
+        commands.reset_iptables(node_objects)
 
     ##### SETUP COMMANDS #####
 
@@ -168,8 +172,6 @@ while(loop):
     elif(arg == "stats_events"):
         commands.stats_events(save, node_objects)
     elif(arg == "stats_tcpdump"):
-        node_objects = commands.assign_nodes(subnets, nodes)
-        #node_objects = commands.get_nodes(subnets, nodes)
         commands.stats_tcpdump(node_objects)
     elif arg == "pull_logs":
         commands.pull_logfiles(node_objects)

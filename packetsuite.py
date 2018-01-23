@@ -33,6 +33,7 @@ PACKET_GVINE = 2
 PACKET_HANDSHAKE = 3
 PACKET_BABEL = 4
 PACKET_TYPES = constants.PACKET_TYPES
+REFACTOR_PACKET_TYPES = constants.REFACTOR_PACKET_TYPES
 derpderpderp = False
 
 ##### TCPDUMP ANALYSIS #####
@@ -369,7 +370,7 @@ def make_type_packets_dict(chosen_dir=None):
     return seconds_dict
 
 
-def make_single_dict(node_name, db_path):
+def make_single_dict(node_name, db_path, refactor=False):
     conn = connect(db_path)
     query = "SELECT * from packets where senderid='" + node_name + \
             "' or receiverid='" + node_name + "';"
@@ -378,11 +379,14 @@ def make_single_dict(node_name, db_path):
     earliest_time = conn.execute("select min(timestamp) from packets;").fetchall()[0][0]
     latest_time = conn.execute("select max(timestamp) from packets;").fetchall()[0][0]
 
-    seconds_dict = make_bucket_template([node_name], earliest_time, latest_time)
+    seconds_dict = make_bucket_template([node_name], earliest_time, latest_time, refactor)
     for row in table_data:
         senderid = row[0]
         receiverid = row[1]
-        packet_type = PACKET_TYPES[row[2]]
+        if not refactor:
+            packet_type = PACKET_TYPES[row[2] - 1]
+        else:
+            packet_type = REFACTOR_PACKET_TYPES[row[2]]
         bytesize = row[3]
         timestamp = row[4]
 
@@ -392,12 +396,15 @@ def make_single_dict(node_name, db_path):
     return seconds_dict
 
 
-
-def make_bucket_template(node_names, earliest_time, latest_time):
+def make_bucket_template(node_names, earliest_time, latest_time, refactor=False):
+    if refactor:
+        type_list = REFACTOR_PACKET_TYPES
+    else:
+        type_list = PACKET_TYPES
     bucket_template = {}
     for direction in ("tx", "rx"):
         bucket_template[direction] = {}
-        for packet_type in PACKET_TYPES:
+        for packet_type in type_list:
             bucket_template[direction][packet_type] = {}
             for node_name in node_names:
                 bucket_template[direction][packet_type][node_name] = {}

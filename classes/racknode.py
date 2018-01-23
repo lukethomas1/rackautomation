@@ -164,7 +164,7 @@ class RackNode(Node):
             for other_subnet in other_node_object.member_subnets:
                 if subnet["number"] == other_subnet["number"]:
                         interface_name = self.get_interface_name(subnet["name"])
-                        node_ip = subnet["addr"] + str(other_node_object.id)
+                        node_ip = subnet["addr"] + "." + str(other_node_object.id)
                         command = "sudo iptables -I INPUT -i {} -s {} -j DROP".format(interface_name, node_ip)
                         commands.append(command)
         return commands
@@ -182,3 +182,7 @@ class RackNode(Node):
         print(self.name + ": " + output_command)
         functions.remote_execute(input_command, self.ip, self.user_name)
         functions.remote_execute(output_command, self.ip, self.user_name)
+
+    def reset_iptables(self):
+        command = "sudo iptables -F"
+        functions.remote_execute(command, self.ip, self.user_name)

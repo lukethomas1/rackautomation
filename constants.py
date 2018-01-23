@@ -1,7 +1,8 @@
 EMANE_FREQS = ["2.412", "2.417", "2.422", "2.427", "2.432", "2.437", "2.442", "2.447", "2.452",
                "2.457", "2.462"]
 
-PACKET_TYPES = ["gvine", "beacon", "babel", "update", "summary"]
+REFACTOR_PACKET_TYPES = ["gvine", "beacon", "babel", "update", "summary"]
+PACKET_TYPES = ["beacon", "gvine", "handshake", "babel"]
 
 PACKET_COLORS = {
     "beacon": "0000ff",
