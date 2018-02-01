@@ -807,7 +807,9 @@ def test_multiple_messages(node_objects):
         last_time = time()
         node_objects[sender_id - 1].send_gvine_file(curr_msg)
         if num_sent != len(msg_sender_dict):
-            sleep(msg_interval - (time() - last_time))
+            sleep_time = msg_interval - (time() - last_time)
+            if (sleep_time > 0):
+                sleep(sleep_time)
 
     for msg_index in range(num_msgs):
         curr_msg = msg_name + str(msg_index)

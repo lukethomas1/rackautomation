@@ -47,6 +47,8 @@ while(loop):
         scenarios.half_flat_dtn_block(node_objects)
     elif(arg == "block"):
         scenarios.block_nodes(node_objects)
+    elif(arg == "blocksubs"):
+        scenarios.disconnect_subnets(node_objects)
     elif(arg == "reset_iptables"):
         commands.reset_iptables(node_objects)
 

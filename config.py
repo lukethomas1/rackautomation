@@ -2,11 +2,11 @@
 DEFAULT_PLATFORM = "rack"
 NODE_PREFIX = "node"
 
-SAVE_FILE = "mulsub2"
+SAVE_FILE = "threesub"
 JUPYTER_SAVE_FILE = "threenodes"
 PCAP_SAVE_FILE = "threenodes"
 
-IMAGE_NAME = "refactorsleep"
+IMAGE_NAME = "v471"
 
 
 # User input variable
