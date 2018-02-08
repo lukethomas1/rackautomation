@@ -72,7 +72,7 @@ class Node:
 
     def remote_start_gvine(self, jar_name):
         command = "cd " + self.gvine_path + " && java -jar " + jar_name + " node" + str(self.id) \
-                  + " 500 >> log_node" + str(self.id) + ".txt &"
+                  + " 500 &> log_node" + str(self.id) + ".txt &"
         functions.remote_execute(command, self.ip, self.user_name)
 
     def remote_start_refactor(self, jar_name, config_name):
