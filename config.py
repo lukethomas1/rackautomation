@@ -2,11 +2,11 @@
 DEFAULT_PLATFORM = "rack"
 NODE_PREFIX = "node"
 
-SAVE_FILE = "threesub"
+SAVE_FILE = "58flat"
 JUPYTER_SAVE_FILE = "threenodes"
 PCAP_SAVE_FILE = "threenodes"
 
-IMAGE_NAME = "v471"
+IMAGE_NAME = "msgAcks"
 
 
 # User input variable
@@ -18,7 +18,7 @@ REMOTE_EMANE_DIR = "~/GrapeVine/topologies/" + SAVE_FILE + "/"
 
 RACK_KEY = "mykey"
 
-JAR_FILE = "gvine-fast.jar"
+JAR_FILE = "gvine_r352.jar"
 REFACTOR_JAR = "c2net.jar"
 REFACTOR_API_JAR = "GvineApiClient.jar"
 

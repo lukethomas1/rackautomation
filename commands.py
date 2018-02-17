@@ -749,20 +749,23 @@ def message(node_objects):
         print("failed to send message, node number outside valid range")
 
 
-def test_message(node_objects):
-    message_name = input("Choose message file name: ")
-    file_size = input("Choose file size (kilobytes): ")
-    node_objects[0].make_test_file(message_name, file_size)
-    node_objects[0].send_gvine_file(message_name)
-    testsuite.wait_for_message_received(message_name, node_objects, 1, 9999)
+def test_message(node_objects, node_index=0, message_name=None, file_size=None):
+    if message_name is None:
+        message_name = input("Choose message file name: ")
+    if file_size is None:
+        file_size = input("Choose file size (kilobytes): ")
+    node_objects[node_index].make_test_file(message_name, file_size)
+    node_objects[node_index].send_gvine_file(message_name)
+    testsuite.wait_for_message_received(message_name, node_objects, node_index + 1, 9999)
 
 
-def test_refactor_message(node_objects):
+def test_refactor_message(node_objects, node_index=0):
     message_name = input("Choose message file name: ")
     file_size = input("Choose file size (kilobytes): ")
     channel = input("Choose channel for file: ")
-    node_objects[0].make_test_file(message_name, file_size)
-    node_objects[0].send_refactor_file(message_name, channel)
+    node_objects[node_index].make_test_file(message_name, file_size)
+    node_objects[node_index].send_refactor_file(message_name, channel)
+    testsuite.wait_for_message_received(message_name, node_objects, node_index + 1, 9999)
 
 def refactor_api_command(node_objects):
     all_nodes = input("Execute this command on all nodes (1) or not all (2): ")
@@ -911,11 +914,11 @@ def stats_events(save_file, node_objects):
     statsuite.combine_event_dbs(input_dir, output_dir)
 
 
-def stats_tcpdump(node_objects):
+def stats_tcpdump(node_objects, folder_name=SAVE_FILE):
     functions.create_dir("./stats/")
     functions.create_dir("./stats/dumps/")
-    functions.create_dir("./stats/dumps/" + SAVE_FILE)
-    output_dir = "./stats/dumps/" + SAVE_FILE + "/"
+    functions.create_dir("./stats/dumps/" + folder_name)
+    output_dir = "./stats/dumps/" + folder_name + "/"
     dump_folder = statsuite.copy_dump_files(node_objects, output_dir)
     map_path = dump_folder + "ipmap"
     statsuite.make_ipmap(node_objects, map_path)
@@ -1144,7 +1147,6 @@ def stats_single_graph(save, download=False, refactor=False):
 def stats_multiple_graphs(save, download=False, refactor=False):
     dump_dirs = glob("./stats/dumps/" + save + "/*")
     chosen_dir = functions.choose_alphabetic_path(dump_dirs)
-    num_nodes = len(glob(chosen_dir + "/*.cap") + glob(chosen_dir + "/*.pcap"))
     num_nodes = functions.get_num_pcap_nodes(chosen_dir)
     node_list = functions.get_node_list(num_nodes)
     bucket_size = int(input("Bucket Size? : "))
@@ -1173,7 +1175,7 @@ def stats_multiple_graphs(save, download=False, refactor=False):
             graphsuite.plot_type_direction(seconds_dict, cnfg[0], bucket_size, cnfg[1], cnfg[2], download)
 
         if not download:
-            return
+            continue
 
         # Move graphs to ~/GrapeVine/testwebsite/rackpython/graphs
         sleep(2)
@@ -1194,6 +1196,18 @@ def stats_multiple_graphs(save, download=False, refactor=False):
         print(str(img_graphs))
         pdf_file.write(img2pdf.convert([i for i in img_graphs]))
         pdf_file.close()
+
+
+def stats_overhead_calc(save):
+    dump_dirs = glob("./stats/dumps/" + save + "/*")
+    chosen_dir = functions.choose_alphabetic_path(dump_dirs)
+    db_path = chosen_dir + "/" + "packets.db"
+
+    packetsuite.make_packets_database(chosen_dir)
+
+    total_tx = packetsuite.count_total_tx(db_path)
+    print("Total tx is " + str(total_tx))
+
 
 
 def stats_type_comparison(save, download=False):
@@ -1422,8 +1436,11 @@ def stats_delays(save_file, num_nodes):
     statsuite.plot_values(delays, "delay")
 
 
-def clean(node_objects):
-    clean_amount = int(input("Clean 1) Data 2) Non certs 3) All non .jar : "))
+def clean(node_objects, amt=None):
+    if amt is None:
+        clean_amount = int(input("Clean 1) Data 2) Non certs 3) All non .jar : "))
+    else:
+        clean_amount = amt
     threads = []
     for node in node_objects:
         new_thread = threading.Thread(target=node.clean_gvine, args=(clean_amount,))

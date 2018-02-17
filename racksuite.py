@@ -141,7 +141,6 @@ while(loop):
     elif(arg == "norm_message"):
         commands.norm_message(iplist)
     elif(arg == "testmessage"):
-        inv_ipdict = functions.invert_dict(nodeipdict)
         commands.test_message(node_objects)
     elif(arg == "testmultiple"):
         commands.test_multiple_messages(node_objects)
@@ -164,6 +163,8 @@ while(loop):
         node_dict = packetsuite.get_pcap_node_dict(dump_dirs[0], len(nodes))
         pkt = node_dict["node1"]["tx"]["gvine"][10]
         packetsuite.useful_functions(pkt)
+    elif(arg == "overhead"):
+        commands.stats_overhead_calc(save)
 
     ##### DATA COMMANDS #####
 

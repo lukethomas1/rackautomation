@@ -396,6 +396,19 @@ def make_single_dict(node_name, db_path, refactor=False):
     return seconds_dict
 
 
+def count_total_tx(db_path):
+    conn = connect(db_path)
+    query = "SELECT * from packets where senderid is not null;"
+    cursor = conn.execute(query)
+    table_data = cursor.fetchall()
+
+    sum = 0
+    for row in table_data:
+        bytesize = row[3]
+        sum += bytesize
+    return sum
+
+
 def make_bucket_template(node_names, earliest_time, latest_time, refactor=False):
     if refactor:
         type_list = REFACTOR_PACKET_TYPES

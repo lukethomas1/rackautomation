@@ -908,7 +908,6 @@ def push_gvine_conf(ip_file, path_to_conf):
 
 
 def change_gvine_tx_rate(tx_rate, path_to_conf):
-    lines = []
     # Read file
     with open(path_to_conf, 'r') as file:
         lines = file.readlines()

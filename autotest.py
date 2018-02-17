@@ -27,6 +27,7 @@ subnets = None
 nodes = None
 iplist = None
 nodeipdict = None
+node_objects = None
 
 # Parameter variables
 max_tx_rate = None
@@ -56,6 +57,7 @@ def update_config():
     nodes = config_result['nodes']
     iplist = config_result['iplist']
     nodeipdict = config_result['nodeipdict']
+    node_objects = commands.get_assigned_nodes()
 
 
 def initialize_parameters(max_tx, num_iter, msg_sizes, err_rates, msg_int, init_indices, ip_file):
@@ -75,13 +77,12 @@ def initialize_parameters(max_tx, num_iter, msg_sizes, err_rates, msg_int, init_
     IP_FILE = ip_file
 
 
-
-def increment_parameters(current, max, length):
+def increment_parameters(current, maxx, length):
     increment_next = True
     for index in range(length):
         if(increment_next):
             current[index] += 1
-            if(current[index] == max[index]):
+            if(current[index] == maxx[index]):
                 current[index] = 0
                 increment_next = True
             else:
@@ -98,14 +99,14 @@ def run(need_setup, need_configure):
         initialize(fail_time=9999)
         update_config()
         stop()
-        functions.clean_nodes(IP_FILE)
+        commands.clean(node_objects, 3)
         setup(need_configure)
     update_config()
     commands.stats_directories(SAVE_FILE)
 
     # Stop and clean in case we did a test before this
     stop()
-    functions.clean_node_data(IP_FILE)
+    commands.clean(node_objects, 2)
 
     # Do the stuff that needs to be done before autotesting no matter what
     necessary_setup()
@@ -125,38 +126,36 @@ def run(need_setup, need_configure):
             # Set up the parameters for this test
             iteration = param_indices[0]
             source_node = param_indices[1]
-            message_size_kb = str(int(int(msg_sizes_bytes[param_indices[2]]) / 1000))
+            message_size_kb = str(int(int(msg_sizes_bytes[param_indices[2]]) / 1024))
             if(param_indices[3] > 0):
                 global previous_error_rate
                 previous_error_rate = error_rates[param_indices[3] - 1]
             error_rate = error_rates[param_indices[3]]
             source_ip = iplist[source_node]
-            frag_size = 100 if int(message_size_kb) <= 100 else 500
-            frag_size = 50000
+            frag_size = 500000
             prepare_test(iteration, source_node, message_size_kb, error_rate, source_ip,
                          frag_size)
             sleep(2)
 
             # Run the test
             start_time = time()
-            start(tcpdump=True)
+            start()
             print("Sleeping 15 seconds for GrapeVine to initialize on nodes")
             sleep(15)
             file_name = "autotestmsg_" + str(source_node + 1) + "_" + str(msg_counter) + ".txt"
-            test(source_node, source_ip, message_size_kb, file_name)
+            test(source_node, message_size_kb, file_name)
 
             # Calculate the maximum wait time for this test
             estimated_hop_time = functions.estimate_hop_time(max_tx_rate, int(message_size_kb) *
-                                                             1000, frag_size)
+                                                             1024, frag_size)
             wait_msg_time = estimated_hop_time * (len(subnets) + 2) * (1 / (1 - error_rate))
             wait_msg_time = max([wait_msg_time, 25])
             print("Estimated hop time: " + str(estimated_hop_time))
             print("Maximum Wait Time: " + str(wait_msg_time))
 
             # Wait for message to be sent
-            inv_ipdict = functions.invert_dict(nodeipdict)
-            test_success = testsuite.wait_for_message_received(file_name, source_node + 1, iplist,
-                                                     inv_ipdict, nodes, wait_msg_time)
+            test_success = testsuite.wait_for_message_received(file_name, node_objects, source_node,
+                                                               wait_msg_time)
 
             '''
             # Delay tolerant testing
@@ -183,7 +182,7 @@ def run(need_setup, need_configure):
             stop()
             # Gather event data
             if(test_success):
-                gather_data(param_indices)
+                gather_data()
             # Remove test data from nodes
             cleanup()
             sleep(3)
@@ -331,24 +330,11 @@ def node_certs(iplist):
     functions.load_certs(path_to_jar, iplist)
 
 
-def start(tcpdump):
-    functions.synchronize(IP_FILE)
+def start():
+    functions.synchronize(node_objects)
 
-    print("Starting emane")
-    script_name = 'emane_start.sh'
-    functions.remote_emane(SAVE_FILE, IP_FILE, script_name)
-    sleep(2)
-
-    if(tcpdump):
-        print("Logging subnet traffic with tcpdump")
-        functions.subnet_tcpdump(nodes, subnets, NODE_PREFIX, nodeipdict)
-
-    print("Deleting previous gvine log files")
-    functions.delete_gvine_log_files(IP_FILE)
-    sleep(2)
-
-    print("Starting GrapeVine jar: " + JAR_FILE)
-    functions.remote_start_gvine(iplist, JAR_FILE)
+    for node in node_objects:
+        node.start(JAR_FILE)
 
 
 def prepare_test(iteration, source_node, message_size_kb, error_rate, source_ip, frag_size):
@@ -377,13 +363,12 @@ def prepare_test(iteration, source_node, message_size_kb, error_rate, source_ip,
         previous_error_rate = error_rate
 
 
-def test(src_index, ip, file_size_kb, msg_name):
+def test(src_index, file_size_kb, msg_name):
     global msg_counter
     msg_counter += 1
-    testsuite.send_gvine_message(ip, msg_name, file_size_kb, str(src_index + 1), "")
+    commands.test_message(node_objects, node_index=src_index, message_name=msg_name, file_size=file_size_kb)
 
     print("Sending message")
-    print("Ip: " + ip)
     print("Message name: " + msg_name)
     print("Sender node: " + str(src_index + 1))
     print("File size(kb): " + file_size_kb)
@@ -395,36 +380,12 @@ def handle_test_failure():
 
 def stop():
     print("Stopping GrapeVine then EMANE")
-    # Stop GrapeVine
-    functions.parallel_ssh(IP_FILE, "sudo pkill java")
-    # Stop EMANE
-    script_file = 'emane_stop.sh'
-    functions.remote_emane(SAVE_FILE, IP_FILE, script_file)
+    for node in node_objects:
+        node.stop_all(SAVE_FILE)
 
 
-def gather_data(param_indices):
-    # Gather data from nodes
-    print("Converting LaJollaDb to Sqlite3 on each node")
-    statsuite.generate_event_dbs(iplist)
-    sleep(3)
-
-    print("Copying Sqlite3 Event databases to this computer")
-    statsuite.clear_node_event_data(SAVE_FILE)
-    path_to_db = path.expanduser("~/test/emane/gvine/node/dbs/eventsql_copy.db")
-    statsuite.copy_event_dbs(iplist, path_to_db, "./stats/events/" + SAVE_FILE + "/nodedata/")
-    sleep(3)
-
-    print("Combining Sqlite3 Event databases")
-    input_dir = "./stats/events/" + SAVE_FILE + "/nodedata/"
-    output_dir = "./stats/events/" + SAVE_FILE + "/"
-    path_to_sql_db = statsuite.combine_event_dbs(input_dir, output_dir)
-    sql_folder = "/".join(path_to_sql_db.split("/")[0:-1])
-    # Need to save sql dbs in their own folder before writing params
-    # write_test_params(param_indices, sql_folder)
-
-    print("Copying PCAP files")
-    dump_folder = commands.stats_tcpdump(iplist)
-    write_test_params(param_indices, dump_folder)
+def gather_data():
+    commands.stats_tcpdump(node_objects, "autotest_" + SAVE_FILE)
 
 
 def write_test_params(param_indices, folder_path):
@@ -454,8 +415,7 @@ def write_test_params(param_indices, folder_path):
 
 
 def cleanup():
-    functions.parallel_ssh(IP_FILE, "rm ~/test/emane/gvine/node/autotest*")
-    functions.remote_delete_events(IP_FILE, NODE_PREFIX)
+    commands.clean(node_objects, 2)
 
 
 def print_start_finish(starting):
