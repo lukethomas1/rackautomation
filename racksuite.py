@@ -17,21 +17,23 @@ import scenarios
 PI_IP_LIST = config.PI_IP_LIST
 PLATFORM = config.DEFAULT_PLATFORM
 
+# Check config
+config_result = commands.update_config()
+save = config_result['save']
+json = config_result['json']
+subnets = config_result['subnets']
+nodes = config_result['nodes']
+rack_iplist = config_result['iplist']
+nodeipdict = config_result['nodeipdict']
+racknodes = config_result['racknodes']
+
+node_objects = commands.get_assigned_nodes()
+
 loop = True
 while(loop):
-    # Check config
-    config_result = commands.update_config()
-    save = config_result['save']
-    json = config_result['json']
-    subnets = config_result['subnets']
-    nodes = config_result['nodes']
-    rack_iplist = config_result['iplist']
-    nodeipdict = config_result['nodeipdict']
-    racknodes = config_result['racknodes']
 
     randNodes = [1,5,19,24,45]
 
-    node_objects = commands.get_assigned_nodes()
     print(str(len(node_objects)) + " assigned")
 
     arg = input("Command: ")
