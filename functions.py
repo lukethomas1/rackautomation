@@ -1176,6 +1176,22 @@ def get_node_list(num_nodes):
     return node_list
 
 
+def get_input_list(message, mutator=int):
+    input_list = []
+    user_input = None
+    while user_input != "":
+        try:
+            user_input = input(message)
+            if user_input == "":
+                break
+            user_input = mutator(user_input)
+            input_list.append(user_input)
+        except ValueError:
+            print("Invalid non-integer input, try again")
+            pass
+    return input_list
+
+
 ##### IPTABLES #####
 
 

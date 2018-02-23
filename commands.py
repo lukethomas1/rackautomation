@@ -768,13 +768,17 @@ def test_message(node_objects, node_index=0, message_name=None, file_size=None):
     testsuite.wait_for_message_received(message_name, node_objects, node_index + 1, 9999)
 
 
-def test_refactor_message(node_objects, node_index=0):
-    message_name = input("Choose message file name: ")
-    file_size = input("Choose file size (kilobytes): ")
-    channel = input("Choose channel for file: ")
+def test_refactor_message(node_objects, node_index=0, message_name=None, file_size=None,
+                          channel="files", wait=True):
+    if message_name is None:
+        message_name = input("Choose message file name: ")
+    if file_size is None:
+        file_size = input("Choose file size (kilobytes): ")
+    #channel = input("Choose channel for file: ")
     node_objects[node_index].make_test_file(message_name, file_size)
     node_objects[node_index].send_refactor_file(message_name, channel)
-    testsuite.wait_for_message_received(message_name, node_objects, node_index + 1, 9999)
+    if wait:
+        testsuite.wait_for_message_received(message_name, node_objects, node_index + 1, 9999)
 
 def refactor_api_command(node_objects):
     all_nodes = input("Execute this command on all nodes (1) or not all (2): ")

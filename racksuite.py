@@ -45,6 +45,8 @@ while(loop):
         commands.test_refactor_message(node_objects)
     elif(arg == "dtntest"):
         scenarios.dtn_test(save, node_objects)
+    elif(arg == "dtntestre"):
+        scenarios.dtn_test(save, node_objects, refactor=True)
     elif(arg == "reapi"):
         commands.refactor_api_command(node_objects)
     elif(arg == "half_dtn"):

@@ -46,29 +46,42 @@ def block_nodes(node_objects: List[RackNode]):
         for subnet in node.member_subnets:
             node.block_subnet(subnet["name"])
 
-def dtn_test(save_file, node_objects):
-    commands.start(save_file, node_objects)
-    sleep(1)
-    half_flat_dtn_block(node_objects)
-    sleep(1)
-    file_name = "test1"
-    file_size = input("Choose file size (kilobytes): ")
-    commands.test_message_no_wait(node_objects, message_name=file_name, file_size=file_size)
-    sleep(1)
-    sender_id = node_objects[0].id
-    half = int(len(node_objects) / 2)
-    # Wait for the first half to get it
-    testsuite.wait_for_message_received(file_name, node_objects[:half], sender_id, 9999,
-                                        sleep_time=2)
-    sleep(1)
-    commands.reset_iptables(node_objects)
-    sleep(1)
-    testsuite.wait_for_message_received(file_name, node_objects, sender_id, 9999, sleep_time=2)
-    sleep(1)
-    commands.stop(node_objects)
-    sleep(1)
-    commands.stats_tcpdump(node_objects)
-    sleep(1)
-    commands.clean(node_objects, 2)
+def dtn_test(save_file, node_objects, refactor=False):
+    file_sizes = functions.get_input_list("Input another message size: ")
+    file_sizes = [str(filesize) for filesize in file_sizes]
+    print("File sizes: " + str(file_sizes))
+
+    for file_size in file_sizes:
+        print("Running dtntest for message size: " + str(file_size))
+        if refactor:
+            commands.start_refactor(save_file, node_objects)
+        else:
+            commands.start(save_file, node_objects)
+        sleep(1)
+        half_flat_dtn_block(node_objects)
+        sleep(1)
+        file_name = "test1"
+        if refactor:
+            commands.test_refactor_message(node_objects, message_name=file_name,
+                                           file_size=file_size, wait=False)
+        else:
+            commands.test_message_no_wait(node_objects, message_name=file_name, file_size=file_size)
+        sleep(1)
+        sender_id = node_objects[0].id
+        half = int(len(node_objects) / 2)
+        # Wait for the first half to get it
+        testsuite.wait_for_message_received(file_name, node_objects[:half], sender_id, 9999,
+                                            sleep_time=2)
+        sleep(1)
+        commands.reset_iptables(node_objects)
+        sleep(1)
+        testsuite.wait_for_message_received(file_name, node_objects, sender_id, 9999, sleep_time=2)
+        sleep(1)
+        commands.stop(node_objects)
+        sleep(1)
+        commands.stats_tcpdump(node_objects)
+        sleep(1)
+        commands.clean(node_objects, 2)
+        sleep(3)
 
 
