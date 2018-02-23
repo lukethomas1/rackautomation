@@ -82,8 +82,8 @@ def check_message_receiving(ip, ssh, key):
     return not exit_status
 
 
-def wait_for_message_received(file_name, node_objects, sender_id, wait_time):
-    sleep_time = 5
+def wait_for_message_received(file_name, node_objects, sender_id, wait_time, sleep_time=5,
+                              do_print=True):
     start_time = time()
     received = False
     try:
@@ -91,13 +91,13 @@ def wait_for_message_received(file_name, node_objects, sender_id, wait_time):
             sleep(sleep_time)
             elapsed_time = time() - start_time
             print("\nChecking if message was received: " + str(elapsed_time) + " seconds")
-            received = check_network_received(file_name, node_objects, sender_id)
+            received = check_network_received(file_name, node_objects, sender_id, do_print=do_print)
     except KeyboardInterrupt:
         pass
     return received
 
 
-def check_network_received(file_name, node_objects, sender_id):
+def check_network_received(file_name, node_objects, sender_id, do_print=True):
     threads = []
     return_queue = queue.Queue()
     for node in node_objects:
@@ -120,7 +120,8 @@ def check_network_received(file_name, node_objects, sender_id):
     return_value = True
     for node_name in sorted(received_dict.keys(), key=lambda n: get_trailing_number(n)):
         received = received_dict[node_name]
-        print_success_fail(received, node_name + " ")
+        if do_print:
+            print_success_fail(received, node_name + " ")
         if not received:
             return_value = False
     return return_value

@@ -749,6 +749,15 @@ def message(node_objects):
         print("failed to send message, node number outside valid range")
 
 
+def test_message_no_wait(node_objects, node_index=0, message_name=None, file_size=None):
+    if message_name is None:
+        message_name = input("Choose message file name: ")
+    if file_size is None:
+        file_size = input("Choose file size (kilobytes): ")
+    node_objects[node_index].make_test_file(message_name, file_size)
+    node_objects[node_index].send_gvine_file(message_name)
+
+
 def test_message(node_objects, node_index=0, message_name=None, file_size=None):
     if message_name is None:
         message_name = input("Choose message file name: ")

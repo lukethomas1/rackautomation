@@ -1,14 +1,28 @@
 from typing import List
 from classes.racknode import RackNode
+import threading
+from time import sleep
 
 import functions
+import commands
+import testsuite
 
 def half_flat_dtn_block(node_objects):
+    threads = []
     half = int(len(node_objects) / 2)
     for node_index in range(0, half):
         for other_index in range(half, half*2):
-            node_objects[node_index].block_node(node_objects[other_index])
-            node_objects[other_index].block_node(node_objects[node_index])
+            a = node_objects[node_index]
+            b = node_objects[other_index]
+            new_thread_a = threading.Thread(target=a.block_node, args=(b,))
+            new_thread_b = threading.Thread(target=b.block_node, args=(a,))
+            threads.append(new_thread_a)
+            threads.append(new_thread_b)
+            new_thread_a.start()
+            new_thread_b.start()
+    for t in threads:
+        t.join()
+    print("Done.")
 
 def disconnect_subnets(node_objects: List[RackNode]):
     choice = input("Disconnect all nodes (leave blank) or choose (c): ")
@@ -31,3 +45,30 @@ def block_nodes(node_objects: List[RackNode]):
         node = node_objects[node_index]
         for subnet in node.member_subnets:
             node.block_subnet(subnet["name"])
+
+def dtn_test(save_file, node_objects):
+    commands.start(save_file, node_objects)
+    sleep(1)
+    half_flat_dtn_block(node_objects)
+    sleep(1)
+    file_name = "test1"
+    file_size = input("Choose file size (kilobytes): ")
+    commands.test_message_no_wait(node_objects, message_name=file_name, file_size=file_size)
+    sleep(1)
+    sender_id = node_objects[0].id
+    half = int(len(node_objects) / 2)
+    # Wait for the first half to get it
+    testsuite.wait_for_message_received(file_name, node_objects[:half], sender_id, 9999,
+                                        sleep_time=2)
+    sleep(1)
+    commands.reset_iptables(node_objects)
+    sleep(1)
+    testsuite.wait_for_message_received(file_name, node_objects, sender_id, 9999, sleep_time=2)
+    sleep(1)
+    commands.stop(node_objects)
+    sleep(1)
+    commands.stats_tcpdump(node_objects)
+    sleep(1)
+    commands.clean(node_objects, 2)
+
+
