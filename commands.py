@@ -433,6 +433,17 @@ def start_refactor(save_file, node_objects):
     print("Done.")
 
 
+def start_tun(node_objects):
+    threads = []
+    for node in node_objects:
+        new_thread = threading.Thread(target=node.start_tun, args=())
+        threads.append(new_thread)
+        new_thread.start()
+    for t in threads:
+        t.join()
+    print("Done.")
+
+
 def start_choose(save_file, node_objects):
     node_input = input("Enter node number or range of numbers (e.g 13 or 13-23): ")
     start_nodes = []

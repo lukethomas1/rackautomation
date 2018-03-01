@@ -33,6 +33,23 @@ class RackNode(Node):
         config = "good.json"
         super().remote_start_refactor(jar_name, config)
 
+    def start_tun(self, buffer=100000, timeout=50):
+        command = "sudo nohup /home/" + self.user_name + "/tun/gvtun -b " +\
+                  str(buffer) + " -t " + str(timeout) + " &"
+        print(command)
+        functions.remote_execute(command, self.ip, self.user_name, True, True)
+        return
+        command = "cd /home/" + self.user_name + "/tun/ && ./up.sh " + str(self.id)
+        print(command)
+        functions.remote_execute(command, self.ip, self.user_name)
+        if self.id > 1:
+            self.start_tun_rx()
+
+    def start_tun_rx(self):
+        command = "cd /home/" + self.user_name + "/tun/ && java -jar tuntx.jar rx &"
+        print(command)
+        functions.remote_execute(command, self.ip, self.user_name)
+
     def start_partial(self, jar_name, save=None):
         self.remote_emane(save, "emane_start.sh")
         super().remote_start_gvine(jar_name)
@@ -98,6 +115,8 @@ class RackNode(Node):
 
     def stop_all(self, save=None):
         self.remote_emane(save, "emane_stop.sh")
+        command = "sudo pkill gvtun"
+        functions.remote_execute(command, self.ip, self.user_name)
         super().stop_all()
 
     def generate_emane_stats(self, save):
