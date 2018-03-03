@@ -174,6 +174,17 @@ class Node:
         functions.remote_execute(command, self.ip, self.user_name)
         print("Message sent.\n")
 
+    def push_gvine_file(self, msg_name, receive_node_num=None):
+        print("Pushing message on GrapeVine from " + self.name)
+        command = "cd " + self.gvine_path
+        if(not receive_node_num):
+            command += " && java -jar gvapp.jar push " + msg_name + " " + str(self.id)
+        else:
+            command += (" && java -jar gvapp.jar push " + msg_name + " " +
+                        str(self.id) + " " + receive_node_num)
+        functions.remote_execute(command, self.ip, self.user_name)
+        print("Message pushed.\n")
+
     def send_refactor_file(self, msg_name, channel, port=22124):
         print("Sending message on GrapeVine from " + self.name)
         command = "cd " + self.gvine_path

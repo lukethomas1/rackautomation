@@ -24,6 +24,7 @@ from plotly.offline import init_notebook_mode
 from pickle import load, dump
 import plotly
 import img2pdf
+import PyPDF2
 
 # Local Imports
 import functions
@@ -843,6 +844,40 @@ def test_multiple_messages(node_objects):
         sender_id = msg_sender_dict[msg_index]
         testsuite.wait_for_message_received(curr_msg, node_objects, sender_id, 9999)
 
+def test_multiple_push(node_objects):
+    num_msgs = int(input("Number of messages: "))
+    msg_name = input("Input message prefix: ")
+    msg_size = input("Choose file size (kilobytes): ")
+    msg_sender_dict = {}
+    for msg_index in range(num_msgs):
+        sender_id = int(input("Input id of sender node for message #" +
+                              str(msg_index) + " (1-" + str(len(node_objects)) + "): "))
+        msg_sender_dict[msg_index] = sender_id
+    msg_interval = int(input("Interval between messages: "))
+
+    num_sent = 0
+    for msg_index in msg_sender_dict.keys():
+        sender_id = msg_sender_dict[msg_index]
+        curr_msg = msg_name + str(msg_index)
+        node_objects[sender_id - 1].make_test_file(curr_msg, msg_size)
+        sleep(1)
+
+    for msg_index in msg_sender_dict.keys():
+        num_sent += 1
+        sender_id = msg_sender_dict[msg_index]
+        curr_msg = msg_name + str(msg_index)
+        last_time = time()
+        node_objects[sender_id - 1].push_gvine_file(curr_msg)
+        if num_sent != len(msg_sender_dict):
+            sleep_time = msg_interval - (time() - last_time)
+            if (sleep_time > 0):
+                sleep(sleep_time)
+
+    for msg_index in range(num_msgs):
+        curr_msg = msg_name + str(msg_index)
+        sender_id = msg_sender_dict[msg_index]
+        testsuite.wait_for_message_received(curr_msg, node_objects, sender_id, 9999)
+
 
 def stats_directories(save_file):
     print("Creating stats directories")
@@ -1175,6 +1210,11 @@ def stats_multiple_graphs(save, download=False, refactor=False):
     node_list = functions.get_node_list(num_nodes)
     bucket_size = int(input("Bucket Size? : "))
     db_path = chosen_dir + "/" + "packets.db"
+    if download:
+        pdf_name = input("Name of pdf file?: ")
+        if len(pdf_name) < 5 or pdf_name[-4:] != ".pdf":
+            pdf_name = pdf_name + ".pdf"
+        print(pdf_name)
 
     packetsuite.make_packets_database(chosen_dir)
 
@@ -1192,6 +1232,8 @@ def stats_multiple_graphs(save, download=False, refactor=False):
 
     init_notebook_mode(connected=True)
 
+    # Make graphs, download them, and combine into a pdf
+    pdf_list = []
     for node_number in node_list:
         node_name = NODE_PREFIX + str(node_number)
         seconds_dict = packetsuite.make_single_dict(node_name, db_path, refactor)
@@ -1213,6 +1255,7 @@ def stats_multiple_graphs(save, download=False, refactor=False):
         # Make pdf from graphs
         sleep(2)
         pdf_location = "./graphs/node" + str(node_number) + ".pdf"
+        pdf_list.append(pdf_location)
         img_graphs = []
         for cnfg in graph_configs:
             img_graphs.append("./graphs/" + cnfg[2] + ".png")
@@ -1220,6 +1263,14 @@ def stats_multiple_graphs(save, download=False, refactor=False):
         print(str(img_graphs))
         pdf_file.write(img2pdf.convert([i for i in img_graphs]))
         pdf_file.close()
+
+    if download:
+        pdf_merger = PyPDF2.PdfFileMerger()
+        for pdf in pdf_list:
+            pdf_merger.append(pdf)
+        with open("./graphs/" + pdf_name, 'wb') as pdf_out:
+            pdf_merger.write(pdf_out)
+    print("Done.")
 
 
 def stats_overhead_calc(save):

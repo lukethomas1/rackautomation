@@ -152,6 +152,8 @@ while(loop):
         commands.test_message(node_objects)
     elif(arg == "testmultiple"):
         commands.test_multiple_messages(node_objects)
+    elif arg == "pushmultiple":
+        commands.test_multiple_push(node_objects)
     elif(arg == "checkreceiving"):
         sender_node = int(input("Sender node? : "))
         testsuite.check_network_receiving(iplist, sender_node)
