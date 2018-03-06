@@ -41,7 +41,7 @@ while(loop):
     ##### REFACTOR COMMANDS #####
     if(arg == "startre"):
         commands.start_refactor(save, node_objects)
-    if arg == "starttun":
+    elif arg == "starttun":
         commands.start_tun(node_objects)
     elif(arg == "testre"):
         commands.test_refactor_message(node_objects)
