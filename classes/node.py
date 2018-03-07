@@ -130,6 +130,18 @@ class Node:
         command = "scp " + src_path + " " + self.user_name + "@" + self.ip + ":" + dest_path
         call(command, shell=True, stdout=DEVNULL)
 
+    def push_dir(self, src_path, dest_path, dest_file_name=None):
+        if src_path[-1] != "/":
+            src_path += "/"
+        if dest_file_name:
+            if dest_path[-1] == "/":
+                dest_path = dest_path + dest_file_name
+            else:
+                dest_path = dest_path + "/" + dest_file_name
+        print("Pushing " + src_path + " to " + self.name + " as " + dest_path)
+        command = "scp -r " + src_path + ". " + self.user_name + "@" + self.ip + ":" + dest_path
+        call(command, shell=True, stdout=DEVNULL)
+
     def pull_file(self, remote_path, local_path):
         command = "scp " + self.user_name + "@" + self.ip + ":" + remote_path +\
                   " " + local_path

@@ -89,6 +89,8 @@ while(loop):
         commands.push_config(node_objects)
     elif(arg == "pushfile"):
         commands.push_file(node_objects)
+    elif arg == "pushdir":
+        commands.push_dir(node_objects)
     elif(arg == "txrate"):
         commands.change_tx_rate()
     elif(arg == "fragsize"):

@@ -322,6 +322,25 @@ def push_file(node_objects):
         t.join()
 
 
+def push_dir(node_objects):
+    src_path = input("Input source file path: ")
+    dest_path = input("Input destination file path (1: default gvine 2: default emane): ")
+    file_name = input("Input file name (blank for unchanged): ")
+    src_path = path.expanduser(src_path)
+
+    threads = []
+    for node in node_objects:
+        if(dest_path == "1"):
+            dest_path = node.gvine_path
+        elif(dest_path == "2"):
+            dest_path = node.topo_dir
+        new_thread = threading.Thread(target=node.push_dir, args=(src_path, dest_path, file_name))
+        threads.append(new_thread)
+        new_thread.start()
+    for t in threads:
+        t.join()
+
+
 def gvpki(node_objects):
     # Generate cert on each node
     print("Generating certs")
