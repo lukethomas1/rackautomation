@@ -16,6 +16,7 @@ config.py
 network
 data.pickle
 *.txt
+nohup.out
 
 # Ignore all hidden
 .*

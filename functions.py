@@ -269,10 +269,17 @@ def delete_gvine_log_files(ip_file, user_name):
 
 
 # Edit this computer's ~/.ssh/config file for each sshing to rackspace nodes
-def edit_ssh_config():
-    fmt = 'Host {nodename}\n\tHostName {nodeaddress}\n\tUser emane-01\n\tStrictHostKeyChecking no\n\tIdentityFile ~/.ssh/id_rsa\n\n'
+def edit_ssh_config(node_objects):
+    fmt = 'Host {nodename}\n\tHostName {nodeaddress}\n\tUser {username}\n\tStrictHostKeyChecking ' \
+          'no\n\tIdentityFile ~/.ssh/id_rsa\n\n'
     local_config = path.expanduser("~/.ssh/config")
     file = open(local_config, 'w')
+
+    for node in node_objects:
+        writestring = fmt.format(nodename=node.name, nodeaddress=node.ip, username=node.user_name)
+        file.write(writestring)
+    file.close()
+    return
 
     # Get pairs of node names with ip addresses from rackspace
     process = Popen(['rack', 'servers', 'instance', 'list', '--fields',
@@ -375,6 +382,39 @@ def generate_network_ping_list(subnets, ip_file, blacklist):
                         file.write(" " + to_ip)
                 file.write("\n")
     file.close()
+
+
+def generate_pi_ping_list(node_objects, subnets, ipfile):
+    ip_process = open(ipfile, 'r')
+    ip_list = ip_process.read().splitlines()
+
+    create_dir("./tests/")
+    create_dir("./tests/pingtest/")
+    file = open("./tests/pingtest/network", "w")
+
+    base_ip = "192.168.54."
+
+    for subnet in subnets:
+        num_members = len(subnet['memberids'])
+        if(num_members > 1):
+            for x in range(num_members):
+                ip = ip_list[subnet['memberids'][x] - 1]
+                file.write(ip)
+                for y in range(num_members):
+                    if(x != y):
+                        to_ip = base_ip + str(200 + node_objects[y].id)
+                        file.write(" " + to_ip)
+                file.write("\n")
+    file.close()
+
+
+def generate_ipfile(node_objects, filepath):
+    print("Generating ipfile at path " + filepath)
+    file = open(filepath, "w")
+    for node in node_objects:
+        file.write(node.ip + "\n")
+    file.close()
+    return filepath
 
 
 def get_iplist(ip_file):

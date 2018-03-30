@@ -54,6 +54,9 @@ class RackNode(Node):
         self.remote_emane(save, "emane_start.sh")
         super().remote_start_gvine(jar_name)
 
+    def stop(self, save):
+        super().stop_all(save)
+
     def stop_partial(self, save=None):
         self.remote_emane(save, "emane_stop.sh")
         super().stop_gvine()

@@ -83,7 +83,7 @@ def read_pcap(pcap_path):
 def make_packets_database(dump_dir):
     db_path = dump_dir + "/packets.db"
     if path.exists(db_path):
-        print(db_path + " already exists, returning")
+        #print(db_path + " already exists, returning")
         return
     connection = connect(db_path)
 

@@ -16,6 +16,7 @@ from collections import OrderedDict
 import logging
 import threading
 from subprocess import call
+import queue
 
 # Third Party Imports
 from glob import glob
@@ -143,12 +144,12 @@ def assign_nodes(subnets, nodes):
             print("Adding rackspace node: " + node_name)
             node_objects.append(this_node)
             added_nodes += 1
-        else:
+        elif platform == "rack":
             print(node_name + " is not active")
 
         if platform == "pi":
             this_node = PiNode(node_name, "pi", index+1, ips[index], platform,
-                               "/home/pi/test/", member_subnets, "wlan")
+                               "/home/pi/gvinetest/", member_subnets, "wlan")
             node_objects.append(this_node)
             added_nodes += 1
         elif platform != "rack" and platform != "pi":
@@ -215,8 +216,8 @@ def make_ipfile(num_nodes):
     functions.edit_ssh_config()
 
 
-def edit_ssh():
-    functions.edit_ssh_config()
+def edit_ssh(node_objects):
+    functions.edit_ssh_config(node_objects)
 
 # Creates the configuration files for the desired topology on THIS COMPUTER
 # Creates platform xmls, emane_start.sh, emane_stop.sh, scenario.eel
@@ -252,8 +253,20 @@ def setup(save_file, subnets, nodes, node_objects):
         t.join()
 
     # Do node certifications
-    gvpki(node_objects)
+    if isinstance(node_objects[0], RackNode):
+        gvpki(node_objects)
     print("Done.")
+
+
+def clean_setup(node_objects):
+    threads = []
+    for node in node_objects:
+        if isinstance(node, PiNode):
+            new_thread = threading.Thread(target=node.clean_setup, args=())
+            threads.append(new_thread)
+            new_thread.start()
+    for t in threads:
+        t.join()
 
 
 def update_emane(save_file, subnets, nodes, node_objects):
@@ -556,7 +569,7 @@ def start_norm(iplist, subnets, nodes):
 def stop(node_objects):
     threads = []
     for node in node_objects:
-        new_thread = threading.Thread(target=node.stop_all, args=(SAVE_FILE,))
+        new_thread = threading.Thread(target=node.stop, args=(SAVE_FILE,))
         threads.append(new_thread)
         new_thread.start()
     for t in threads:
@@ -613,10 +626,19 @@ def stop_all_tcpdump():
     functions.parallel_ssh(RACK_IP_FILE, "sudo pkill tcpdump")
 
 
-def rack_ping(subnets):
+def ping_test(node_objects, subnets, node_type="rack"):
     print("Setting up")
-    functions.generate_network_ping_list(subnets, RACK_IP_FILE, IP_BLACK_LIST)
-    testsuite.ping_network()
+    ipfile_path = functions.generate_ipfile(node_objects, RACK_IP_FILE)
+    if node_type == "rack":
+        print("Generating rack ping list")
+        functions.generate_network_ping_list(subnets, RACK_IP_FILE, IP_BLACK_LIST)
+        print("Pinging network")
+        testsuite.ping_network()
+    elif node_type == "pi":
+        print("Generating pi ping list")
+        functions.generate_pi_ping_list(node_objects, subnets, RACK_IP_FILE)
+        print("Pinging network")
+        testsuite.ping_network(node_objects, username="pi")
     print("Done.")
 
 
@@ -800,7 +822,7 @@ def test_message(node_objects, node_index=0, message_name=None, file_size=None):
 
 
 def test_refactor_message(node_objects, node_index=0, message_name=None, file_size=None,
-                          channel="files", wait=True):
+                          channel="files", wait=True, do_print=True):
     if message_name is None:
         message_name = input("Choose message file name: ")
     if file_size is None:
@@ -809,7 +831,25 @@ def test_refactor_message(node_objects, node_index=0, message_name=None, file_si
     node_objects[node_index].make_test_file(message_name, file_size)
     node_objects[node_index].send_refactor_file(message_name, channel)
     if wait:
-        testsuite.wait_for_message_received(message_name, node_objects, node_index + 1, 9999)
+        testsuite.wait_for_message_received(message_name, node_objects, node_index + 1, 9999,
+                                            do_print=do_print)
+
+def test_refactor_msg_forever(node_objects):
+    msg_num = 0
+    file_size = 300
+    sender = 0
+    while(True):
+        sleep(5)
+        msg_name = "test" + str(msg_num) + ".txt"
+        msg_num += 1
+        #file_size = file_size % 5000 + 100
+        print("Sending message " + msg_name + " filesize " + str(file_size) + " from sender " + str(sender + 1))
+        test_refactor_message(node_objects, node_index=sender, message_name=msg_name, file_size=str(file_size),
+                              wait=True, do_print=True)
+        #sender = (sender + 1) % len(node_objects)
+        print("Message " + msg_name + " received")
+        check_errors(node_objects)
+
 
 def refactor_api_command(node_objects):
     all_nodes = input("Execute this command on all nodes (1) or not all (2): ")
@@ -896,6 +936,30 @@ def test_multiple_push(node_objects):
         curr_msg = msg_name + str(msg_index)
         sender_id = msg_sender_dict[msg_index]
         testsuite.wait_for_message_received(curr_msg, node_objects, sender_id, 9999)
+
+
+def check_errors(node_objects):
+    threads = []
+    return_queue = queue.Queue()
+    for node in node_objects:
+        new_thread = threading.Thread(target=lambda q: q.put(node.check_log_exception()),
+                                      args=(return_queue,))
+        threads.append(new_thread)
+        new_thread.start()
+    for thread in threads:
+        thread.join()
+
+    nodes_with_errors = []
+    while not return_queue.empty():
+        rtn_value = return_queue.get()
+        if rtn_value >= 0:
+            nodes_with_errors.append(rtn_value)
+
+    if len(nodes_with_errors) > 0:
+        for node in nodes_with_errors:
+            print("node" + str(node) + " had an exceptions")
+    else:
+        print("No exceptions")
 
 
 def stats_directories(save_file):
@@ -1303,6 +1367,15 @@ def stats_overhead_calc(save):
     print("Total tx is " + str(total_tx))
 
 
+def stats_overhead_all(save):
+    dump_dirs = glob("./stats/dumps/" + save + "/*")
+    for db_path in dump_dirs:
+        packetsuite.make_packets_database(db_path)
+        packet_db = db_path + "/packets.db"
+        total_tx = packetsuite.count_total_tx(packet_db)
+        folder_name = db_path.split("/")[-1]
+        print("Folder " + folder_name + " has total tx of " + str(total_tx))
+
 
 def stats_type_comparison(save, download=False):
     dump_dirs = glob("./stats/dumps/" + save + "/*")
@@ -1543,6 +1616,18 @@ def clean(node_objects, amt=None):
     for t in threads:
         t.join()
     print("Cleaned.")
+
+
+def expi(node_objects):
+    all_nodes = input("Enter (blank) for all nodes or (2) to choose: ")
+    if all_nodes == "2":
+        node_list = functions.get_node_list(len(node_objects))
+    else:
+        node_list = list(range(len(node_objects)))
+
+    command = input("Enter command to execute: ")
+    for node_index in node_list:
+        node_objects[node_index - 1].ex_command(command)
 
 
 # Deletes the topologies/<topology-name>/ folder on each rackspace node

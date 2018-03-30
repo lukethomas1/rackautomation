@@ -259,7 +259,7 @@ class Node:
     def start_tcpdump(self):
         commands = []
         for index in range(len(self.member_subnets)):
-            iface = self.iface_prefix + str(index + 1)
+            iface = self.iface_prefix + str(index)
             print("Starting tcpdump on " + self.name + " and iface " + iface)
             command = "sudo nohup tcpdump -i " + iface + " -n udp -w " + self.gvine_path + iface \
                       + ".pcap &>/dev/null &"
@@ -297,3 +297,11 @@ class Node:
     def pull_log_file(self, folder_name):
         remote_path = self.gvine_path + "log_node" + str(self.id) + ".txt"
         self.pull_file(remote_path, folder_name)
+
+    def check_log_exception(self):
+        log_file = "log_node" + str(self.id) + ".txt"
+        command = "cd " + self.gvine_path + " && grep " + log_file + " -e 'Exception'"
+        exit_status = functions.remote_execute(command, self.ip, self.user_name)
+        if exit_status != 0:
+            return -1
+        return self.id

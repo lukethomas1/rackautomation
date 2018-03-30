@@ -31,9 +31,6 @@ node_objects = commands.get_assigned_nodes()
 
 loop = True
 while(loop):
-
-    randNodes = [1,5,19,24,45]
-
     print(str(len(node_objects)) + " assigned")
 
     arg = input("Command: ")
@@ -74,13 +71,15 @@ while(loop):
     elif(arg == "ipfile"and PLATFORM == "rack"):
         commands.make_ipfile(len(nodes))
     elif(arg == "editssh"):
-        commands.edit_ssh()
+        commands.edit_ssh(node_objects)
     elif(arg == "reset"):
         commands.reset_topology()
     elif(arg == "configure"):
         commands.configure(save, subnets, nodes)
     elif(arg == "setup"):
         commands.setup(save, subnets, nodes, node_objects)
+    elif arg == "cleansetup":
+        commands.clean_setup(node_objects)
     elif(arg == "update_emane"):
         commands.update_emane(save, subnets, nodes, node_objects)
     elif(arg == "push_scenario"):
@@ -135,7 +134,9 @@ while(loop):
     ##### TEST COMMANDS #####
 
     elif(arg == "rackping"):
-        commands.rack_ping(subnets)
+        commands.ping_test(node_objects, subnets, node_type="rack")
+    elif(arg == "piping"):
+        commands.ping_test(node_objects, subnets, node_type="pi")
     elif(arg == "autotest"):
         commands.run_auto_test()
     elif(arg == "transferdelay"):
@@ -154,6 +155,8 @@ while(loop):
         commands.test_message(node_objects)
     elif(arg == "testmultiple"):
         commands.test_multiple_messages(node_objects)
+    elif arg == "testreforever":
+        commands.test_refactor_msg_forever(node_objects)
     elif arg == "pushmultiple":
         commands.test_multiple_push(node_objects)
     elif(arg == "checkreceiving"):
@@ -177,6 +180,10 @@ while(loop):
         packetsuite.useful_functions(pkt)
     elif(arg == "overhead"):
         commands.stats_overhead_calc(save)
+    elif arg == "checkerrors":
+        commands.check_errors(node_objects)
+    elif arg == "expi":
+        commands.expi(node_objects)
 
     ##### DATA COMMANDS #####
 

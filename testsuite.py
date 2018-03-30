@@ -20,7 +20,7 @@ SUCCESS = '\033[92m'
 FAIL = '\033[91m'
 ENDCOLOR = '\033[0m'
     
-def ping_network():
+def ping_network(node_objects, username="emane-01"):
     network_file = open("./tests/pingtest/network", "r")
     connections = network_file.readlines()
     network_file.close()
@@ -35,22 +35,24 @@ def ping_network():
         # Nodes to ping to from the sshed node
         ping_ips = derp[1:]
 
+        print("---------- Pinging from " + node_ip + " ----------")
+
         loc = path.expanduser("~/.ssh/id_rsa")
         key = RSAKey.from_private_key_file(loc)
         ssh = SSHClient()
         ssh.set_missing_host_key_policy(AutoAddPolicy())
-        ssh.connect(node_ip, username="emane-01", pkey=key)
-
-        print("---------- Pinging from " + node_ip + " ----------")
+        ssh.connect(node_ip, username=username, pkey=key)
 
         for ip in ping_ips:
             command = "ping -c 1 " + ip
             stdin, stdout, stderr = ssh.exec_command(command)
             exit_status = stdout.channel.recv_exit_status()
+            node_index = int(ip[-1]) - 1
+            this_ip = node_objects[node_index].ip
             if(not exit_status):
-                print(SUCCESS + ip + " SUCCESS" + ENDCOLOR)
+                print(this_ip + " " + SUCCESS + ip + " SUCCESS" + ENDCOLOR)
             else:
-                print(FAIL + ip + " FAILED" + ENDCOLOR)
+                print(this_ip + " " + FAIL + ip + " FAILED" + ENDCOLOR)
         ssh.close()
 
 
