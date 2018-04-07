@@ -292,8 +292,9 @@ def change_frag_size():
     functions.change_gvine_frag_size(frag_size, path_to_conf)
 
 
-def push_config(node_objects):
-    file_name = input("Enter filename to push (blank for gvine.conf.json): ")
+def push_config(node_objects, file_name=None, dest_file_name=None):
+    if file_name is None:
+        file_name = input("Enter filename to push (blank for gvine.conf.json): ")
     if not file_name:
         file_name = "gvine.conf.json"
     if path.isfile("./autotestfiles/" + file_name):
@@ -301,8 +302,9 @@ def push_config(node_objects):
     else:
         print("ERROR: Nonexistant config file")
         return
-    dest_file_name = input("Enter filename to save as (blank for gvine.conf.json): ")
-    dest_file_name = dest_file_name if dest_file_name else "gvine.conf.json"
+    if dest_file_name is None:
+        dest_file_name = input("Enter filename to save as (blank for gvine.conf.json): ")
+        dest_file_name = dest_file_name if dest_file_name else "gvine.conf.json"
     print("Pushing ./autotestfiles/" + file_name + " to nodes as ~/gvinetest/gvine.conf.json")
     threads = []
     for node in node_objects:
@@ -642,7 +644,7 @@ def ping_test(node_objects, subnets, node_type="rack"):
     print("Done.")
 
 
-def run_auto_test(platform):
+def run_auto_test():
     # Set the test parameters and variables
     num_indices = NUM_INDICES
     max_tx_rate = MAX_TX_RATE
@@ -667,12 +669,8 @@ def run_auto_test(platform):
         initial_indices = [0, 0, 0, 0]
 
     # Initialize the test and start running test
-    if platform == "rack":
-        autotest.initialize_parameters(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates,
-                                       msg_interval, initial_indices, RACK_IP_FILE)
-    elif platform == "pi":
-        autotest.initialize_parameters(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates,
-                                       msg_interval, initial_indices, PI_IP_FILE)
+    autotest.initialize_parameters(max_tx_rate, num_iterations, msg_sizes_bytes, error_rates,
+                                   msg_interval, initial_indices)
 
     need_setup = bool(input("Need Setup? (Leave blank for no): "))
     need_configure = False

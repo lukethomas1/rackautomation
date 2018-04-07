@@ -15,7 +15,6 @@ from time import sleep,time
 NODE_PREFIX = config.NODE_PREFIX
 SAVE_FILE = config.SAVE_FILE
 IMAGE_NAME = config.IMAGE_NAME
-IP_FILE = None
 IP_BLACK_LIST = config.IP_BLACK_LIST
 JAR_FILE = config.JAR_FILE
 RACK_KEY = config.RACK_KEY
@@ -25,12 +24,11 @@ save = None
 json = None
 subnets = None
 nodes = None
-iplist = None
 nodeipdict = None
 node_objects = None
 
 # Parameter variables
-max_tx_rate = None
+transmit_rate = None
 num_iterations = None
 msg_sizes_bytes = None
 error_rates = None
@@ -49,32 +47,31 @@ def update_config():
     global nodes
     global iplist
     global nodeipdict
+    global node_objects
     functions.set_topology(SAVE_FILE, NODE_PREFIX)
     config_result = functions.load_data()
     save = config_result['save']
     json = config_result['json']
     subnets = config_result['subnets']
     nodes = config_result['nodes']
-    iplist = config_result['iplist']
     nodeipdict = config_result['nodeipdict']
     node_objects = commands.get_assigned_nodes()
 
 
-def initialize_parameters(max_tx, num_iter, msg_sizes, err_rates, msg_int, init_indices, ip_file):
-    global max_tx_rate
+def initialize_parameters(max_tx, num_iter, msg_sizes, err_rates, msg_int, init_indices):
+    global transmit_rate
     global num_iterations
     global msg_sizes_bytes
     global error_rates
     global msg_interval
     global initial_indices
     global IP_FILE
-    max_tx_rate = max_tx
+    transmit_rate = max_tx
     num_iterations = num_iter
     msg_sizes_bytes = msg_sizes
     error_rates = err_rates
     msg_interval = msg_int
     initial_indices = init_indices
-    IP_FILE = ip_file
 
 
 def increment_parameters(current, maxx, length):
@@ -131,10 +128,8 @@ def run(need_setup, need_configure):
                 global previous_error_rate
                 previous_error_rate = error_rates[param_indices[3] - 1]
             error_rate = error_rates[param_indices[3]]
-            source_ip = iplist[source_node]
             frag_size = 500000
-            prepare_test(iteration, source_node, message_size_kb, error_rate, source_ip,
-                         frag_size)
+            prepare_test(error_rate, frag_size)
             sleep(2)
 
             # Run the test
@@ -146,7 +141,7 @@ def run(need_setup, need_configure):
             test(source_node, message_size_kb, file_name)
 
             # Calculate the maximum wait time for this test
-            estimated_hop_time = functions.estimate_hop_time(max_tx_rate, int(message_size_kb) *
+            estimated_hop_time = functions.estimate_hop_time(transmit_rate, int(message_size_kb) *
                                                              1024, frag_size)
             wait_msg_time = estimated_hop_time * (len(subnets) + 2) * (1 / (1 - error_rate))
             wait_msg_time = max([wait_msg_time, 25])
@@ -209,7 +204,7 @@ def run(need_setup, need_configure):
         if(errors_in_a_row == 5):
             print("There were 5 errors in a row, re-setting up the nodes")
             update_config()
-            setup(False)
+            setup()
             update_config()
             errors_in_a_row = 0
 
@@ -253,6 +248,7 @@ def configure():
 # 1) Do everything nodes need to run GrapeVine that doesn't need to be repeated
 # 2) Setup desired topology on each rackspace node
 # 3) Setup GrapeVine certifications between nodes
+"""
 def setup(need_configure):
     if(need_configure):
         configure()
@@ -300,73 +296,59 @@ def setup(need_configure):
     functions.setup_grapevine(SAVE_FILE, IP_FILE)
 
     node_certs(iplist)
+    """
+def setup():
+    commands.setup(SAVE_FILE, subnets, nodes, node_objects)
 
 
 def necessary_setup():
-    functions.change_gvine_tx_rate(max_tx_rate, "./autotestfiles/gvine.conf.json")
+    functions.change_gvine_tx_rate(transmit_rate, "./autotestfiles/gvine.conf.json")
 
     global error_rate_templates
     error_rate_templates = functions.generate_error_rate_commands(subnets, nodes)
 
 
-def node_certs(iplist):
-    # Generate cert on each node
-    print("Generating certs")
-
-    path_to_jar = path.expanduser("~/test/emane/gvine/node/")
-    functions.generate_certs(iplist, path_to_jar)
-    sleep(3)
-    # Pull cert down from each node
-    print("Pulling certs")
-    functions.pull_certs(iplist)
-    sleep(2)
-    # Push all certs to each node
-    print("Pushing certs")
-    path_to_certs = "./keystore/*"
-    functions.push_certs(IP_FILE, path_to_certs, path_to_jar)
-    sleep(2)
-    # Load all certs on each node
-    print("Loading certs")
-    functions.load_certs(path_to_jar, iplist)
-
-
 def start():
-    functions.synchronize(node_objects)
-
-    for node in node_objects:
-        node.start(JAR_FILE)
+    commands.start(SAVE_FILE, node_objects)
 
 
-def prepare_test(iteration, source_node, message_size_kb, error_rate, source_ip, frag_size):
+def prepare_test(error_rate, frag_size):
+    global previous_error_rate
+    global node_objects
     # Set the fragment size in the local gvine.conf.json, push to nodes if it changed
-    same = functions.change_gvine_frag_size(frag_size, "./autotestfiles/gvine.conf.json")
+    config_file = "gvine.conf.json"
+    config_path = "./autotestfiles/" + config_file
+    same = functions.change_gvine_frag_size(frag_size, config_path)
     if(not same):
-        functions.push_gvine_conf(IP_FILE, "./autotestfiles/gvine.conf.json")
+        commands.push_config(node_objects, file_name=config_file, dest_file_name=config_file)
 
     # Set the error rate
-    global previous_error_rate
     if(error_rate != previous_error_rate):
         if(previous_error_rate != 0):
-            for index in range(len(iplist)):
-                ip = iplist[index]
+            for index in range(len(node_objects)):
                 templates = error_rate_templates[index + 1]
                 for template in templates:
-                    print("Removing error_rate " + str(previous_error_rate) + " from " + ip)
-                    functions.remote_remove_error_rate(ip, previous_error_rate, template)
+                    command = template.format(action="-D", rate=str(error_rate))
+                    for node in node_objects:
+                        print("Removing error_rate " + str(previous_error_rate) + " from " +
+                              node.name)
+                        node.execute_command(command)
         if(error_rate != 0):
-            for index in range(len(iplist)):
-                ip = iplist[index]
+            for index in range(len(node_objects)):
                 templates = error_rate_templates[index + 1]
                 for template in templates:
-                    print("Setting error_rate " + str(error_rate) + " on " + ip)
-                    functions.remote_set_error_rate(ip, error_rate, template)
+                    command = template.format(action="-A", rate=str(error_rate))
+                    for node in node_objects:
+                        print("Setting error_rate " + str(error_rate) + " on " + node.name)
+                        node.execute_command(command)
         previous_error_rate = error_rate
 
 
 def test(src_index, file_size_kb, msg_name):
     global msg_counter
     msg_counter += 1
-    commands.test_message(node_objects, node_index=src_index, message_name=msg_name, file_size=file_size_kb)
+    commands.test_message(node_objects, node_index=src_index, message_name=msg_name,
+                          file_size=file_size_kb) #TODO
 
     print("Sending message")
     print("Message name: " + msg_name)
@@ -380,8 +362,8 @@ def handle_test_failure():
 
 def stop():
     print("Stopping GrapeVine then EMANE")
-    for node in node_objects:
-        node.stop_all(SAVE_FILE)
+    global node_objects
+    commands.stop(node_objects)
 
 
 def gather_data():
@@ -405,7 +387,7 @@ def write_test_params(param_indices, folder_path):
         "Sender Node: " + str(sender_node),
         "Msg Size: " + str(msg_size),
         "Error Rate: " + str(error_rate),
-        "Tx Rate: " + str(max_tx_rate),
+        "Tx Rate: " + str(transmit_rate),
         "Topology: " + SAVE_FILE,
         "Rackspace Image: " + IMAGE_NAME
     ]
@@ -433,12 +415,12 @@ def print_details():
     global nodes
     global msg_sizes_bytes
     global error_rates
-    global max_tx_rate
+    global transmit_rate
     print("Topology: " + save)
     print("Rackspace prefix: " + NODE_PREFIX)
     print("Number of iterations: " + str(num_iterations))
     print("Number of nodes: " + str(len(nodes)))
     print("Message sizes: " + str(msg_sizes_bytes))
     print("Error rates: " + str(error_rates))
-    print("Max transmission rate: " + str(max_tx_rate))
+    print("Max transmission rate: " + str(transmit_rate))
     print()

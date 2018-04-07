@@ -57,7 +57,7 @@ class Node:
                 "statistic.db log* eventlogs/* dbs/* data/*"
             )
         elif amount == 2:
-            command += "$(ls -I '*.jar' -I '*.json' -I '*.cer' -I '*pki.db*')"
+            command += "$(ls -I '*.py' -I '*.jar' -I '*.json' -I '*.cer' -I '*pki.db*')"
         elif amount == 3:
             command += "$(ls -I '*.jar' -I '*.json')"
         functions.remote_execute(command, self.ip, self.user_name)
@@ -108,17 +108,10 @@ class Node:
         ).format(self.gvine_path, num_nodes)
         functions.remote_execute(command, self.ip, self.user_name)
 
-    ##### PARAMETERS FOR AUTOTEST #####
-
-    def remote_set_error_rate(self, error_rate, command_template):
-        command = command_template.format(action="-A", rate=str(error_rate))
-        functions.remote_execute(command, self.ip, self.user_name)
-
-    def remote_remove_error_rate(self, error_rate, command_template):
-        command = command_template.format(action="-D", rate=str(error_rate))
-        functions.remote_execute(command, self.ip, self.user_name)
-
     ##### BASIC FUNCTIONALITY #####
+
+    def execute_command(self, command):
+        functions.remote_execute(command, self.ip, self.user_name)
 
     def push_file(self, src_path, dest_path, dest_file_name=None):
         if dest_file_name:
@@ -216,8 +209,7 @@ class Node:
 
     def stop_all(self, save=None):
         self.stop_gvine()
-        functions.remote_execute("sudo pkill norm && sudo pkill tcpdump",
-                                 self.ip, self.user_name)
+        functions.remote_execute("sudo pkill norm && sudo pkill tcpdump", self.ip, self.user_name)
 
     def stop_gvine(self):
         jar_name = "gvapp.jar"
@@ -259,7 +251,7 @@ class Node:
     def start_tcpdump(self):
         commands = []
         for index in range(len(self.member_subnets)):
-            iface = self.iface_prefix + str(index)
+            iface = self.iface_prefix + str(index + 1)
             print("Starting tcpdump on " + self.name + " and iface " + iface)
             command = "sudo nohup tcpdump -i " + iface + " -n udp -w " + self.gvine_path + iface \
                       + ".pcap &>/dev/null &"
