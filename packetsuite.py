@@ -107,7 +107,9 @@ def make_packets_database(dump_dir):
             #     sender_ip = packet.getlayer(IP).src
             #     senderid = "'" + get_sender_name(sender_ip, ipmap) + "'"
             receiverid = "'" + node_name + "'" if not is_sender else "NULL"
-            packettype = packet.load[3]
+            if packet.haslayer(DHCP):
+                continue
+
             if packettype < 0 or packettype > len(PACKET_TYPES) + 5:
                 continue  # not a correct packet
             bytesize = len(packet)

@@ -18,7 +18,8 @@ import functions
 from config import IP_BLACK_LIST
 
 class Node:
-    def __init__(self, name, user_name, id, ip, platform, gvine_path, member_subnets, iface_prefix):
+    def __init__(self, name, user_name, id, ip, platform, gvine_path, member_subnets,
+                 iface_prefix, iface_index, jar_file, api_jar):
         """
 
         :param name: name of the node as it shows on rackspace, default node#
@@ -39,6 +40,9 @@ class Node:
         self.gvine_path = gvine_path
         self.member_subnets = member_subnets
         self.iface_prefix = iface_prefix
+        self.iface_index = iface_index
+        self.jar_file = jar_file
+        self.api_jar = api_jar
 
     def add_to_known_hosts(self):
         loc = path.expanduser("~/.ssh/known_hosts")
@@ -70,15 +74,19 @@ class Node:
         command = "cd " + self.gvine_path + " && rm ./dbs/*"
         functions.remote_execute(command, self.ip, self.user_name)
 
-    def remote_start_gvine(self, jar_name):
-        command = "cd " + self.gvine_path + " && java -jar " + jar_name + " node" + str(self.id) \
-                  + " 500 &> log_node" + str(self.id) + ".txt &"
+    def remote_start_gvine(self, config_name="good.json"):
+        # this is the refactor
+        if self.jar_file == "c2net.jar":
+            command = "cd " + self.gvine_path + " && java -jar " + self.jar_file + " node" + str(
+                self.id) + " " + config_name + " &> log_node" + str(self.id) + ".txt &"
+        # this is main branch
+        else:
+            command = "cd " + self.gvine_path + " && java -jar " + self.jar_file + " node" + str(
+                self.id) + " 500 &> log_node" + str(self.id) + ".txt &"
         functions.remote_execute(command, self.ip, self.user_name)
 
-    def remote_start_refactor(self, jar_name, config_name):
-        command = "cd " + self.gvine_path + " && java -jar " + jar_name + " node" + str(self.id) \
-                  + " " + config_name + " &> log_node" + str(self.id) + ".txt &"
-        functions.remote_execute(command, self.ip, self.user_name)
+    def remote_start_refactor(self):
+        self.remote_start_gvine()
 
     ##### GRAPEVINE GVPKI CERTS #####
 
@@ -169,12 +177,16 @@ class Node:
             exit_status = functions.remote_execute(command, self.ip, self.user_name)
 
     def send_gvine_file(self, msg_name, receive_node_num=None):
+        # This is the refactor api jar
+        if self.api_jar == "GvineApiClient.jar":
+            self.send_refactor_file(msg_name, "files")
+            return
         print("Sending message on GrapeVine from " + self.name)
         command = "cd " + self.gvine_path
         if(not receive_node_num):
-            command += " && java -jar gvapp.jar file " + msg_name + " " + str(self.id)
+            command += " && java -jar " + self.api_jar + " file " + msg_name + " " + str(self.id)
         else:
-            command += (" && java -jar gvapp.jar file " + msg_name + " " +
+            command += (" && java -jar " + self.api_jar + " file " + msg_name + " " +
                         str(self.id) + " " + receive_node_num)
         functions.remote_execute(command, self.ip, self.user_name)
         print("Message sent.\n")
@@ -203,9 +215,9 @@ class Node:
         exit_status = functions.remote_execute(command, self.ip, self.user_name)
         return exit_status
 
-    def start(self, jar_name, save=None):
+    def start(self, save=None):
         self.remote_delete_path(self.gvine_path + "log*")
-        self.remote_start_gvine(jar_name)
+        self.remote_start_gvine()
 
     def stop_all(self, save=None):
         self.stop_gvine()
@@ -251,7 +263,7 @@ class Node:
     def start_tcpdump(self):
         commands = []
         for index in range(len(self.member_subnets)):
-            iface = self.iface_prefix + str(index + 1)
+            iface = self.iface_prefix + str(index + self.iface_index)
             print("Starting tcpdump on " + self.name + " and iface " + iface)
             command = "sudo nohup tcpdump -i " + iface + " -n udp -w " + self.gvine_path + iface \
                       + ".pcap &>/dev/null &"
@@ -259,7 +271,7 @@ class Node:
         functions.remote_execute_commands(commands, self.ip, self.user_name)
 
     def retrieve_pcaps(self, pcap_folder):
-        for index in range(1, len(self.member_subnets) + 1):
+        for index in range(self.iface_index, len(self.member_subnets) + self.iface_index):
             iface = self.iface_prefix + str(index)
             command = "scp " + self.user_name + "@" + self.ip + ":" + self.gvine_path + \
                       iface + ".pcap " + pcap_folder + self.name + "_" + iface + ".pcap"

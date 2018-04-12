@@ -149,8 +149,8 @@ def run(need_setup, need_configure):
             print("Maximum Wait Time: " + str(wait_msg_time))
 
             # Wait for message to be sent
-            test_success = testsuite.wait_for_message_received(file_name, node_objects, source_node,
-                                                               wait_msg_time)
+            test_success = testsuite.wait_for_message_received(file_name, node_objects,
+                                                               source_node + 1, wait_msg_time)
 
             '''
             # Delay tolerant testing
@@ -348,7 +348,7 @@ def test(src_index, file_size_kb, msg_name):
     global msg_counter
     msg_counter += 1
     commands.test_message(node_objects, node_index=src_index, message_name=msg_name,
-                          file_size=file_size_kb) #TODO
+                          file_size=file_size_kb, do_wait=False) #TODO
 
     print("Sending message")
     print("Message name: " + msg_name)

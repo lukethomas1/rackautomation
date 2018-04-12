@@ -135,21 +135,24 @@ def assign_nodes(subnets, nodes):
     index = 0
     added_nodes = 0
     while added_nodes < len(nodes) and index < 300:
-        node_name = NODE_PREFIX + str(index + 1)
-        member_subnets = [subnet for subnet in subnets if index + 1 in subnet['memberids']]
-        if platform == "rack" and node_name in active_node_list:
-            this_node = RackNode(node_name, "emane-01", index + 1, ip_dict[node_name],
-                                 platform, "/home/emane-01/gvinetest/", member_subnets, "emane",
-                                 "/home/emane-01/emane/topologies/")
-            print("Adding rackspace node: " + node_name)
+        node_index_name = NODE_PREFIX + str(index + 1)
+        node_name = NODE_PREFIX + str(added_nodes + 1)
+        member_subnets = [subnet for subnet in subnets if added_nodes + 1 in subnet['memberids']]
+        if platform == "rack" and node_index_name in active_node_list:
+            this_node = RackNode(node_name, "emane-01", added_nodes + 1, ip_dict[node_index_name],
+                                 platform, "/home/emane-01/gvinetest/", member_subnets, "emane", 1,
+                                 REFACTOR_JAR, REFACTOR_API_JAR,
+                                 topo_dir="/home/emane-01/emane/topologies/")
+            print("Adding rackspace node: " + node_index_name + " as " + node_name)
             node_objects.append(this_node)
             added_nodes += 1
         elif platform == "rack":
-            print(node_name + " is not active")
+            print(node_index_name + " is not active")
 
         if platform == "pi":
-            this_node = PiNode(node_name, "pi", index+1, ips[index], platform,
-                               "/home/pi/gvinetest/", member_subnets, "wlan")
+            this_node = PiNode(node_name, "pi", added_nodes + 1, ips[index], platform,
+                               "/home/pi/gvinetest/", member_subnets, "wlan", 0, REFACTOR_JAR,
+                               REFACTOR_API_JAR)
             node_objects.append(this_node)
             added_nodes += 1
         elif platform != "rack" and platform != "pi":
@@ -157,6 +160,36 @@ def assign_nodes(subnets, nodes):
             exit(-1)
         index += 1
     return node_objects
+
+def set_version(node_objects):
+    jar_file = input("Input GrapeVine jar file: ")
+    api_jar = input("Input API jar file: ")
+    print("Jar File: " + jar_file)
+    print("API Jar File: " + api_jar)
+    correct = input("Is this correct? (blank for yes): ")
+    if correct == "":
+        for node in node_objects:
+            node.jar_file = jar_file
+            node.api_jar = api_jar
+        functions.update_pickle(".data.nodes", "nodes", node_objects)
+        print("Jar is now " + jar_file + " and api jar is now " + api_jar)
+    else:
+        print("Aborting")
+
+def toggle_version(node_objects):
+    first_node = node_objects[0]
+    if first_node.jar_file == REFACTOR_JAR:
+        jar_file = JAR_FILE
+        api_jar = "gvapp.jar"
+    else:
+        jar_file = REFACTOR_JAR
+        api_jar = REFACTOR_API_JAR
+
+    for node in node_objects:
+        node.jar_file = jar_file
+        node.api_jar = api_jar
+        functions.update_pickle(".data.nodes", "nodes", node_objects)
+    print("Jar is now " + jar_file + " and api jar is now " + api_jar)
 
 def get_nodes(subnets, nodes):
     platform = input("Input Platform : ")
@@ -449,7 +482,7 @@ def reset_iptables(node_objects):
 def start(save_file, node_objects):
     threads = []
     for node in node_objects:
-        new_thread = threading.Thread(target=node.start, args=(JAR_FILE, save_file,))
+        new_thread = threading.Thread(target=node.start, args=(save_file,))
         threads.append(new_thread)
         new_thread.start()
     for t in threads:
@@ -460,7 +493,7 @@ def start(save_file, node_objects):
 def start_refactor(save_file, node_objects):
     threads = []
     for node in node_objects:
-        new_thread = threading.Thread(target=node.start_refactor, args=(REFACTOR_JAR, save_file,))
+        new_thread = threading.Thread(target=node.start_refactor, args=(save_file,))
         threads.append(new_thread)
         new_thread.start()
     for t in threads:
@@ -809,14 +842,15 @@ def test_message_no_wait(node_objects, node_index=0, message_name=None, file_siz
     node_objects[node_index].send_gvine_file(message_name)
 
 
-def test_message(node_objects, node_index=0, message_name=None, file_size=None):
+def test_message(node_objects, node_index=0, message_name=None, file_size=None, do_wait=True):
     if message_name is None:
         message_name = input("Choose message file name: ")
     if file_size is None:
         file_size = input("Choose file size (kilobytes): ")
     node_objects[node_index].make_test_file(message_name, file_size)
     node_objects[node_index].send_gvine_file(message_name)
-    testsuite.wait_for_message_received(message_name, node_objects, node_index + 1, 9999)
+    if do_wait:
+        testsuite.wait_for_message_received(message_name, node_objects, node_index + 1, 9999)
 
 
 def test_refactor_message(node_objects, node_index=0, message_name=None, file_size=None,
@@ -1355,6 +1389,9 @@ def stats_multiple_graphs(save, download=False, refactor=False):
 
 
 def stats_overhead_calc(save):
+    other_save = input("Input save file (blank for " + save + ") : ")
+    if other_save is not None:
+        save = other_save
     dump_dirs = glob("./stats/dumps/" + save + "/*")
     chosen_dir = functions.choose_alphabetic_path(dump_dirs)
     db_path = chosen_dir + "/" + "packets.db"
@@ -1366,6 +1403,9 @@ def stats_overhead_calc(save):
 
 
 def stats_overhead_all(save):
+    other_save = input("Input save file (blank for " + save + ") : ")
+    if other_save is not None:
+        save = other_save
     dump_dirs = glob("./stats/dumps/" + save + "/*")
     for db_path in dump_dirs:
         packetsuite.make_packets_database(db_path)
@@ -1625,6 +1665,7 @@ def expi(node_objects):
 
     command = input("Enter command to execute: ")
     for node_index in node_list:
+        print(node_objects[node_index - 1].name)
         node_objects[node_index - 1].ex_command(command)
 
 

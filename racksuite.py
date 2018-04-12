@@ -64,6 +64,10 @@ while(loop):
         functions.update_pickle(".data.nodes", "nodes", node_objects)
     elif(arg == "unassign"):
         functions.update_pickle(".data.nodes", "nodes", [])
+    elif arg == "setversion":
+        commands.set_version(node_objects)
+    elif arg == "toggleversion":
+        commands.toggle_version(node_objects)
     elif(arg == "init"):
         commands.initialize(save, len(nodes))
     elif(arg == "iplist"and PLATFORM == "rack"):
@@ -180,6 +184,8 @@ while(loop):
         packetsuite.useful_functions(pkt)
     elif(arg == "overhead"):
         commands.stats_overhead_calc(save)
+    elif arg == "overheadall":
+        commands.stats_overhead_all(save)
     elif arg == "checkerrors":
         commands.check_errors(node_objects)
     elif arg == "expi":

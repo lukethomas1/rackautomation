@@ -17,26 +17,25 @@ import functions
 from classes.node import Node
 
 class RackNode(Node):
-    def __init__(self, name, user_name, id, ip, platform, gvine_path, member_subnets, iface_prefix,
-                 topo_dir=None):
+    def __init__(self, name, user_name, id, ip, platform, gvine_path, member_subnets,
+                 iface_prefix, iface_index, jar_file, api_jar, topo_dir=None):
         self.topo_dir = topo_dir
-        super().__init__(name, user_name, id, ip, platform, gvine_path, member_subnets, iface_prefix)
+        super().__init__(name, user_name, id, ip, platform, gvine_path, member_subnets,
+                         iface_prefix, iface_index, jar_file, api_jar)
 
-    def start(self, jar_name, save=None):
+    def start(self, save=None):
         self.remote_emane(save, "emane_start.sh")
         self.start_tcpdump()
-        super().start(jar_name)
+        super().start()
 
-    def start_refactor(self, jar_name, save=None):
+    def start_refactor(self, save=None):
         self.remote_emane(save, "emane_start.sh")
         self.start_tcpdump()
-        config = "good.json"
-        super().remote_start_refactor(jar_name, config)
+        super().remote_start_refactor()
 
     def start_tun(self, buffer=100000, timeout=50):
         command = "sudo nohup /home/" + self.user_name + "/tun/gvtun -b " +\
                   str(buffer) + " -t " + str(timeout) + " &"
-        print(command)
         functions.remote_execute(command, self.ip, self.user_name, True, True)
         return
         command = "cd /home/" + self.user_name + "/tun/ && ./up.sh " + str(self.id)
@@ -55,6 +54,7 @@ class RackNode(Node):
         super().remote_start_gvine(jar_name)
 
     def stop(self, save):
+        self.remote_emane(save, "emane_stop.sh")
         super().stop_all(save)
 
     def stop_partial(self, save=None):

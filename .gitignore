@@ -8,6 +8,7 @@ topologies/
 keystore/
 logfiles/
 graphs/
+autotesting/
 
 # Ignore Files
 pssh-hosts

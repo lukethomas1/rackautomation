@@ -12,9 +12,10 @@ from classes.node import Node
 
 class PiNode(Node):
     def __init__(self, name, user_name, id, ip, platform, gvine_path, member_subnets,
-                 iface_prefix, topo_dir=None):
+                 iface_prefix, iface_index, jar_file, api_jar, topo_dir=None):
         self.topo_dir = topo_dir
-        super().__init__(name, user_name, id, ip, platform, gvine_path, member_subnets, iface_prefix)
+        super().__init__(name, user_name, id, ip, platform, gvine_path, member_subnets,
+                         iface_prefix, iface_index, jar_file, api_jar)
 
     def setup_gvine(self, save=None):
         self.add_to_known_hosts()
@@ -34,14 +35,13 @@ class PiNode(Node):
             self.adhoc_config_stop(self.iface_prefix + str(index), subnet['name'], adhoc_ip)
             index += 1
 
-    def start(self, jar_name, save=None):
+    def start(self, save=None):
         self.start_tcpdump()
-        super().start(jar_name)
+        super().start()
 
-    def start_refactor(self, jar_name, save=None):
+    def start_refactor(self, save=None):
         self.start_tcpdump()
-        config = "good.json"
-        super().remote_start_refactor(jar_name, config)
+        super().remote_start_refactor()
 
     def stop(self, save):
         super().stop_all(save)
