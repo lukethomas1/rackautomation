@@ -109,6 +109,12 @@ def make_packets_database(dump_dir):
             receiverid = "'" + node_name + "'" if not is_sender else "NULL"
             if packet.haslayer(DHCP):
                 continue
+            try:
+                packettype = packet.load[3]
+            except AttributeError as err:
+                print(str(err))
+                print(str(packet.display()))
+                continue
 
             if packettype < 0 or packettype > len(PACKET_TYPES) + 5:
                 continue  # not a correct packet
